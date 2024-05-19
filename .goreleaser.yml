@@ -1,0 +1,49 @@
+---
+project_name: kaytu
+
+release:
+  github:
+    owner: kaytu-io
+    name: plugin-kubernetes
+
+checksum: {}
+
+builds:
+  - id: linux
+    binary: plugin
+    ldflags:
+      - -s -w -X github.com/kaytu-io/plugin-kubernetes/plugin/version.VERSION={{ .Version }}
+    goos:
+      - linux
+    goarch:
+      - amd64
+      - arm64
+    main: ./main.go
+  - id: darwin
+    binary: plugin
+    ldflags:
+      - -s -w -X github.com/kaytu-io/plugin-kubernetes/plugin/version.VERSION={{ .Version }}
+    goos:
+      - darwin
+    goarch:
+      - amd64
+      - arm64
+    main: ./main.go
+  - id: windows
+    binary: plugin
+    ldflags:
+      - -s -w -X github.com/kaytu-io/plugin-kubernetes/plugin/version.VERSION={{ .Version }}
+    goos:
+      - windows
+    goarch:
+      - amd64
+    main: ./main.go
+archives:
+  - id: binary
+    format: binary
+  - id: default
+    format: tar.gz
+    builds: [linux, darwin]
+  - id: windows
+    format: zip
+    builds: [windows]
