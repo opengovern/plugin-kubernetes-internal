@@ -28,6 +28,9 @@ func (j *ListAllNamespacesJob) Run() error {
 		return err
 	}
 	for _, namespace := range namespaces {
+		if namespace.Name == "kube-system" {
+			continue
+		}
 		j.processor.jobQueue.Push(NewListPodsForNamespaceJob(j.ctx, j.processor, namespace.Name))
 	}
 	return nil

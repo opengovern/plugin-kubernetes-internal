@@ -16,3 +16,20 @@ type PodItem struct {
 	//Metrics             map[string][]types2.Datapoint
 	//Wastage             kaytu.EC2InstanceWastageResponse
 }
+
+func (i PodItem) ToOptimizationItem() *golang.OptimizationItem {
+	oi := &golang.OptimizationItem{
+		Id:                 i.Pod.Name,
+		ResourceType:       "", // TODO (probably use resource request/limit)
+		Region:             i.Namespace,
+		Devices:            nil,
+		Preferences:        i.Preferences,
+		Description:        "", // TODO update
+		Loading:            i.OptimizationLoading,
+		Skipped:            i.Skipped,
+		SkipReason:         i.SkipReason,
+		LazyLoadingEnabled: i.LazyLoadingEnabled,
+	}
+
+	return oi
+}

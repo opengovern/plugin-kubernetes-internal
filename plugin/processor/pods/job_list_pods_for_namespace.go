@@ -44,7 +44,8 @@ func (j *ListPodsForNamespaceJob) Run() error {
 
 		// TODO: metrics and lazy loading
 
-		j.processor.items.Set(fmt.Sprintf("%s/%s", j.namespace, pod.Name), item)
+		j.processor.items.Set(fmt.Sprintf("%s/%s", pod.Namespace, pod.Name), item)
+		j.processor.publishOptimizationItem(item.ToOptimizationItem())
 	}
 	return nil
 }
