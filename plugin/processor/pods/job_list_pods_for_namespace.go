@@ -20,10 +20,10 @@ func NewListPodsForNamespaceJob(ctx context.Context, processor *Processor, names
 }
 
 func (j *ListPodsForNamespaceJob) Id() string {
-	return "list_pods_for_namespace_kubernetes"
+	return fmt.Sprintf("list_pods_for_namespace_kubernetes_%s", j.namespace)
 }
 func (j *ListPodsForNamespaceJob) Description() string {
-	return "Listing all pods in namespace (Kubernetes Pods)"
+	return fmt.Sprintf("Listing all pods in namespace %s (Kubernetes Pods)", j.namespace)
 }
 func (j *ListPodsForNamespaceJob) Run() error {
 	pods, err := j.processor.provider.ListPodsInNamespace(j.ctx, j.namespace)

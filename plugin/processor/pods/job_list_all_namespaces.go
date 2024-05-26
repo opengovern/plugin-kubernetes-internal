@@ -17,7 +17,7 @@ func NewListAllNamespacesJob(ctx context.Context, processor *Processor) *ListAll
 }
 
 func (j *ListAllNamespacesJob) Id() string {
-	return "list_all_regions_for_kubernetes_pods"
+	return "list_all_namespaces_for_kubernetes_pods"
 }
 func (j *ListAllNamespacesJob) Description() string {
 	return "Listing all available namespaces (Kubernetes Pods)"
