@@ -5,12 +5,13 @@ import (
 	"github.com/kaytu-io/kaytu/pkg/plugin/proto/src/golang"
 	"github.com/kaytu-io/kaytu/pkg/plugin/sdk"
 	kaytuKubernetes "github.com/kaytu-io/plugin-kubernetes/plugin/kubernetes"
+	kaytuPrometheus "github.com/kaytu-io/plugin-kubernetes/plugin/prometheus"
 	util "github.com/kaytu-io/plugin-kubernetes/utils"
 )
 
 type Processor struct {
-	provider                *kaytuKubernetes.Kubernetes
-	identification          map[string]string
+	kubernetesProvider      *kaytuKubernetes.Kubernetes
+	prometheusProvider      *kaytuPrometheus.Prometheus
 	items                   util.ConcurrentMap[string, PodItem]
 	publishOptimizationItem func(item *golang.OptimizationItem)
 	kaytuAcccessToken       string
@@ -20,16 +21,16 @@ type Processor struct {
 
 func NewProcessor(
 	ctx context.Context,
-	prv *kaytuKubernetes.Kubernetes,
-	identification map[string]string,
+	kubernetesProvider *kaytuKubernetes.Kubernetes,
+	prometheusProvider *kaytuPrometheus.Prometheus,
 	publishOptimizationItem func(item *golang.OptimizationItem),
 	kaytuAcccessToken string,
 	jobQueue *sdk.JobQueue,
 	lazyloadCounter *sdk.SafeCounter,
 ) *Processor {
 	r := &Processor{
-		provider:                prv,
-		identification:          identification,
+		kubernetesProvider:      kubernetesProvider,
+		prometheusProvider:      prometheusProvider,
 		items:                   util.NewMap[string, PodItem](),
 		publishOptimizationItem: publishOptimizationItem,
 		kaytuAcccessToken:       kaytuAcccessToken,

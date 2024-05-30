@@ -23,7 +23,7 @@ func (j *ListAllNamespacesJob) Description() string {
 	return "Listing all available namespaces (Kubernetes Pods)"
 }
 func (j *ListAllNamespacesJob) Run() error {
-	namespaces, err := j.processor.provider.ListAllNamespaces(j.ctx)
+	namespaces, err := j.processor.kubernetesProvider.ListAllNamespaces(j.ctx)
 	if err != nil {
 		return err
 	}

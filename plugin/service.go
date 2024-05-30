@@ -9,7 +9,9 @@ import (
 	"github.com/kaytu-io/plugin-kubernetes/plugin/preferences"
 	"github.com/kaytu-io/plugin-kubernetes/plugin/processor"
 	"github.com/kaytu-io/plugin-kubernetes/plugin/processor/pods"
+	kaytuPrometheus "github.com/kaytu-io/plugin-kubernetes/plugin/prometheus"
 	"github.com/kaytu-io/plugin-kubernetes/plugin/version"
+	"strings"
 )
 
 type KubernetesPlugin struct {
@@ -38,6 +40,48 @@ func (p *KubernetesPlugin) GetConfig() golang.RegisterConfig {
 						Description: "Kubectl context name",
 						Required:    false,
 					},
+					{
+						Name:        "prom-address",
+						Default:     "http://localhost:9090",
+						Description: "Prometheus address",
+						Required:    false,
+					},
+					{
+						Name:        "prom-username",
+						Default:     "",
+						Description: "Prometheus basic auth username",
+						Required:    false,
+					},
+					{
+						Name:        "prom-password",
+						Default:     "",
+						Description: "Prometheus basic auth password",
+						Required:    false,
+					},
+					{
+						Name:        "prom-client-id",
+						Default:     "",
+						Description: "Prometheus OAuth2 client id",
+						Required:    false,
+					},
+					{
+						Name:        "prom-client-secret",
+						Default:     "",
+						Description: "Prometheus OAuth2 client secret",
+						Required:    false,
+					},
+					{
+						Name:        "prom-token-url",
+						Default:     "",
+						Description: "Prometheus OAuth2 token url",
+						Required:    false,
+					},
+					{
+						Name:        "prom-scopes",
+						Default:     "",
+						Description: "Prometheus OAuth2 comma seperated scopes",
+						Required:    false,
+					},
 				},
 				DefaultPreferences: preferences.DefaultPodsPreferences,
 				LoginRequired:      true,
@@ -50,15 +94,39 @@ func (p *KubernetesPlugin) SetStream(stream golang.Plugin_RegisterClient) {
 	p.stream = stream
 }
 
+func getFlagOrNil(flags map[string]string, key string) *string {
+	if val, ok := flags[key]; ok {
+		return &val
+	}
+	return nil
+}
+
 func (p *KubernetesPlugin) StartProcess(command string, flags map[string]string, kaytuAccessToken string, jobQueue *sdk.JobQueue) error {
 	ctx := context.Background()
-	kubeContext := flags["context"]
-	cfg, err := kaytuKubernetes.GetConfig(ctx, &kubeContext)
+
+	kubeContext := getFlagOrNil(flags, "context")
+	kubeCfg, err := kaytuKubernetes.GetConfig(ctx, kubeContext)
+	if err != nil {
+		return err
+	}
+	kubeClient, err := kaytuKubernetes.NewKubernetes(kubeCfg)
 	if err != nil {
 		return err
 	}
 
-	kubeClient, err := kaytuKubernetes.NewKubernetes(cfg)
+	promAddress := getFlagOrNil(flags, "prom-address")
+	promUsername := getFlagOrNil(flags, "prom-username")
+	promPassword := getFlagOrNil(flags, "prom-password")
+	promClientId := getFlagOrNil(flags, "prom-client-id")
+	promClientSecret := getFlagOrNil(flags, "prom-client-secret")
+	promTokenUrl := getFlagOrNil(flags, "prom-token-url")
+	promScopesStr := getFlagOrNil(flags, "prom-scopes")
+	var promScopes []string
+	if promScopesStr != nil {
+		promScopes = strings.Split(*promScopesStr, ",")
+	}
+	promCfg := kaytuPrometheus.GetConfig(promAddress, promUsername, promPassword, promClientId, promClientSecret, promTokenUrl, promScopes)
+	promClient, err := kaytuPrometheus.NewPrometheus(promCfg)
 	if err != nil {
 		return err
 	}
@@ -84,7 +152,7 @@ func (p *KubernetesPlugin) StartProcess(command string, flags map[string]string,
 
 	switch command {
 	case "kubernetes-pods":
-		p.processor = pods.NewProcessor(ctx, kubeClient, nil, publishOptimizationItem, kaytuAccessToken, jobQueue, nil)
+		p.processor = pods.NewProcessor(ctx, kubeClient, promClient, publishOptimizationItem, kaytuAccessToken, jobQueue, nil)
 		if err != nil {
 			return err
 		}
