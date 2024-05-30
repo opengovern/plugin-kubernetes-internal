@@ -81,3 +81,17 @@ func (p *Prometheus) GetCpuMetricsForPodContainer(ctx context.Context, namespace
 
 	return parsePrometheusResponse(value)
 }
+
+func (p *Prometheus) GetMemoryMetricsForPodContainer(ctx context.Context, namespace, podName, containerName string) (map[string]float64, error) {
+	query := fmt.Sprintf(`sum(container_memory_usage_bytes{namespace="%s", pod="%s", container="%s"}) by (container)`, namespace, podName, containerName)
+	value, _, err := p.api.QueryRange(ctx, query, prometheus.Range{
+		Start: time.Now().Add(-7 * 24 * time.Hour).Truncate(time.Hour),
+		End:   time.Now().Truncate(time.Hour),
+		Step:  time.Hour,
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	return parsePrometheusResponse(value)
+}

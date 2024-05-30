@@ -31,6 +31,11 @@ func (j *GetPodMetricsJob) Run() error {
 		if err != nil {
 			return err
 		}
+
+		_, err = j.processor.prometheusProvider.GetMemoryMetricsForPodContainer(j.ctx, j.pod.Pod.Namespace, j.pod.Pod.Name, container.Name)
+		if err != nil {
+			return err
+		}
 		// TODO - store metrics
 	}
 	return nil
