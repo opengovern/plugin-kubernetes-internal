@@ -13,7 +13,7 @@ type Processor struct {
 	kubernetesProvider      *kaytuKubernetes.Kubernetes
 	prometheusProvider      *kaytuPrometheus.Prometheus
 	items                   util.ConcurrentMap[string, PodItem]
-	publishOptimizationItem func(item *golang.OptimizationItem)
+	publishOptimizationItem func(item *golang.ChartOptimizationItem)
 	kaytuAcccessToken       string
 	jobQueue                *sdk.JobQueue
 	lazyloadCounter         *sdk.SafeCounter
@@ -23,7 +23,7 @@ func NewProcessor(
 	ctx context.Context,
 	kubernetesProvider *kaytuKubernetes.Kubernetes,
 	prometheusProvider *kaytuPrometheus.Prometheus,
-	publishOptimizationItem func(item *golang.OptimizationItem),
+	publishOptimizationItem func(item *golang.ChartOptimizationItem),
 	kaytuAcccessToken string,
 	jobQueue *sdk.JobQueue,
 	lazyloadCounter *sdk.SafeCounter,

@@ -2,7 +2,6 @@ package plugin
 
 import (
 	"context"
-	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/kaytu-io/kaytu/pkg/plugin/proto/src/golang"
 	"github.com/kaytu-io/kaytu/pkg/plugin/sdk"
 	kaytuKubernetes "github.com/kaytu-io/plugin-kubernetes/plugin/kubernetes"
@@ -15,7 +14,6 @@ import (
 )
 
 type KubernetesPlugin struct {
-	cfg       aws.Config
 	stream    golang.Plugin_RegisterClient
 	processor processor.Processor
 }
@@ -87,6 +85,67 @@ func (p *KubernetesPlugin) GetConfig() golang.RegisterConfig {
 				LoginRequired:      true,
 			},
 		},
+		MinKaytuVersion: "v0.11.2-rc.0",
+		OverviewChart: &golang.ChartDefinition{
+			Columns: []*golang.ChartColumnItem{
+				{
+					Id:    "namespace",
+					Name:  "Namespace",
+					Width: 15,
+				},
+				{
+					Id:    "name",
+					Name:  "Name",
+					Width: 15,
+				},
+				{
+					Id:    "current_cpu_request",
+					Name:  "CPU Request",
+					Width: 12,
+				},
+				{
+					Id:    "current_cpu_limit",
+					Name:  "CPU Limit",
+					Width: 10,
+				},
+				{
+					Id:    "current_memory_request",
+					Name:  "Memory Request",
+					Width: 15,
+				},
+				{
+					Id:    "current_memory_limit",
+					Name:  "Memory Limit",
+					Width: 13,
+				},
+				{
+					Id:    "suggested_cpu_request",
+					Name:  "Suggested CPU Request",
+					Width: 22,
+				},
+				{
+					Id:    "suggested_cpu_limit",
+					Name:  "Suggested CPU Limit",
+					Width: 20,
+				},
+				{
+					Id:    "suggested_memory_request",
+					Name:  "Suggested Memory Request",
+					Width: 25,
+				},
+				{
+					Id:    "suggested_memory_limit",
+					Name:  "Suggested Memory Limit",
+					Width: 23,
+				},
+				{
+					Id:    "right_arrow",
+					Name:  "",
+					Width: 1,
+				},
+			},
+		},
+		DevicesChart: &golang.ChartDefinition{},
 	}
 }
 
@@ -131,10 +190,10 @@ func (p *KubernetesPlugin) StartProcess(command string, flags map[string]string,
 		return err
 	}
 
-	publishOptimizationItem := func(item *golang.OptimizationItem) {
+	publishOptimizationItem := func(item *golang.ChartOptimizationItem) {
 		p.stream.Send(&golang.PluginMessage{
-			PluginMessage: &golang.PluginMessage_Oi{
-				Oi: item,
+			PluginMessage: &golang.PluginMessage_Coi{
+				Coi: item,
 			},
 		})
 	}
