@@ -17,6 +17,7 @@ type Processor struct {
 	kaytuAcccessToken       string
 	jobQueue                *sdk.JobQueue
 	lazyloadCounter         *sdk.SafeCounter
+	identification          map[string]string
 }
 
 func NewProcessor(

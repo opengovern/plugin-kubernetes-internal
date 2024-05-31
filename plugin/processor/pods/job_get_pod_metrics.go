@@ -59,5 +59,7 @@ func (j *GetPodMetricsJob) Run() error {
 
 	j.processor.items.Set(pod.GetID(), pod)
 	j.processor.publishOptimizationItem(pod.ToOptimizationItem())
+
+	j.processor.jobQueue.Push(NewOptimizePodJob(j.ctx, j.processor, pod))
 	return nil
 }

@@ -3,6 +3,7 @@ package pods
 import (
 	"fmt"
 	"github.com/kaytu-io/kaytu/pkg/plugin/proto/src/golang"
+	"github.com/kaytu-io/plugin-kubernetes/plugin/kaytu"
 	kaytuPrometheus "github.com/kaytu-io/plugin-kubernetes/plugin/prometheus"
 	"google.golang.org/protobuf/types/known/wrapperspb"
 	corev1 "k8s.io/api/core/v1"
@@ -17,6 +18,8 @@ type PodItem struct {
 	LazyLoadingEnabled  bool
 	SkipReason          string
 	Metrics             map[string]map[string][]kaytuPrometheus.PromDatapoint // Metric -> Container -> Datapoints
+	Wastage             *kaytu.KubernetesPodWastageResponse
+	// Metric -> Container -> Datapoints
 	//Wastage             kaytu.EC2InstanceWastageResponse
 }
 
