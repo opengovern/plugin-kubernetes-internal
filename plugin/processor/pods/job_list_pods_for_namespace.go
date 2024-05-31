@@ -39,10 +39,9 @@ func (j *ListPodsForNamespaceJob) Run() error {
 			Preferences:         nil,
 			Skipped:             false,
 			LazyLoadingEnabled:  false,
-			SkipReason:          "WIP",
 		}
 
-		// TODO: metrics and lazy loading
+		// TODO: lazy loading
 
 		j.processor.items.Set(item.GetID(), item)
 		j.processor.publishOptimizationItem(item.ToOptimizationItem())
