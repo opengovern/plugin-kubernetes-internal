@@ -19,8 +19,6 @@ type PodItem struct {
 	SkipReason          string
 	Metrics             map[string]map[string][]kaytuPrometheus.PromDatapoint // Metric -> Container -> Datapoints
 	Wastage             *kaytu.KubernetesPodWastageResponse
-	// Metric -> Container -> Datapoints
-	//Wastage             kaytu.EC2InstanceWastageResponse
 }
 
 func (i PodItem) GetID() string {
@@ -59,6 +57,15 @@ func (i PodItem) Devices() ([]*golang.ChartRow, map[string]*golang.Properties) {
 	var rows []*golang.ChartRow
 	props := make(map[string]*golang.Properties)
 	for _, container := range i.Pod.Spec.Containers {
+		var righSizing kaytu.KubernetesContainerRightsizingRecommendation
+		if i.Wastage != nil {
+			for _, c := range i.Wastage.RightSizing.ContainersRightsizing {
+				if c.Name == container.Name {
+					righSizing = c
+				}
+			}
+		}
+
 		row := golang.ChartRow{
 			RowId:  fmt.Sprintf("%s/%s/%s", i.Pod.Namespace, i.Pod.Name, container.Name),
 			Values: make(map[string]*golang.ChartRowItem),
@@ -71,14 +78,14 @@ func (i PodItem) Devices() ([]*golang.ChartRow, map[string]*golang.Properties) {
 		cpuRequest, cpuLimit, memoryRequest, memoryLimit := getContainerRequestLimits(container)
 
 		cpuRequestProperty := golang.Property{
-			Key: "CPU Request",
+			Key:     "CPU Request",
+			Current: fmt.Sprintf("%.2f", righSizing.Current.CPURequest),
 		}
 		if cpuRequest != nil {
 			row.Values["current_cpu_request"] = &golang.ChartRowItem{
 				Value: fmt.Sprintf("%.2f Core", *cpuRequest),
 			}
 		}
-		properties.Properties = append(properties.Properties, &cpuRequestProperty)
 
 		cpuLimitProperty := golang.Property{
 			Key: "CPU Limit",
@@ -111,6 +118,11 @@ func (i PodItem) Devices() ([]*golang.ChartRow, map[string]*golang.Properties) {
 		}
 		properties.Properties = append(properties.Properties, &memoryLimitProperty)
 
+		if righSizing.Recommended != nil {
+			cpuRequestProperty.Recommended = fmt.Sprintf("%.2f", righSizing.Recommended.CPURequest)
+		}
+
+		properties.Properties = append(properties.Properties, &cpuRequestProperty)
 		rows = append(rows, &row)
 		props[row.RowId] = &properties
 	}
