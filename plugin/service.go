@@ -40,7 +40,7 @@ func (p *KubernetesPlugin) GetConfig() golang.RegisterConfig {
 					},
 					{
 						Name:        "prom-address",
-						Default:     "http://localhost:9090",
+						Default:     "",
 						Description: "Prometheus address",
 						Required:    false,
 					},
@@ -184,7 +184,7 @@ func (p *KubernetesPlugin) StartProcess(command string, flags map[string]string,
 	if promScopesStr != nil {
 		promScopes = strings.Split(*promScopesStr, ",")
 	}
-	promCfg := kaytuPrometheus.GetConfig(promAddress, promUsername, promPassword, promClientId, promClientSecret, promTokenUrl, promScopes)
+	promCfg, _ := kaytuPrometheus.GetConfig(promAddress, promUsername, promPassword, promClientId, promClientSecret, promTokenUrl, promScopes, kubeClient)
 	promClient, err := kaytuPrometheus.NewPrometheus(promCfg)
 	if err != nil {
 		return err
