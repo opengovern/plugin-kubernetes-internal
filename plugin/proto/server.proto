@@ -1,0 +1,69 @@
+syntax = "proto3";
+
+package pluginkubernetes.optimization.v1;
+option go_package="github.com/kaytu-io/plugin-kubernetes/plugin/proto/src/golang";
+import "google/protobuf/wrappers.proto";
+
+// Requests
+message KubernetesContainer{
+  string name = 1;
+  float memory_request = 2;
+  float memory_limit = 3;
+  float cpu_request = 4;
+  float cpu_limit = 5;
+}
+
+message KubernetesPod{
+  string id = 1;
+  repeated KubernetesContainer containers = 2;
+}
+
+message KubernetesContainerMetrics {
+  map<string,float> cpu = 1;
+  map<string,float> memory = 2;
+}
+
+message KubernetesPodOptimizationRequest {
+  google.protobuf.StringValue request_id = 1;
+  google.protobuf.StringValue cli_version = 2;
+  map<string,string> identification = 3;
+  KubernetesPod pod = 4;
+  string namespace = 5;
+  map<string,google.protobuf.StringValue> preferences = 6;
+  map<string,KubernetesContainerMetrics> metrics = 7;
+  bool loading = 8;
+}
+
+
+// Responses
+message RightsizingKubernetesContainer {
+  string name = 1;
+  float memory_request = 2;
+  float memory_limit = 3;
+  float cpu_request = 4;
+  float cpu_limit = 5;
+}
+
+message KubernetesContainerRightsizingRecommendation {
+  string name = 1;
+  RightsizingKubernetesContainer current = 2;
+  RightsizingKubernetesContainer recommended = 3;
+  google.protobuf.FloatValue memory_trimmed_mean = 4;
+  google.protobuf.FloatValue memory_max = 5;
+  google.protobuf.FloatValue cpu_trimmed_mean = 6;
+  google.protobuf.FloatValue cpu_max = 7;
+  string description = 8;
+}
+
+message KubernetesPodRightsizingRecommendation {
+  string name = 1;
+  repeated KubernetesContainerRightsizingRecommendation container_resizing = 2;
+}
+
+message KubernetesPodOptimizationResponse {
+    KubernetesPodRightsizingRecommendation rightsizing = 1;
+}
+
+service Optimization {
+  rpc KubernetesPodOptimization(stream KubernetesPodOptimizationRequest) returns (stream KubernetesPodOptimizationResponse) {}
+}
