@@ -26,7 +26,7 @@ const (
 //
 // For semantics around ctx use and closing/ending streaming RPCs, please refer to https://pkg.go.dev/google.golang.org/grpc/?tab=doc#ClientConn.NewStream.
 type OptimizationClient interface {
-	KubernetesPodOptimization(ctx context.Context, opts ...grpc.CallOption) (Optimization_KubernetesPodOptimizationClient, error)
+	KubernetesPodOptimization(ctx context.Context, in *KubernetesPodOptimizationRequest, opts ...grpc.CallOption) (*KubernetesPodOptimizationResponse, error)
 }
 
 type optimizationClient struct {
@@ -37,42 +37,20 @@ func NewOptimizationClient(cc grpc.ClientConnInterface) OptimizationClient {
 	return &optimizationClient{cc}
 }
 
-func (c *optimizationClient) KubernetesPodOptimization(ctx context.Context, opts ...grpc.CallOption) (Optimization_KubernetesPodOptimizationClient, error) {
-	stream, err := c.cc.NewStream(ctx, &Optimization_ServiceDesc.Streams[0], Optimization_KubernetesPodOptimization_FullMethodName, opts...)
+func (c *optimizationClient) KubernetesPodOptimization(ctx context.Context, in *KubernetesPodOptimizationRequest, opts ...grpc.CallOption) (*KubernetesPodOptimizationResponse, error) {
+	out := new(KubernetesPodOptimizationResponse)
+	err := c.cc.Invoke(ctx, Optimization_KubernetesPodOptimization_FullMethodName, in, out, opts...)
 	if err != nil {
 		return nil, err
 	}
-	x := &optimizationKubernetesPodOptimizationClient{stream}
-	return x, nil
-}
-
-type Optimization_KubernetesPodOptimizationClient interface {
-	Send(*KubernetesPodOptimizationRequest) error
-	Recv() (*KubernetesPodOptimizationResponse, error)
-	grpc.ClientStream
-}
-
-type optimizationKubernetesPodOptimizationClient struct {
-	grpc.ClientStream
-}
-
-func (x *optimizationKubernetesPodOptimizationClient) Send(m *KubernetesPodOptimizationRequest) error {
-	return x.ClientStream.SendMsg(m)
-}
-
-func (x *optimizationKubernetesPodOptimizationClient) Recv() (*KubernetesPodOptimizationResponse, error) {
-	m := new(KubernetesPodOptimizationResponse)
-	if err := x.ClientStream.RecvMsg(m); err != nil {
-		return nil, err
-	}
-	return m, nil
+	return out, nil
 }
 
 // OptimizationServer is the server API for Optimization service.
 // All implementations must embed UnimplementedOptimizationServer
 // for forward compatibility
 type OptimizationServer interface {
-	KubernetesPodOptimization(Optimization_KubernetesPodOptimizationServer) error
+	KubernetesPodOptimization(context.Context, *KubernetesPodOptimizationRequest) (*KubernetesPodOptimizationResponse, error)
 	mustEmbedUnimplementedOptimizationServer()
 }
 
@@ -80,8 +58,8 @@ type OptimizationServer interface {
 type UnimplementedOptimizationServer struct {
 }
 
-func (UnimplementedOptimizationServer) KubernetesPodOptimization(Optimization_KubernetesPodOptimizationServer) error {
-	return status.Errorf(codes.Unimplemented, "method KubernetesPodOptimization not implemented")
+func (UnimplementedOptimizationServer) KubernetesPodOptimization(context.Context, *KubernetesPodOptimizationRequest) (*KubernetesPodOptimizationResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method KubernetesPodOptimization not implemented")
 }
 func (UnimplementedOptimizationServer) mustEmbedUnimplementedOptimizationServer() {}
 
@@ -96,30 +74,22 @@ func RegisterOptimizationServer(s grpc.ServiceRegistrar, srv OptimizationServer)
 	s.RegisterService(&Optimization_ServiceDesc, srv)
 }
 
-func _Optimization_KubernetesPodOptimization_Handler(srv interface{}, stream grpc.ServerStream) error {
-	return srv.(OptimizationServer).KubernetesPodOptimization(&optimizationKubernetesPodOptimizationServer{stream})
-}
-
-type Optimization_KubernetesPodOptimizationServer interface {
-	Send(*KubernetesPodOptimizationResponse) error
-	Recv() (*KubernetesPodOptimizationRequest, error)
-	grpc.ServerStream
-}
-
-type optimizationKubernetesPodOptimizationServer struct {
-	grpc.ServerStream
-}
-
-func (x *optimizationKubernetesPodOptimizationServer) Send(m *KubernetesPodOptimizationResponse) error {
-	return x.ServerStream.SendMsg(m)
-}
-
-func (x *optimizationKubernetesPodOptimizationServer) Recv() (*KubernetesPodOptimizationRequest, error) {
-	m := new(KubernetesPodOptimizationRequest)
-	if err := x.ServerStream.RecvMsg(m); err != nil {
+func _Optimization_KubernetesPodOptimization_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(KubernetesPodOptimizationRequest)
+	if err := dec(in); err != nil {
 		return nil, err
 	}
-	return m, nil
+	if interceptor == nil {
+		return srv.(OptimizationServer).KubernetesPodOptimization(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: Optimization_KubernetesPodOptimization_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(OptimizationServer).KubernetesPodOptimization(ctx, req.(*KubernetesPodOptimizationRequest))
+	}
+	return interceptor(ctx, in, info, handler)
 }
 
 // Optimization_ServiceDesc is the grpc.ServiceDesc for Optimization service.
@@ -128,14 +98,12 @@ func (x *optimizationKubernetesPodOptimizationServer) Recv() (*KubernetesPodOpti
 var Optimization_ServiceDesc = grpc.ServiceDesc{
 	ServiceName: "pluginkubernetes.optimization.v1.Optimization",
 	HandlerType: (*OptimizationServer)(nil),
-	Methods:     []grpc.MethodDesc{},
-	Streams: []grpc.StreamDesc{
+	Methods: []grpc.MethodDesc{
 		{
-			StreamName:    "KubernetesPodOptimization",
-			Handler:       _Optimization_KubernetesPodOptimization_Handler,
-			ServerStreams: true,
-			ClientStreams: true,
+			MethodName: "KubernetesPodOptimization",
+			Handler:    _Optimization_KubernetesPodOptimization_Handler,
 		},
 	},
+	Streams:  []grpc.StreamDesc{},
 	Metadata: "plugin/proto/server.proto",
 }

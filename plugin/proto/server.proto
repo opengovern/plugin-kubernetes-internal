@@ -66,5 +66,5 @@ message KubernetesPodOptimizationResponse {
 }
 
 service Optimization {
-  rpc KubernetesPodOptimization(stream KubernetesPodOptimizationRequest) returns (stream KubernetesPodOptimizationResponse) {}
+  rpc KubernetesPodOptimization(KubernetesPodOptimizationRequest) returns (KubernetesPodOptimizationResponse);
 }
