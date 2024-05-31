@@ -3,8 +3,8 @@ package pods
 import (
 	"fmt"
 	"github.com/kaytu-io/kaytu/pkg/plugin/proto/src/golang"
-	"github.com/kaytu-io/plugin-kubernetes/plugin/kaytu"
 	kaytuPrometheus "github.com/kaytu-io/plugin-kubernetes/plugin/prometheus"
+	golang2 "github.com/kaytu-io/plugin-kubernetes/plugin/proto/src/golang"
 	"google.golang.org/protobuf/types/known/wrapperspb"
 	corev1 "k8s.io/api/core/v1"
 )
@@ -18,7 +18,7 @@ type PodItem struct {
 	LazyLoadingEnabled  bool
 	SkipReason          string
 	Metrics             map[string]map[string][]kaytuPrometheus.PromDatapoint // Metric -> Container -> Datapoints
-	Wastage             *kaytu.KubernetesPodWastageResponse
+	Wastage             *golang2.KubernetesPodOptimizationResponse
 }
 
 func (i PodItem) GetID() string {
@@ -57,9 +57,9 @@ func (i PodItem) Devices() ([]*golang.ChartRow, map[string]*golang.Properties) {
 	var rows []*golang.ChartRow
 	props := make(map[string]*golang.Properties)
 	for _, container := range i.Pod.Spec.Containers {
-		var righSizing kaytu.KubernetesContainerRightsizingRecommendation
+		var righSizing *golang2.KubernetesContainerRightsizingRecommendation
 		if i.Wastage != nil {
-			for _, c := range i.Wastage.RightSizing.ContainersRightsizing {
+			for _, c := range i.Wastage.Rightsizing.ContainerResizing {
 				if c.Name == container.Name {
 					righSizing = c
 				}
@@ -78,8 +78,7 @@ func (i PodItem) Devices() ([]*golang.ChartRow, map[string]*golang.Properties) {
 		cpuRequest, cpuLimit, memoryRequest, memoryLimit := getContainerRequestLimits(container)
 
 		cpuRequestProperty := golang.Property{
-			Key:     "CPU Request",
-			Current: fmt.Sprintf("%.2f", righSizing.Current.CPURequest),
+			Key: "CPU Request",
 		}
 		if cpuRequest != nil {
 			row.Values["current_cpu_request"] = &golang.ChartRowItem{
@@ -118,8 +117,9 @@ func (i PodItem) Devices() ([]*golang.ChartRow, map[string]*golang.Properties) {
 		}
 		properties.Properties = append(properties.Properties, &memoryLimitProperty)
 
-		if righSizing.Recommended != nil {
-			cpuRequestProperty.Recommended = fmt.Sprintf("%.2f", righSizing.Recommended.CPURequest)
+		if righSizing != nil {
+			cpuRequestProperty.Current = fmt.Sprintf("%.2f", righSizing.Current.CpuRequest)
+			cpuRequestProperty.Recommended = fmt.Sprintf("%.2f", righSizing.Recommended.CpuRequest)
 		}
 
 		properties.Properties = append(properties.Properties, &cpuRequestProperty)

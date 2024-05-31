@@ -6,6 +6,7 @@ import (
 	"github.com/kaytu-io/kaytu/pkg/plugin/sdk"
 	kaytuKubernetes "github.com/kaytu-io/plugin-kubernetes/plugin/kubernetes"
 	kaytuPrometheus "github.com/kaytu-io/plugin-kubernetes/plugin/prometheus"
+	golang2 "github.com/kaytu-io/plugin-kubernetes/plugin/proto/src/golang"
 	util "github.com/kaytu-io/plugin-kubernetes/utils"
 )
 
@@ -18,16 +19,10 @@ type Processor struct {
 	jobQueue                *sdk.JobQueue
 	lazyloadCounter         *sdk.SafeCounter
 	identification          map[string]string
+	client                  golang2.OptimizationClient
 }
 
-func NewProcessor(
-	ctx context.Context,
-	kubernetesProvider *kaytuKubernetes.Kubernetes,
-	prometheusProvider *kaytuPrometheus.Prometheus,
-	publishOptimizationItem func(item *golang.ChartOptimizationItem),
-	kaytuAcccessToken string,
-	jobQueue *sdk.JobQueue,
-) *Processor {
+func NewProcessor(ctx context.Context, kubernetesProvider *kaytuKubernetes.Kubernetes, prometheusProvider *kaytuPrometheus.Prometheus, publishOptimizationItem func(item *golang.ChartOptimizationItem), kaytuAcccessToken string, jobQueue *sdk.JobQueue, client golang2.OptimizationClient) *Processor {
 	r := &Processor{
 		kubernetesProvider:      kubernetesProvider,
 		prometheusProvider:      prometheusProvider,
@@ -36,6 +31,7 @@ func NewProcessor(
 		kaytuAcccessToken:       kaytuAcccessToken,
 		jobQueue:                jobQueue,
 		lazyloadCounter:         &sdk.SafeCounter{},
+		client:                  client,
 	}
 	jobQueue.Push(NewListAllNamespacesJob(ctx, r))
 	return r

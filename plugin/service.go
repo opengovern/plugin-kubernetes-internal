@@ -9,7 +9,12 @@ import (
 	"github.com/kaytu-io/plugin-kubernetes/plugin/processor"
 	"github.com/kaytu-io/plugin-kubernetes/plugin/processor/pods"
 	kaytuPrometheus "github.com/kaytu-io/plugin-kubernetes/plugin/prometheus"
+	golang2 "github.com/kaytu-io/plugin-kubernetes/plugin/proto/src/golang"
 	"github.com/kaytu-io/plugin-kubernetes/plugin/version"
+	"golang.org/x/oauth2"
+	"google.golang.org/grpc"
+	"google.golang.org/grpc/credentials"
+	"google.golang.org/grpc/credentials/oauth"
 	"strings"
 )
 
@@ -221,6 +226,19 @@ func (p *KubernetesPlugin) StartProcess(command string, flags map[string]string,
 		return err
 	}
 
+	conn, err := grpc.Dial("gapi.kaytu.io:443",
+		grpc.WithTransportCredentials(credentials.NewTLS(nil)),
+		grpc.WithPerRPCCredentials(oauth.TokenSource{
+			TokenSource: oauth2.StaticTokenSource(&oauth2.Token{
+				AccessToken: kaytuAccessToken,
+			}),
+		}))
+	if err != nil {
+		return err
+	}
+	defer conn.Close()
+	client := golang2.NewOptimizationClient(conn)
+
 	promAddress := getFlagOrNil(flags, "prom-address")
 	promUsername := getFlagOrNil(flags, "prom-username")
 	promPassword := getFlagOrNil(flags, "prom-password")
@@ -259,7 +277,7 @@ func (p *KubernetesPlugin) StartProcess(command string, flags map[string]string,
 
 	switch command {
 	case "kubernetes-pods":
-		p.processor = pods.NewProcessor(ctx, kubeClient, promClient, publishOptimizationItem, kaytuAccessToken, jobQueue)
+		p.processor = pods.NewProcessor(ctx, kubeClient, promClient, publishOptimizationItem, kaytuAccessToken, jobQueue, client)
 		if err != nil {
 			return err
 		}
