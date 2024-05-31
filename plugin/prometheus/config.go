@@ -1,5 +1,11 @@
 package prometheus
 
+import (
+	"context"
+	kaytuKubernetes "github.com/kaytu-io/plugin-kubernetes/plugin/kubernetes"
+	"time"
+)
+
 type PromAuthType string
 
 const (
@@ -24,14 +30,22 @@ type Config struct {
 	OAuth2Scopes       []string `json:"oAuth2Scopes"`
 }
 
-func GetConfig(address *string, basicUsername, basicPassword, oAuth2ClientID, oAuth2ClientSecret, oAuth2TokenURL *string, oAuth2Scopes []string) Config {
+func GetConfig(address, basicUsername, basicPassword, oAuth2ClientID, oAuth2ClientSecret, oAuth2TokenURL *string, oAuth2Scopes []string, client *kaytuKubernetes.Kubernetes) (Config, error) {
 	cfg := Config{
-		Address:  "http://localhost:9090",
 		AuthType: PromAuthTypeNone,
 	}
 
 	if address != nil {
 		cfg.Address = *address
+	}
+
+	if cfg.Address == "" {
+		_, err := client.DiscoverPrometheus(context.Background())
+		if err != nil {
+			return cfg, err
+		}
+		time.Sleep(1 * time.Second)
+		cfg.Address = "http://localhost:9090"
 	}
 
 	if basicUsername != nil && basicPassword != nil {
@@ -46,5 +60,5 @@ func GetConfig(address *string, basicUsername, basicPassword, oAuth2ClientID, oA
 		cfg.OAuth2Scopes = oAuth2Scopes
 	}
 
-	return cfg
+	return cfg, nil
 }
