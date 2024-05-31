@@ -26,7 +26,6 @@ func NewProcessor(
 	publishOptimizationItem func(item *golang.ChartOptimizationItem),
 	kaytuAcccessToken string,
 	jobQueue *sdk.JobQueue,
-	lazyloadCounter *sdk.SafeCounter,
 ) *Processor {
 	r := &Processor{
 		kubernetesProvider:      kubernetesProvider,
@@ -35,7 +34,7 @@ func NewProcessor(
 		publishOptimizationItem: publishOptimizationItem,
 		kaytuAcccessToken:       kaytuAcccessToken,
 		jobQueue:                jobQueue,
-		lazyloadCounter:         lazyloadCounter,
+		lazyloadCounter:         &sdk.SafeCounter{},
 	}
 	jobQueue.Push(NewListAllNamespacesJob(ctx, r))
 	return r

@@ -259,7 +259,7 @@ func (p *KubernetesPlugin) StartProcess(command string, flags map[string]string,
 
 	switch command {
 	case "kubernetes-pods":
-		p.processor = pods.NewProcessor(ctx, kubeClient, promClient, publishOptimizationItem, kaytuAccessToken, jobQueue, nil)
+		p.processor = pods.NewProcessor(ctx, kubeClient, promClient, publishOptimizationItem, kaytuAccessToken, jobQueue)
 		if err != nil {
 			return err
 		}
