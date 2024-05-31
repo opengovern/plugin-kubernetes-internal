@@ -54,7 +54,7 @@ func (j *ListPodsForNamespaceJob) Run() error {
 			continue
 		}
 
-		j.processor.jobQueue.Push(NewGetPodMetricsJob(j.ctx, j.processor, i))
+		j.processor.jobQueue.Push(NewGetPodMetricsJob(j.ctx, j.processor, i.GetID()))
 	}
 
 	return nil

@@ -145,7 +145,55 @@ func (p *KubernetesPlugin) GetConfig() golang.RegisterConfig {
 				},
 			},
 		},
-		DevicesChart: &golang.ChartDefinition{},
+		DevicesChart: &golang.ChartDefinition{
+			Columns: []*golang.ChartColumnItem{
+				{
+					Id:    "name",
+					Name:  "Name",
+					Width: 15,
+				},
+				{
+					Id:    "current_cpu_request",
+					Name:  "CPU Request",
+					Width: 12,
+				},
+				{
+					Id:    "current_cpu_limit",
+					Name:  "CPU Limit",
+					Width: 10,
+				},
+				{
+					Id:    "current_memory_request",
+					Name:  "Memory Request",
+					Width: 15,
+				},
+				{
+					Id:    "current_memory_limit",
+					Name:  "Memory Limit",
+					Width: 13,
+				},
+				{
+					Id:    "suggested_cpu_request",
+					Name:  "Suggested CPU Request",
+					Width: 22,
+				},
+				{
+					Id:    "suggested_cpu_limit",
+					Name:  "Suggested CPU Limit",
+					Width: 20,
+				},
+				{
+					Id:    "suggested_memory_request",
+					Name:  "Suggested Memory Request",
+					Width: 25,
+				},
+				{
+					Id:    "suggested_memory_limit",
+					Name:  "Suggested Memory Limit",
+					Width: 23,
+				},
+			},
+		},
 	}
 }
 

@@ -7,6 +7,7 @@ import (
 	prometheus "github.com/prometheus/client_golang/api/prometheus/v1"
 	"github.com/prometheus/common/config"
 	"github.com/prometheus/common/model"
+	"sort"
 	"time"
 )
 
@@ -14,6 +15,11 @@ type Prometheus struct {
 	cfg    Config
 	client promapi.Client
 	api    prometheus.API
+}
+
+type PromDatapoint struct {
+	Timestamp time.Time
+	Value     float64
 }
 
 func NewPrometheus(cfg Config) (*Prometheus, error) {
@@ -47,8 +53,8 @@ func NewPrometheus(cfg Config) (*Prometheus, error) {
 	return &prom, nil
 }
 
-func parsePrometheusResponse(value model.Value) (map[string]float64, error) {
-	result := make(map[string]float64)
+func parsePrometheusResponse(value model.Value) ([]PromDatapoint, error) {
+	var result []PromDatapoint
 
 	switch value.Type() {
 	case model.ValMatrix:
@@ -58,17 +64,24 @@ func parsePrometheusResponse(value model.Value) (map[string]float64, error) {
 				continue
 			}
 			for _, v := range sample.Values {
-				result[v.Timestamp.String()] = float64(v.Value)
+				result = append(result, PromDatapoint{
+					Timestamp: v.Timestamp.Time(),
+					Value:     float64(v.Value),
+				})
 			}
 		}
 	default:
 		return nil, fmt.Errorf("unexpected response type: %s", value.Type())
 	}
 
+	sort.Slice(result, func(i, j int) bool {
+		return result[i].Timestamp.Before(result[j].Timestamp)
+	})
+
 	return result, nil
 }
 
-func (p *Prometheus) GetCpuMetricsForPodContainer(ctx context.Context, namespace, podName, containerName string) (map[string]float64, error) {
+func (p *Prometheus) GetCpuMetricsForPodContainer(ctx context.Context, namespace, podName, containerName string) ([]PromDatapoint, error) {
 	query := fmt.Sprintf(`sum(rate(container_cpu_usage_seconds_total{namespace="%s", pod="%s", container="%s"}[1m])) by (container)`, namespace, podName, containerName)
 	value, _, err := p.api.QueryRange(ctx, query, prometheus.Range{
 		Start: time.Now().Add(-7 * 24 * time.Hour).Truncate(time.Hour),
@@ -82,7 +95,7 @@ func (p *Prometheus) GetCpuMetricsForPodContainer(ctx context.Context, namespace
 	return parsePrometheusResponse(value)
 }
 
-func (p *Prometheus) GetMemoryMetricsForPodContainer(ctx context.Context, namespace, podName, containerName string) (map[string]float64, error) {
+func (p *Prometheus) GetMemoryMetricsForPodContainer(ctx context.Context, namespace, podName, containerName string) ([]PromDatapoint, error) {
 	query := fmt.Sprintf(`sum(container_memory_usage_bytes{namespace="%s", pod="%s", container="%s"}) by (container)`, namespace, podName, containerName)
 	value, _, err := p.api.QueryRange(ctx, query, prometheus.Range{
 		Start: time.Now().Add(-7 * 24 * time.Hour).Truncate(time.Hour),
