@@ -15,7 +15,8 @@ message KubernetesContainer{
 
 message KubernetesPod{
   string id = 1;
-  repeated KubernetesContainer containers = 2;
+  string name = 2;
+  repeated KubernetesContainer containers = 3;
 }
 
 message KubernetesContainerMetrics {
