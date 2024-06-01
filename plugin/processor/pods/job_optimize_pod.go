@@ -8,6 +8,7 @@ import (
 	"github.com/kaytu-io/kaytu/preferences"
 	"github.com/kaytu-io/plugin-kubernetes/plugin/proto/src/golang"
 	"github.com/kaytu-io/plugin-kubernetes/plugin/version"
+	"google.golang.org/grpc/metadata"
 	"google.golang.org/protobuf/types/known/wrapperspb"
 )
 
@@ -86,7 +87,8 @@ func (j *OptimizePodJob) Run() error {
 		}
 	}
 
-	resp, err := j.processor.client.KubernetesPodOptimization(j.ctx, &golang.KubernetesPodOptimizationRequest{
+	grpcCtx := metadata.NewOutgoingContext(j.ctx, metadata.Pairs("workspace-name", "kaytu"))
+	resp, err := j.processor.client.KubernetesPodOptimization(grpcCtx, &golang.KubernetesPodOptimizationRequest{
 		RequestId:      wrapperspb.String(reqID),
 		CliVersion:     wrapperspb.String(version.VERSION),
 		Identification: j.processor.identification,
