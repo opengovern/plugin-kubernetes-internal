@@ -236,7 +236,6 @@ func (p *KubernetesPlugin) StartProcess(command string, flags map[string]string,
 	if err != nil {
 		return err
 	}
-	defer conn.Close()
 	client := golang2.NewOptimizationClient(conn)
 
 	promAddress := getFlagOrNil(flags, "prom-address")
