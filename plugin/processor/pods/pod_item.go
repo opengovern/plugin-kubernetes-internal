@@ -120,6 +120,13 @@ func (i PodItem) Devices() ([]*golang.ChartRow, map[string]*golang.Properties) {
 		if righSizing != nil {
 			cpuRequestProperty.Current = fmt.Sprintf("%.2f", righSizing.Current.CpuRequest)
 			cpuRequestProperty.Recommended = fmt.Sprintf("%.2f", righSizing.Recommended.CpuRequest)
+			cpuLimitProperty.Current = fmt.Sprintf("%.2f", righSizing.Current.CpuLimit)
+			cpuLimitProperty.Recommended = fmt.Sprintf("%.2f", righSizing.Recommended.CpuLimit)
+
+			memoryRequestProperty.Current = SizeByte(righSizing.Current.MemoryRequest)
+			memoryRequestProperty.Recommended = SizeByte(righSizing.Recommended.MemoryRequest)
+			memoryLimitProperty.Current = SizeByte(righSizing.Current.MemoryLimit)
+			memoryLimitProperty.Recommended = SizeByte(righSizing.Recommended.MemoryLimit)
 		}
 
 		properties.Properties = append(properties.Properties, &cpuRequestProperty)
@@ -127,6 +134,22 @@ func (i PodItem) Devices() ([]*golang.ChartRow, map[string]*golang.Properties) {
 		props[row.RowId] = &properties
 	}
 	return rows, props
+}
+
+func SizeByte(v float32) string {
+	if v < 1024 {
+		return fmt.Sprintf("%.0f Bytes", v)
+	}
+	v = v / 1024
+	if v < 1024 {
+		return fmt.Sprintf("%.1f KB", v)
+	}
+	v = v / 1024
+	if v < 1024 {
+		return fmt.Sprintf("%.1f MB", v)
+	}
+	v = v / 1024
+	return fmt.Sprintf("%.1f GB", v)
 }
 
 func (i PodItem) ToOptimizationItem() *golang.ChartOptimizationItem {
