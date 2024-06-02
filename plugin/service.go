@@ -228,14 +228,16 @@ func (p *KubernetesPlugin) StartProcess(command string, flags map[string]string,
 	ctx := context.Background()
 
 	kubeContext := getFlagOrNil(flags, "context")
-	kubeCfg, err := kaytuKubernetes.GetConfig(ctx, kubeContext)
+	restclientConfig, kubeConfig, err := kaytuKubernetes.GetConfig(ctx, kubeContext)
 	if err != nil {
 		return err
 	}
-	kubeClient, err := kaytuKubernetes.NewKubernetes(kubeCfg)
+	kubeClient, err := kaytuKubernetes.NewKubernetes(restclientConfig, kubeConfig)
 	if err != nil {
 		return err
 	}
+
+	identification := kubeClient.Identify()
 
 	conn, err := grpc.Dial("gapi.kaytu.io:443",
 		grpc.WithTransportCredentials(credentials.NewTLS(nil)),
@@ -296,7 +298,7 @@ func (p *KubernetesPlugin) StartProcess(command string, flags map[string]string,
 
 	switch command {
 	case "kubernetes-pods":
-		p.processor = pods.NewProcessor(ctx, kubeClient, promClient, publishOptimizationItem, kaytuAccessToken, jobQueue, configurations, client)
+		p.processor = pods.NewProcessor(ctx, identification, kubeClient, promClient, publishOptimizationItem, kaytuAccessToken, jobQueue, configurations, client)
 		if err != nil {
 			return err
 		}

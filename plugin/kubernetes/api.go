@@ -5,11 +5,13 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"github.com/kaytu-io/kaytu/pkg/utils"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/client-go/kubernetes"
 	restclient "k8s.io/client-go/rest"
+	"k8s.io/client-go/tools/clientcmd/api"
 	"k8s.io/client-go/tools/portforward"
 	"k8s.io/client-go/transport/spdy"
 	"net/http"
@@ -19,17 +21,37 @@ import (
 )
 
 type Kubernetes struct {
-	cfg       *restclient.Config
-	clientset *kubernetes.Clientset
-	stopChan  chan struct{}
+	restClientCfg *restclient.Config
+	kubeCfg       *api.Config
+	clientset     *kubernetes.Clientset
+	stopChan      chan struct{}
 }
 
-func NewKubernetes(cfg *restclient.Config) (*Kubernetes, error) {
+func NewKubernetes(cfg *restclient.Config, kubeCfg *api.Config) (*Kubernetes, error) {
 	clientset, err := kubernetes.NewForConfig(cfg)
 	if err != nil {
 		return nil, err
 	}
-	return &Kubernetes{cfg: cfg, clientset: clientset}, nil
+	return &Kubernetes{restClientCfg: cfg, kubeCfg: kubeCfg, clientset: clientset}, nil
+}
+
+func (s *Kubernetes) Identify() map[string]string {
+	result := make(map[string]string)
+	currentContext := s.kubeCfg.Contexts[s.kubeCfg.CurrentContext]
+	if currentContext == nil {
+		return result
+	}
+	result["context_name"] = s.kubeCfg.CurrentContext
+	result["cluster_name"] = currentContext.Cluster
+	result["auth_info_name"] = currentContext.AuthInfo
+
+	currentCluster := s.kubeCfg.Clusters[currentContext.Cluster]
+	if currentCluster == nil {
+		return result
+	}
+	result["cluster_server"] = utils.HashString(currentCluster.Server)
+
+	return result
 }
 
 func (s *Kubernetes) ListAllNamespaces(ctx context.Context) ([]corev1.Namespace, error) {
@@ -104,13 +126,13 @@ func (s *Kubernetes) portForward(ctx context.Context, namespace, serviceName str
 	}
 	podName := pods.Items[0].Name
 
-	roundTripper, upgrader, err := spdy.RoundTripperFor(s.cfg)
+	roundTripper, upgrader, err := spdy.RoundTripperFor(s.restClientCfg)
 	if err != nil {
 		return nil, err
 	}
 
 	path := fmt.Sprintf("/api/v1/namespaces/%s/pods/%s/portforward", namespace, podName)
-	hostIP, err := url.Parse(s.cfg.Host)
+	hostIP, err := url.Parse(s.restClientCfg.Host)
 	if err != nil {
 		return nil, err
 	}

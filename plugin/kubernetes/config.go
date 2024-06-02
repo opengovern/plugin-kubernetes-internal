@@ -4,31 +4,36 @@ import (
 	"context"
 	restclient "k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/clientcmd"
+	"k8s.io/client-go/tools/clientcmd/api"
 	"k8s.io/client-go/util/homedir"
 	"path/filepath"
 )
 
-func GetConfig(ctx context.Context, kubeContextName *string) (*restclient.Config, error) {
+func GetConfig(ctx context.Context, kubeContextName *string) (*restclient.Config, *api.Config, error) {
 	var err error
 
 	kubeConfigPath := filepath.Join(homedir.HomeDir(), ".kube", "config")
-
-	var kubeCfg *restclient.Config
+	kubeConfig, err := clientcmd.LoadFromFile(kubeConfigPath)
+	if err != nil {
+		return nil, nil, err
+	}
+	var restclientConfig *restclient.Config
 	if kubeContextName == nil || *kubeContextName == "" {
-		kubeCfg, err = clientcmd.BuildConfigFromFlags("", kubeConfigPath)
+		restclientConfig, err = clientcmd.BuildConfigFromFlags("", kubeConfigPath)
 		if err != nil {
-			return nil, err
+			return nil, nil, err
 		}
 	} else {
-		kubeCfg, err = clientcmd.NewNonInteractiveDeferredLoadingClientConfig(
+		restclientConfig, err = clientcmd.NewNonInteractiveDeferredLoadingClientConfig(
 			&clientcmd.ClientConfigLoadingRules{ExplicitPath: kubeConfigPath},
 			&clientcmd.ConfigOverrides{
 				CurrentContext: *kubeContextName,
 			}).ClientConfig()
 		if err != nil {
-			return nil, err
+			return nil, nil, err
 		}
+		kubeConfig.CurrentContext = *kubeContextName
 	}
 
-	return kubeCfg, nil
+	return restclientConfig, kubeConfig, nil
 }

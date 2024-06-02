@@ -12,6 +12,7 @@ import (
 )
 
 type Processor struct {
+	identification          map[string]string
 	kubernetesProvider      *kaytuKubernetes.Kubernetes
 	prometheusProvider      *kaytuPrometheus.Prometheus
 	items                   util.ConcurrentMap[string, PodItem]
@@ -19,13 +20,13 @@ type Processor struct {
 	kaytuAcccessToken       string
 	jobQueue                *sdk.JobQueue
 	lazyloadCounter         *sdk.SafeCounter
-	identification          map[string]string
 	configuration           *kaytu.Configuration
 	client                  golang2.OptimizationClient
 }
 
-func NewProcessor(ctx context.Context, kubernetesProvider *kaytuKubernetes.Kubernetes, prometheusProvider *kaytuPrometheus.Prometheus, publishOptimizationItem func(item *golang.ChartOptimizationItem), kaytuAcccessToken string, jobQueue *sdk.JobQueue, configuration *kaytu.Configuration, client golang2.OptimizationClient) *Processor {
+func NewProcessor(ctx context.Context, identification map[string]string, kubernetesProvider *kaytuKubernetes.Kubernetes, prometheusProvider *kaytuPrometheus.Prometheus, publishOptimizationItem func(item *golang.ChartOptimizationItem), kaytuAcccessToken string, jobQueue *sdk.JobQueue, configuration *kaytu.Configuration, client golang2.OptimizationClient) *Processor {
 	r := &Processor{
+		identification:          identification,
 		kubernetesProvider:      kubernetesProvider,
 		prometheusProvider:      prometheusProvider,
 		items:                   util.NewMap[string, PodItem](),
