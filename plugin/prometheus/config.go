@@ -3,6 +3,7 @@ package prometheus
 import (
 	"context"
 	kaytuKubernetes "github.com/kaytu-io/plugin-kubernetes/plugin/kubernetes"
+	"sync"
 	"time"
 )
 
@@ -28,11 +29,14 @@ type Config struct {
 	OAuth2ClientSecret string   `json:"oAuth2ClientSecret"`
 	OAuth2TokenURL     string   `json:"oAuth2TokenURL"`
 	OAuth2Scopes       []string `json:"oAuth2Scopes"`
+
+	reconnectWait sync.Mutex
 }
 
-func GetConfig(address, basicUsername, basicPassword, oAuth2ClientID, oAuth2ClientSecret, oAuth2TokenURL *string, oAuth2Scopes []string, client *kaytuKubernetes.Kubernetes) (Config, error) {
+func GetConfig(address, basicUsername, basicPassword, oAuth2ClientID, oAuth2ClientSecret, oAuth2TokenURL *string, oAuth2Scopes []string, client *kaytuKubernetes.Kubernetes) (*Config, error) {
 	cfg := Config{
-		AuthType: PromAuthTypeNone,
+		AuthType:      PromAuthTypeNone,
+		reconnectWait: sync.Mutex{},
 	}
 
 	if address != nil {
@@ -40,9 +44,9 @@ func GetConfig(address, basicUsername, basicPassword, oAuth2ClientID, oAuth2Clie
 	}
 
 	if cfg.Address == "" {
-		_, err := client.DiscoverPrometheus(context.Background())
+		_, err := client.DiscoverPrometheus(context.Background(), &cfg.reconnectWait)
 		if err != nil {
-			return cfg, err
+			return nil, err
 		}
 		time.Sleep(1 * time.Second)
 		cfg.Address = "http://localhost:9090"
@@ -60,5 +64,5 @@ func GetConfig(address, basicUsername, basicPassword, oAuth2ClientID, oAuth2Clie
 		cfg.OAuth2Scopes = oAuth2Scopes
 	}
 
-	return cfg, nil
+	return &cfg, nil
 }

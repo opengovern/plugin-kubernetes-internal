@@ -15,6 +15,7 @@ import (
 	"net/http"
 	"net/url"
 	"strings"
+	"sync"
 )
 
 type Kubernetes struct {
@@ -48,7 +49,7 @@ func (s *Kubernetes) ListPodsInNamespace(ctx context.Context, namespace string) 
 	return pods.Items, nil
 }
 
-func (s *Kubernetes) DiscoverPrometheus(ctx context.Context) (chan struct{}, error) {
+func (s *Kubernetes) DiscoverPrometheus(ctx context.Context, reconnectMutex *sync.Mutex) (chan struct{}, error) {
 	svc, err := s.findPrometheusService(ctx)
 	if err != nil {
 		return nil, err
@@ -57,7 +58,7 @@ func (s *Kubernetes) DiscoverPrometheus(ctx context.Context) (chan struct{}, err
 		return nil, errors.New("prometheus not found")
 	}
 
-	return s.portForward(ctx, svc.Namespace, svc.Name, []string{"9090:9090"})
+	return s.portForward(ctx, svc.Namespace, svc.Name, []string{"9090:9090"}, reconnectMutex)
 }
 
 func (s *Kubernetes) findPrometheusService(ctx context.Context) (*corev1.Service, error) {
@@ -85,7 +86,7 @@ func (s *Kubernetes) findPrometheusService(ctx context.Context) (*corev1.Service
 	return nil, nil
 }
 
-func (s *Kubernetes) portForward(ctx context.Context, namespace, serviceName string, ports []string) (chan struct{}, error) {
+func (s *Kubernetes) portForward(ctx context.Context, namespace, serviceName string, ports []string, mutex *sync.Mutex) (chan struct{}, error) {
 	service, err := s.clientset.CoreV1().Services(namespace).Get(ctx, serviceName, metav1.GetOptions{})
 	if err != nil {
 		return nil, err
@@ -126,12 +127,22 @@ func (s *Kubernetes) portForward(ctx context.Context, namespace, serviceName str
 		return nil, err
 	}
 
+	reconnect(forwarder, readyChan, mutex)
+
+	return stopChan, nil
+}
+
+func reconnect(forwarder *portforward.PortForwarder, readyChan chan struct{}, mutex *sync.Mutex) {
+	mutex.Lock()
 	go func() {
-		if err = forwarder.ForwardPorts(); err != nil {
+		if err := forwarder.ForwardPorts(); err != nil {
+			if errors.Is(err, portforward.ErrLostConnectionToPod) {
+				reconnect(forwarder, readyChan, mutex)
+				return
+			}
 			panic(err.Error())
 		}
 	}()
-
 	<-readyChan // This line will block until the port forwarding is ready to get traffic.
-	return stopChan, nil
+	mutex.Unlock()
 }
