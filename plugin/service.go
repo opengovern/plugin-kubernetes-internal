@@ -4,6 +4,7 @@ import (
 	"context"
 	"github.com/kaytu-io/kaytu/pkg/plugin/proto/src/golang"
 	"github.com/kaytu-io/kaytu/pkg/plugin/sdk"
+	"github.com/kaytu-io/plugin-kubernetes/plugin/kaytu"
 	kaytuKubernetes "github.com/kaytu-io/plugin-kubernetes/plugin/kubernetes"
 	"github.com/kaytu-io/plugin-kubernetes/plugin/preferences"
 	"github.com/kaytu-io/plugin-kubernetes/plugin/processor"
@@ -284,9 +285,14 @@ func (p *KubernetesPlugin) StartProcess(command string, flags map[string]string,
 	}
 	publishResultsReady(false)
 
+	configurations, err := kaytu.ConfigurationRequest()
+	if err != nil {
+		return err
+	}
+
 	switch command {
 	case "kubernetes-pods":
-		p.processor = pods.NewProcessor(ctx, kubeClient, promClient, publishOptimizationItem, kaytuAccessToken, jobQueue, client)
+		p.processor = pods.NewProcessor(ctx, kubeClient, promClient, publishOptimizationItem, kaytuAccessToken, jobQueue, configurations, client)
 		if err != nil {
 			return err
 		}

@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"github.com/kaytu-io/plugin-kubernetes/plugin/preferences"
+	v1 "k8s.io/api/core/v1"
 )
 
 type ListPodsForNamespaceJob struct {
@@ -42,7 +43,15 @@ func (j *ListPodsForNamespaceJob) Run() error {
 			LazyLoadingEnabled:  false,
 		}
 
-		// TODO: lazy loading
+		if pod.Status.Phase != v1.PodRunning {
+			item.Skipped = true
+			item.SkipReason = "Pod is not running"
+		}
+
+		j.processor.lazyloadCounter.Increment()
+		if j.processor.lazyloadCounter.Get() > j.processor.configuration.KubernetesLazyLoad {
+			item.LazyLoadingEnabled = true
+		}
 
 		j.processor.items.Set(item.GetID(), item)
 		j.processor.publishOptimizationItem(item.ToOptimizationItem())
