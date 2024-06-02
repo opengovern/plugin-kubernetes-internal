@@ -3,6 +3,7 @@ package pods
 import (
 	"context"
 	"fmt"
+	"github.com/kaytu-io/plugin-kubernetes/plugin/preferences"
 )
 
 type ListPodsForNamespaceJob struct {
@@ -36,7 +37,7 @@ func (j *ListPodsForNamespaceJob) Run() error {
 			Pod:                 pod,
 			Namespace:           j.namespace,
 			OptimizationLoading: true,
-			Preferences:         nil,
+			Preferences:         preferences.DefaultPodsPreferences,
 			Skipped:             false,
 			LazyLoadingEnabled:  false,
 		}
