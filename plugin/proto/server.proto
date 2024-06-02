@@ -49,10 +49,10 @@ message KubernetesContainerRightsizingRecommendation {
   string name = 1;
   RightsizingKubernetesContainer current = 2;
   RightsizingKubernetesContainer recommended = 3;
-  google.protobuf.FloatValue memory_trimmed_mean = 4;
-  google.protobuf.FloatValue memory_max = 5;
-  google.protobuf.FloatValue cpu_trimmed_mean = 6;
-  google.protobuf.FloatValue cpu_max = 7;
+  google.protobuf.DoubleValue memory_trimmed_mean = 4;
+  google.protobuf.DoubleValue memory_max = 5;
+  google.protobuf.DoubleValue cpu_trimmed_mean = 6;
+  google.protobuf.DoubleValue cpu_max = 7;
   string description = 8;
 }
 
