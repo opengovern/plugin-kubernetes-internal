@@ -7,6 +7,7 @@ import (
 	golang2 "github.com/kaytu-io/plugin-kubernetes/plugin/proto/src/golang"
 	"google.golang.org/protobuf/types/known/wrapperspb"
 	corev1 "k8s.io/api/core/v1"
+	"strconv"
 )
 
 type PodItem struct {
@@ -184,6 +185,13 @@ func (i PodItem) ToOptimizationItem() *golang.ChartOptimizationItem {
 
 	deviceRows, deviceProps := i.Devices()
 
+	skipped := ""
+	if i.Skipped {
+		skipped = fmt.Sprintf("skipped - %s", i.SkipReason)
+	} else if i.OptimizationLoading {
+		skipped = "press enter to load"
+	}
+
 	oi := &golang.ChartOptimizationItem{
 		OverviewChartRow: &golang.ChartRow{
 			RowId: i.GetID(),
@@ -196,6 +204,12 @@ func (i PodItem) ToOptimizationItem() *golang.ChartOptimizationItem {
 				},
 				"name": {
 					Value: i.Pod.Name,
+				},
+				"skipped": {
+					Value: skipped,
+				},
+				"loading": {
+					Value: strconv.FormatBool(i.OptimizationLoading),
 				},
 			},
 		},
