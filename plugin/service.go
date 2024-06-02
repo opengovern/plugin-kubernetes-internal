@@ -260,7 +260,11 @@ func (p *KubernetesPlugin) StartProcess(command string, flags map[string]string,
 	if promScopesStr != nil {
 		promScopes = strings.Split(*promScopesStr, ",")
 	}
-	promCfg, _ := kaytuPrometheus.GetConfig(promAddress, promUsername, promPassword, promClientId, promClientSecret, promTokenUrl, promScopes, kubeClient)
+	promCfg, err := kaytuPrometheus.GetConfig(promAddress, promUsername, promPassword, promClientId, promClientSecret, promTokenUrl, promScopes, kubeClient)
+	if err != nil {
+		return err
+	}
+
 	promClient, err := kaytuPrometheus.NewPrometheus(promCfg)
 	if err != nil {
 		return err

@@ -12,7 +12,7 @@ import (
 )
 
 type Prometheus struct {
-	cfg    Config
+	cfg    *Config
 	client promapi.Client
 	api    prometheus.API
 }
@@ -22,7 +22,7 @@ type PromDatapoint struct {
 	Value     float64
 }
 
-func NewPrometheus(cfg Config) (*Prometheus, error) {
+func NewPrometheus(cfg *Config) (*Prometheus, error) {
 	promCfg := promapi.Config{
 		Address:      cfg.Address,
 		RoundTripper: promapi.DefaultRoundTripper,
@@ -82,6 +82,9 @@ func parsePrometheusResponse(value model.Value) ([]PromDatapoint, error) {
 }
 
 func (p *Prometheus) GetCpuMetricsForPodContainer(ctx context.Context, namespace, podName, containerName string) ([]PromDatapoint, error) {
+	p.cfg.reconnectWait.Lock()
+	p.cfg.reconnectWait.Unlock()
+
 	query := fmt.Sprintf(`sum(rate(container_cpu_usage_seconds_total{namespace="%s", pod="%s", container="%s"}[1m])) by (container)`, namespace, podName, containerName)
 	value, _, err := p.api.QueryRange(ctx, query, prometheus.Range{
 		Start: time.Now().Add(-7 * 24 * time.Hour).Truncate(time.Hour),
@@ -96,6 +99,9 @@ func (p *Prometheus) GetCpuMetricsForPodContainer(ctx context.Context, namespace
 }
 
 func (p *Prometheus) GetMemoryMetricsForPodContainer(ctx context.Context, namespace, podName, containerName string) ([]PromDatapoint, error) {
+	p.cfg.reconnectWait.Lock()
+	p.cfg.reconnectWait.Unlock()
+
 	query := fmt.Sprintf(`sum(container_memory_usage_bytes{namespace="%s", pod="%s", container="%s"}) by (container)`, namespace, podName, containerName)
 	value, _, err := p.api.QueryRange(ctx, query, prometheus.Range{
 		Start: time.Now().Add(-7 * 24 * time.Hour).Truncate(time.Hour),
