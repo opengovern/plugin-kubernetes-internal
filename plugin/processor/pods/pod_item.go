@@ -122,23 +122,23 @@ func (i PodItem) Devices() ([]*golang.ChartRow, map[string]*golang.Properties) {
 			cpuRequestProperty.Current = fmt.Sprintf("%.2f", righSizing.Current.CpuRequest)
 			cpuRequestProperty.Recommended = fmt.Sprintf("%.2f", righSizing.Recommended.CpuRequest)
 			if righSizing.CpuTrimmedMean != nil {
-				cpuRequestProperty.Average = fmt.Sprintf("%.2f", righSizing.CpuTrimmedMean.Value)
+				cpuRequestProperty.Average = fmt.Sprintf("Avg: %.2f", righSizing.CpuTrimmedMean.Value)
 			}
 			cpuLimitProperty.Current = fmt.Sprintf("%.2f", righSizing.Current.CpuLimit)
 			cpuLimitProperty.Recommended = fmt.Sprintf("%.2f", righSizing.Recommended.CpuLimit)
 			if righSizing.CpuMax != nil {
-				cpuLimitProperty.Max = fmt.Sprintf("%.2f", righSizing.CpuMax.Value)
+				cpuLimitProperty.Average = fmt.Sprintf("Max: %.2f", righSizing.CpuMax.Value)
 			}
 
 			memoryRequestProperty.Current = SizeByte(righSizing.Current.MemoryRequest)
 			memoryRequestProperty.Recommended = SizeByte(righSizing.Recommended.MemoryRequest)
 			if righSizing.MemoryTrimmedMean != nil {
-				memoryRequestProperty.Average = SizeByte(righSizing.MemoryTrimmedMean.Value)
+				memoryRequestProperty.Average = "Avg: " + SizeByte(righSizing.MemoryTrimmedMean.Value)
 			}
 			memoryLimitProperty.Current = SizeByte(righSizing.Current.MemoryLimit)
 			memoryLimitProperty.Recommended = SizeByte(righSizing.Recommended.MemoryLimit)
 			if righSizing.MemoryMax != nil {
-				memoryLimitProperty.Max = SizeByte(righSizing.MemoryMax.Value)
+				memoryLimitProperty.Average = "Max: " + SizeByte(righSizing.MemoryMax.Value)
 			}
 
 			row.Values["suggested_cpu_request"] = &golang.ChartRowItem{
@@ -180,6 +180,7 @@ func SizeByte(v float32) string {
 
 func (i PodItem) ToOptimizationItem() *golang.ChartOptimizationItem {
 	var cpuRequest, cpuLimit, memoryRequest, memoryLimit *float64
+	var recCpuRequest, recCpuLimit, recMemoryRequest, recMemoryLimit *float32
 	for _, container := range i.Pod.Spec.Containers {
 		cReq, cLim, mReq, mLim := getContainerRequestLimits(container)
 		if cReq != nil {
@@ -205,6 +206,37 @@ func (i PodItem) ToOptimizationItem() *golang.ChartOptimizationItem {
 				*mLim = *memoryLimit + *mLim
 			}
 			memoryLimit = mLim
+		}
+
+		var righSizing *golang2.KubernetesContainerRightsizingRecommendation
+		if i.Wastage != nil {
+			for _, c := range i.Wastage.Rightsizing.ContainerResizing {
+				if c.Name == container.Name {
+					righSizing = c
+				}
+			}
+		}
+		if righSizing != nil {
+			if recCpuRequest != nil {
+				*recCpuRequest = *recCpuRequest + righSizing.Recommended.CpuRequest
+			} else {
+				recCpuRequest = &righSizing.Recommended.CpuRequest
+			}
+			if recCpuLimit != nil {
+				*recCpuLimit = *recCpuLimit + righSizing.Recommended.CpuLimit
+			} else {
+				recCpuLimit = &righSizing.Recommended.CpuLimit
+			}
+			if recMemoryRequest != nil {
+				*recMemoryRequest = *recMemoryRequest + righSizing.Recommended.MemoryRequest
+			} else {
+				recMemoryRequest = &righSizing.Recommended.MemoryRequest
+			}
+			if recMemoryLimit != nil {
+				*recMemoryLimit = *recMemoryLimit + righSizing.Recommended.MemoryLimit
+			} else {
+				recMemoryLimit = &righSizing.Recommended.MemoryLimit
+			}
 		}
 	}
 
@@ -268,6 +300,26 @@ func (i PodItem) ToOptimizationItem() *golang.ChartOptimizationItem {
 	if memoryLimit != nil && *memoryLimit > 0 {
 		oi.OverviewChartRow.Values["current_memory_limit"] = &golang.ChartRowItem{
 			Value: fmt.Sprintf("%.2f GB", *memoryLimit/(1024*1024*1024)),
+		}
+	}
+	if recCpuRequest != nil && *recCpuRequest > 0 {
+		oi.OverviewChartRow.Values["suggested_cpu_request"] = &golang.ChartRowItem{
+			Value: fmt.Sprintf("%.2f Core", *recCpuRequest),
+		}
+	}
+	if recCpuLimit != nil && *recCpuLimit > 0 {
+		oi.OverviewChartRow.Values["suggested_cpu_limit"] = &golang.ChartRowItem{
+			Value: fmt.Sprintf("%.2f Core", *recCpuLimit),
+		}
+	}
+	if recMemoryRequest != nil && *recMemoryRequest > 0 {
+		oi.OverviewChartRow.Values["suggested_memory_request"] = &golang.ChartRowItem{
+			Value: fmt.Sprintf("%.2f GB", *recMemoryRequest/(1024*1024*1024)),
+		}
+	}
+	if recMemoryLimit != nil && *recMemoryLimit > 0 {
+		oi.OverviewChartRow.Values["suggested_memory_limit"] = &golang.ChartRowItem{
+			Value: fmt.Sprintf("%.2f GB", *recMemoryLimit/(1024*1024*1024)),
 		}
 	}
 
