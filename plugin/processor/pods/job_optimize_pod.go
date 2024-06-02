@@ -47,10 +47,10 @@ func (j *OptimizePodJob) Run() error {
 	for _, container := range j.item.Pod.Spec.Containers {
 		pod.Containers = append(pod.Containers, &golang.KubernetesContainer{
 			Name:          container.Name,
-			MemoryRequest: float32(container.Resources.Requests.Memory().AsApproximateFloat64()),
-			MemoryLimit:   float32(container.Resources.Limits.Memory().AsApproximateFloat64()),
-			CpuRequest:    float32(container.Resources.Requests.Cpu().AsApproximateFloat64()),
-			CpuLimit:      float32(container.Resources.Limits.Cpu().AsApproximateFloat64()),
+			MemoryRequest: container.Resources.Requests.Memory().AsApproximateFloat64(),
+			MemoryLimit:   container.Resources.Limits.Memory().AsApproximateFloat64(),
+			CpuRequest:    container.Resources.Requests.Cpu().AsApproximateFloat64(),
+			CpuLimit:      container.Resources.Limits.Cpu().AsApproximateFloat64(),
 		})
 	}
 	preferencesMap := map[string]*wrappers.StringValue{}
@@ -71,17 +71,17 @@ func (j *OptimizePodJob) Run() error {
 				v := metrics[containerId]
 				for _, dp := range datapoints {
 					if v.Cpu == nil {
-						v.Cpu = map[string]float32{}
+						v.Cpu = map[string]float64{}
 					}
-					v.Cpu[dp.Timestamp.Format("2006-05-04 15:02:01")] = float32(dp.Value)
+					v.Cpu[dp.Timestamp.Format("2006-05-04 15:02:01")] = dp.Value
 				}
 			} else if metricId == "memory_usage" {
 				v := metrics[containerId]
 				for _, dp := range datapoints {
 					if v.Memory == nil {
-						v.Memory = map[string]float32{}
+						v.Memory = map[string]float64{}
 					}
-					v.Memory[dp.Timestamp.Format("2006-05-04 15:02:01")] = float32(dp.Value)
+					v.Memory[dp.Timestamp.Format("2006-05-04 15:02:01")] = dp.Value
 				}
 			}
 		}

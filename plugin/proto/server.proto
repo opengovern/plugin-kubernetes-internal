@@ -7,10 +7,10 @@ import "google/protobuf/wrappers.proto";
 // Requests
 message KubernetesContainer{
   string name = 1;
-  float memory_request = 2;
-  float memory_limit = 3;
-  float cpu_request = 4;
-  float cpu_limit = 5;
+  double memory_request = 2;
+  double memory_limit = 3;
+  double cpu_request = 4;
+  double cpu_limit = 5;
 }
 
 message KubernetesPod{
@@ -20,8 +20,8 @@ message KubernetesPod{
 }
 
 message KubernetesContainerMetrics {
-  map<string,float> cpu = 1;
-  map<string,float> memory = 2;
+  map<string,double> cpu = 1;
+  map<string,double> memory = 2;
 }
 
 message KubernetesPodOptimizationRequest {
@@ -39,20 +39,20 @@ message KubernetesPodOptimizationRequest {
 // Responses
 message RightsizingKubernetesContainer {
   string name = 1;
-  float memory_request = 2;
-  float memory_limit = 3;
-  float cpu_request = 4;
-  float cpu_limit = 5;
+  double memory_request = 2;
+  double memory_limit = 3;
+  double cpu_request = 4;
+  double cpu_limit = 5;
 }
 
 message KubernetesContainerRightsizingRecommendation {
   string name = 1;
   RightsizingKubernetesContainer current = 2;
   RightsizingKubernetesContainer recommended = 3;
-  google.protobuf.FloatValue memory_trimmed_mean = 4;
-  google.protobuf.FloatValue memory_max = 5;
-  google.protobuf.FloatValue cpu_trimmed_mean = 6;
-  google.protobuf.FloatValue cpu_max = 7;
+  google.protobuf.DoubleValue memory_trimmed_mean = 4;
+  google.protobuf.DoubleValue memory_max = 5;
+  google.protobuf.DoubleValue cpu_trimmed_mean = 6;
+  google.protobuf.DoubleValue cpu_max = 7;
   string description = 8;
 }
 
