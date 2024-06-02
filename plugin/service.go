@@ -147,7 +147,7 @@ func (p *KubernetesPlugin) GetConfig() golang.RegisterConfig {
 				{
 					Id:    "skipped",
 					Name:  "Skipped",
-					Width: 8,
+					Width: 30,
 				},
 				{
 					Id:    "loading",
