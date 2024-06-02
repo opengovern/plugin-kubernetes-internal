@@ -95,64 +95,29 @@ func (p *KubernetesPlugin) GetConfig() golang.RegisterConfig {
 		OverviewChart: &golang.ChartDefinition{
 			Columns: []*golang.ChartColumnItem{
 				{
+					Id:    "name",
+					Name:  "Name",
+					Width: 20,
+				},
+				{
 					Id:    "namespace",
 					Name:  "Namespace",
 					Width: 15,
 				},
 				{
-					Id:    "name",
-					Name:  "Name",
-					Width: 15,
+					Id:    "cpu_reduction",
+					Name:  "CPU Change",
+					Width: 40,
 				},
 				{
-					Id:    "current_cpu_request",
-					Name:  "CPU Request",
-					Width: 12,
+					Id:    "memory_reduction",
+					Name:  "Memory Change",
+					Width: 40,
 				},
 				{
-					Id:    "current_cpu_limit",
-					Name:  "CPU Limit",
-					Width: 10,
-				},
-				{
-					Id:    "current_memory_request",
-					Name:  "Memory Request",
-					Width: 15,
-				},
-				{
-					Id:    "current_memory_limit",
-					Name:  "Memory Limit",
-					Width: 13,
-				},
-				{
-					Id:    "suggested_cpu_request",
-					Name:  "Suggested CPU Request",
-					Width: 22,
-				},
-				{
-					Id:    "suggested_cpu_limit",
-					Name:  "Suggested CPU Limit",
-					Width: 20,
-				},
-				{
-					Id:    "suggested_memory_request",
-					Name:  "Suggested Memory Request",
-					Width: 25,
-				},
-				{
-					Id:    "suggested_memory_limit",
-					Name:  "Suggested Memory Limit",
-					Width: 23,
-				},
-				{
-					Id:    "skipped",
-					Name:  "Skipped",
-					Width: 30,
-				},
-				{
-					Id:    "loading",
-					Name:  "Loading",
-					Width: 8,
+					Id:    "status",
+					Name:  "Status",
+					Width: 21,
 				},
 				{
 					Id:    "right_arrow",

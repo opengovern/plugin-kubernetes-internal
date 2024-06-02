@@ -51,6 +51,7 @@ func (j *ListPodsForNamespaceJob) Run() error {
 		j.processor.lazyloadCounter.Increment()
 		if j.processor.lazyloadCounter.Get() > j.processor.configuration.KubernetesLazyLoad {
 			item.LazyLoadingEnabled = true
+			item.OptimizationLoading = false
 		}
 
 		j.processor.items.Set(item.GetID(), item)

@@ -44,6 +44,8 @@ func NewProcessor(ctx context.Context, identification map[string]string, kuberne
 func (m *Processor) ReEvaluate(id string, items []*golang.PreferenceItem) {
 	v, _ := m.items.Get(id)
 	v.Preferences = items
+	v.LazyLoadingEnabled = false
+	v.OptimizationLoading = true
 	m.items.Set(id, v)
-	//m.jobQueue.Push(NewOptimizeEC2InstanceJob(m, v))
+	m.jobQueue.Push(NewOptimizePodJob(context.Background(), m, v))
 }
