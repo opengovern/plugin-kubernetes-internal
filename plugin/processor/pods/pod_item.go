@@ -161,7 +161,7 @@ func (i PodItem) Devices() ([]*golang.ChartRow, map[string]*golang.Properties) {
 	return rows, props
 }
 
-func SizeByte(v float32) string {
+func SizeByte(v float64) string {
 	if v < 1024 {
 		return fmt.Sprintf("%.0f Bytes", v)
 	}
@@ -179,7 +179,7 @@ func SizeByte(v float32) string {
 
 func (i PodItem) ToOptimizationItem() *golang.ChartOptimizationItem {
 	var cpuRequest, cpuLimit, memoryRequest, memoryLimit *float64
-	var recCpuRequest, recCpuLimit, recMemoryRequest, recMemoryLimit *float32
+	var recCpuRequest, recCpuLimit, recMemoryRequest, recMemoryLimit *float64
 	for _, container := range i.Pod.Spec.Containers {
 		cReq, cLim, mReq, mLim := getContainerRequestLimits(container)
 		if cReq != nil {
