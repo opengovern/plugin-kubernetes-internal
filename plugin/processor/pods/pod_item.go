@@ -86,6 +86,7 @@ func (i PodItem) Devices() ([]*golang.ChartRow, map[string]*golang.Properties) {
 				Value: fmt.Sprintf("%.2f Core", *cpuRequest),
 			}
 		}
+		properties.Properties = append(properties.Properties, &cpuRequestProperty)
 
 		cpuLimitProperty := golang.Property{
 			Key: "CPU Limit",
@@ -94,7 +95,6 @@ func (i PodItem) Devices() ([]*golang.ChartRow, map[string]*golang.Properties) {
 			row.Values["current_cpu_limit"] = &golang.ChartRowItem{
 				Value: fmt.Sprintf("%.2f Core", *cpuLimit),
 			}
-
 		}
 		properties.Properties = append(properties.Properties, &cpuLimitProperty)
 
@@ -118,7 +118,7 @@ func (i PodItem) Devices() ([]*golang.ChartRow, map[string]*golang.Properties) {
 		}
 		properties.Properties = append(properties.Properties, &memoryLimitProperty)
 
-		if righSizing != nil {
+		if righSizing != nil && righSizing.Recommended != nil {
 			cpuRequestProperty.Current = fmt.Sprintf("%.2f", righSizing.Current.CpuRequest)
 			cpuRequestProperty.Recommended = fmt.Sprintf("%.2f", righSizing.Recommended.CpuRequest)
 			if righSizing.CpuTrimmedMean != nil {
@@ -155,7 +155,6 @@ func (i PodItem) Devices() ([]*golang.ChartRow, map[string]*golang.Properties) {
 			}
 		}
 
-		properties.Properties = append(properties.Properties, &cpuRequestProperty)
 		rows = append(rows, &row)
 		props[row.RowId] = &properties
 	}
@@ -163,6 +162,14 @@ func (i PodItem) Devices() ([]*golang.ChartRow, map[string]*golang.Properties) {
 }
 
 func SizeByte(v float64) string {
+	return SizeByte64(float64(v))
+}
+
+func SizeByte64(v float64) string {
+	if v < 0 {
+		return fmt.Sprintf("-%s", SizeByte64(-v))
+	}
+
 	if v < 1024 {
 		return fmt.Sprintf("%.0f Bytes", v)
 	}
@@ -216,7 +223,7 @@ func (i PodItem) ToOptimizationItem() *golang.ChartOptimizationItem {
 				}
 			}
 		}
-		if righSizing != nil {
+		if righSizing != nil && righSizing.Recommended != nil {
 			if recCpuRequest != nil {
 				*recCpuRequest = *recCpuRequest + righSizing.Recommended.CpuRequest
 			} else {
@@ -242,11 +249,13 @@ func (i PodItem) ToOptimizationItem() *golang.ChartOptimizationItem {
 
 	deviceRows, deviceProps := i.Devices()
 
-	skipped := ""
+	status := ""
 	if i.Skipped {
-		skipped = fmt.Sprintf("skipped - %s", i.SkipReason)
+		status = fmt.Sprintf("skipped - %s", i.SkipReason)
+	} else if i.LazyLoadingEnabled && !i.OptimizationLoading {
+		status = "press enter to load"
 	} else if i.OptimizationLoading {
-		skipped = "press enter to load"
+		status = "loading"
 	}
 
 	oi := &golang.ChartOptimizationItem{
@@ -262,8 +271,8 @@ func (i PodItem) ToOptimizationItem() *golang.ChartOptimizationItem {
 				"name": {
 					Value: i.Pod.Name,
 				},
-				"skipped": {
-					Value: skipped,
+				"status": {
+					Value: status,
 				},
 				"loading": {
 					Value: strconv.FormatBool(i.OptimizationLoading),
@@ -320,6 +329,27 @@ func (i PodItem) ToOptimizationItem() *golang.ChartOptimizationItem {
 	if recMemoryLimit != nil && *recMemoryLimit > 0 {
 		oi.OverviewChartRow.Values["suggested_memory_limit"] = &golang.ChartRowItem{
 			Value: fmt.Sprintf("%.2f GB", *recMemoryLimit/(1024*1024*1024)),
+		}
+	}
+
+	if i.Wastage != nil {
+		cpuRequestReduction := 0.0
+		cpuLimitReduction := 0.0
+		memoryRequestReduction := 0.0
+		memoryLimitReduction := 0.0
+		for _, container := range i.Wastage.Rightsizing.ContainerResizing {
+			if container.Current != nil && container.Recommended != nil {
+				cpuRequestReduction += float64(container.Current.CpuRequest - container.Recommended.CpuRequest)
+				cpuLimitReduction += float64(container.Current.CpuLimit - container.Recommended.CpuLimit)
+				memoryRequestReduction += float64(container.Current.MemoryRequest - container.Recommended.MemoryRequest)
+				memoryLimitReduction += float64(container.Current.MemoryLimit - container.Recommended.MemoryLimit)
+			}
+		}
+		oi.OverviewChartRow.Values["cpu_reduction"] = &golang.ChartRowItem{
+			Value: fmt.Sprintf("request: %.2f core, limit: %.2f core", cpuRequestReduction, cpuLimitReduction),
+		}
+		oi.OverviewChartRow.Values["memory_reduction"] = &golang.ChartRowItem{
+			Value: fmt.Sprintf("request: %s, limit: %s", SizeByte64(memoryRequestReduction), SizeByte64(memoryLimitReduction)),
 		}
 	}
 
