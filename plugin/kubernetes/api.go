@@ -6,6 +6,7 @@ import (
 	"errors"
 	"fmt"
 	"github.com/kaytu-io/kaytu/pkg/utils"
+	appv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/labels"
@@ -64,6 +65,26 @@ func (s *Kubernetes) ListAllNamespaces(ctx context.Context) ([]corev1.Namespace,
 
 func (s *Kubernetes) ListPodsInNamespace(ctx context.Context, namespace string) ([]corev1.Pod, error) {
 	pods, err := s.clientset.CoreV1().Pods(namespace).List(ctx, metav1.ListOptions{})
+	if err != nil {
+		return nil, err
+	}
+
+	return pods.Items, nil
+}
+
+func (s *Kubernetes) ListDeploymentsInNamespace(ctx context.Context, namespace string) ([]appv1.Deployment, error) {
+	deployments, err := s.clientset.AppsV1().Deployments(namespace).List(ctx, metav1.ListOptions{})
+	if err != nil {
+		return nil, err
+	}
+
+	return deployments.Items, nil
+}
+
+func (s *Kubernetes) ListDeploymentPods(ctx context.Context, deployment appv1.Deployment) ([]corev1.Pod, error) {
+	pods, err := s.clientset.CoreV1().Pods(deployment.Namespace).List(ctx, metav1.ListOptions{
+		LabelSelector: labels.Set(deployment.Spec.Selector.MatchLabels).AsSelector().String(),
+	})
 	if err != nil {
 		return nil, err
 	}

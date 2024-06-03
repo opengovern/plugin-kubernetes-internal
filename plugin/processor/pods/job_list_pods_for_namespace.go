@@ -57,15 +57,11 @@ func (j *ListPodsForNamespaceJob) Run() error {
 		j.processor.items.Set(item.GetID(), item)
 		j.processor.publishOptimizationItem(item.ToOptimizationItem())
 		item.UpdateSummary(j.processor)
-	}
 
-	for _, pod := range pods {
-		i, ok := j.processor.items.Get(fmt.Sprintf("%s/%s", pod.Namespace, pod.Name))
-		if ok && (i.LazyLoadingEnabled || !i.OptimizationLoading || i.Skipped) {
+		if item.LazyLoadingEnabled || !item.OptimizationLoading || item.Skipped {
 			continue
 		}
-
-		j.processor.jobQueue.Push(NewGetPodMetricsJob(j.ctx, j.processor, i.GetID()))
+		j.processor.jobQueue.Push(NewGetPodMetricsJob(j.ctx, j.processor, item.GetID()))
 	}
 
 	return nil
