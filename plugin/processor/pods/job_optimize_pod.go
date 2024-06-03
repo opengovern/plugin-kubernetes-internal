@@ -119,5 +119,6 @@ func (j *OptimizePodJob) Run() error {
 	}
 	j.processor.items.Set(item.GetID(), item)
 	j.processor.publishOptimizationItem(item.ToOptimizationItem())
+	item.UpdateSummary(j.processor)
 	return nil
 }
