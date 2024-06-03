@@ -56,7 +56,7 @@ func (j *GetPodMetricsJob) Run() error {
 		}
 		pod.Metrics["memory_usage"][container.Name] = memoryUsage
 	}
-
+	pod.LazyLoadingEnabled = false
 	j.processor.items.Set(pod.GetID(), pod)
 	j.processor.publishOptimizationItem(pod.ToOptimizationItem())
 
