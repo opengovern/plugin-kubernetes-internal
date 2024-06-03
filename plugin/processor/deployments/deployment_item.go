@@ -366,10 +366,10 @@ func (i DeploymentItem) ToOptimizationItem() *golang.ChartOptimizationItem {
 				memoryLimitChange += container.Recommended.MemoryLimit - container.Current.MemoryLimit
 			}
 		}
-		oi.OverviewChartRow.Values["cpu_reduction"] = &golang.ChartRowItem{
+		oi.OverviewChartRow.Values["cpu_change"] = &golang.ChartRowItem{
 			Value: fmt.Sprintf("request: %.2f core, limit: %.2f core", cpuRequestChange, cpuLimitChange),
 		}
-		oi.OverviewChartRow.Values["memory_reduction"] = &golang.ChartRowItem{
+		oi.OverviewChartRow.Values["memory_change"] = &golang.ChartRowItem{
 			Value: fmt.Sprintf("request: %s, limit: %s", shared.SizeByte64(memoryRequestChange), shared.SizeByte64(memoryLimitChange)),
 		}
 	}
