@@ -80,6 +80,7 @@ func (j *OptimizePodJob) Run() error {
 					}
 					v.Cpu[dp.Timestamp.Format("2006-01-02 15:04:05")] = dp.Value
 				}
+				metrics[containerId] = v
 			} else if metricId == "memory_usage" {
 				v := metrics[containerId]
 				for _, dp := range datapoints {
@@ -88,6 +89,7 @@ func (j *OptimizePodJob) Run() error {
 					}
 					v.Memory[dp.Timestamp.Format("2006-01-02 15:04:05")] = dp.Value
 				}
+				metrics[containerId] = v
 			}
 		}
 	}

@@ -3,6 +3,7 @@ package pods
 import (
 	"fmt"
 	"github.com/kaytu-io/kaytu/pkg/plugin/proto/src/golang"
+	"github.com/kaytu-io/plugin-kubernetes/plugin/processor/shared"
 	kaytuPrometheus "github.com/kaytu-io/plugin-kubernetes/plugin/prometheus"
 	golang2 "github.com/kaytu-io/plugin-kubernetes/plugin/proto/src/golang"
 	"google.golang.org/protobuf/types/known/wrapperspb"
@@ -23,35 +24,7 @@ type PodItem struct {
 }
 
 func (i PodItem) GetID() string {
-	return fmt.Sprintf("%s/%s", i.Pod.Namespace, i.Pod.Name)
-}
-
-func getContainerRequestLimits(container corev1.Container) (cpuRequest, cpuLimit, memoryRequest, memoryLimit *float64) {
-	if container.Resources.Requests.Cpu() != nil {
-		v := container.Resources.Requests.Cpu().AsApproximateFloat64()
-		if v != 0 {
-			cpuRequest = &v
-		}
-	}
-	if container.Resources.Limits.Cpu() != nil {
-		v := container.Resources.Limits.Cpu().AsApproximateFloat64()
-		if v != 0 {
-			cpuLimit = &v
-		}
-	}
-	if container.Resources.Requests.Memory() != nil {
-		v := container.Resources.Requests.Memory().AsApproximateFloat64()
-		if v != 0 {
-			memoryRequest = &v
-		}
-	}
-	if container.Resources.Limits.Memory() != nil {
-		v := container.Resources.Limits.Memory().AsApproximateFloat64()
-		if v != 0 {
-			memoryLimit = &v
-		}
-	}
-	return cpuRequest, cpuLimit, memoryRequest, memoryLimit
+	return fmt.Sprintf("corev1.pod/%s/%s", i.Pod.Namespace, i.Pod.Name)
 }
 
 func (i PodItem) Devices() ([]*golang.ChartRow, map[string]*golang.Properties) {
@@ -76,7 +49,7 @@ func (i PodItem) Devices() ([]*golang.ChartRow, map[string]*golang.Properties) {
 		row.Values["name"] = &golang.ChartRowItem{
 			Value: container.Name,
 		}
-		cpuRequest, cpuLimit, memoryRequest, memoryLimit := getContainerRequestLimits(container)
+		cpuRequest, cpuLimit, memoryRequest, memoryLimit := shared.GetContainerRequestLimits(container)
 
 		cpuRequestProperty := golang.Property{
 			Key: "CPU Request",
@@ -130,15 +103,15 @@ func (i PodItem) Devices() ([]*golang.ChartRow, map[string]*golang.Properties) {
 				cpuLimitProperty.Average = fmt.Sprintf("Max: %.2f", righSizing.CpuMax.Value)
 			}
 
-			memoryRequestProperty.Current = SizeByte(righSizing.Current.MemoryRequest)
-			memoryRequestProperty.Recommended = SizeByte(righSizing.Recommended.MemoryRequest)
+			memoryRequestProperty.Current = shared.SizeByte(righSizing.Current.MemoryRequest)
+			memoryRequestProperty.Recommended = shared.SizeByte(righSizing.Recommended.MemoryRequest)
 			if righSizing.MemoryTrimmedMean != nil {
-				memoryRequestProperty.Average = "Avg: " + SizeByte(righSizing.MemoryTrimmedMean.Value)
+				memoryRequestProperty.Average = "Avg: " + shared.SizeByte(righSizing.MemoryTrimmedMean.Value)
 			}
-			memoryLimitProperty.Current = SizeByte(righSizing.Current.MemoryLimit)
-			memoryLimitProperty.Recommended = SizeByte(righSizing.Recommended.MemoryLimit)
+			memoryLimitProperty.Current = shared.SizeByte(righSizing.Current.MemoryLimit)
+			memoryLimitProperty.Recommended = shared.SizeByte(righSizing.Recommended.MemoryLimit)
 			if righSizing.MemoryMax != nil {
-				memoryLimitProperty.Average = "Max: " + SizeByte(righSizing.MemoryMax.Value)
+				memoryLimitProperty.Average = "Max: " + shared.SizeByte(righSizing.MemoryMax.Value)
 			}
 
 			row.Values["suggested_cpu_request"] = &golang.ChartRowItem{
@@ -161,34 +134,10 @@ func (i PodItem) Devices() ([]*golang.ChartRow, map[string]*golang.Properties) {
 	return rows, props
 }
 
-func SizeByte(v float64) string {
-	return SizeByte64(float64(v))
-}
-
-func SizeByte64(v float64) string {
-	if v < 0 {
-		return fmt.Sprintf("-%s", SizeByte64(-v))
-	}
-
-	if v < 1024 {
-		return fmt.Sprintf("%.0f Bytes", v)
-	}
-	v = v / 1024
-	if v < 1024 {
-		return fmt.Sprintf("%.1f KB", v)
-	}
-	v = v / 1024
-	if v < 1024 {
-		return fmt.Sprintf("%.1f MB", v)
-	}
-	v = v / 1024
-	return fmt.Sprintf("%.1f GB", v)
-}
-
 func (i PodItem) ToOptimizationItem() *golang.ChartOptimizationItem {
 	var cpuRequest, cpuLimit, memoryRequest, memoryLimit *float64
 	for _, container := range i.Pod.Spec.Containers {
-		cReq, cLim, mReq, mLim := getContainerRequestLimits(container)
+		cReq, cLim, mReq, mLim := shared.GetContainerRequestLimits(container)
 		if cReq != nil {
 			if cpuRequest != nil {
 				*cReq = *cpuRequest + *cReq
@@ -259,26 +208,6 @@ func (i PodItem) ToOptimizationItem() *golang.ChartOptimizationItem {
 	if i.SkipReason != "" {
 		oi.SkipReason = &wrapperspb.StringValue{Value: i.SkipReason}
 	}
-	if cpuRequest != nil && *cpuRequest > 0 {
-		oi.OverviewChartRow.Values["current_cpu_request"] = &golang.ChartRowItem{
-			Value: fmt.Sprintf("%.2f Core", *cpuRequest),
-		}
-	}
-	if cpuLimit != nil && *cpuLimit > 0 {
-		oi.OverviewChartRow.Values["current_cpu_limit"] = &golang.ChartRowItem{
-			Value: fmt.Sprintf("%.2f Core", *cpuLimit),
-		}
-	}
-	if memoryRequest != nil && *memoryRequest > 0 {
-		oi.OverviewChartRow.Values["current_memory_request"] = &golang.ChartRowItem{
-			Value: fmt.Sprintf("%.2f GB", *memoryRequest/(1024*1024*1024)),
-		}
-	}
-	if memoryLimit != nil && *memoryLimit > 0 {
-		oi.OverviewChartRow.Values["current_memory_limit"] = &golang.ChartRowItem{
-			Value: fmt.Sprintf("%.2f GB", *memoryLimit/(1024*1024*1024)),
-		}
-	}
 
 	if i.Wastage != nil {
 		cpuRequestChange := 0.0
@@ -287,17 +216,17 @@ func (i PodItem) ToOptimizationItem() *golang.ChartOptimizationItem {
 		memoryLimitChange := 0.0
 		for _, container := range i.Wastage.Rightsizing.ContainerResizing {
 			if container.Current != nil && container.Recommended != nil {
-				cpuRequestChange += float64(container.Recommended.CpuRequest - container.Current.CpuRequest)
-				cpuLimitChange += float64(container.Recommended.CpuLimit - container.Current.CpuLimit)
-				memoryRequestChange += float64(container.Recommended.MemoryRequest - container.Current.MemoryRequest)
-				memoryLimitChange += float64(container.Recommended.MemoryLimit - container.Current.MemoryLimit)
+				cpuRequestChange += container.Recommended.CpuRequest - container.Current.CpuRequest
+				cpuLimitChange += container.Recommended.CpuLimit - container.Current.CpuLimit
+				memoryRequestChange += container.Recommended.MemoryRequest - container.Current.MemoryRequest
+				memoryLimitChange += container.Recommended.MemoryLimit - container.Current.MemoryLimit
 			}
 		}
-		oi.OverviewChartRow.Values["cpu_reduction"] = &golang.ChartRowItem{
+		oi.OverviewChartRow.Values["cpu_change"] = &golang.ChartRowItem{
 			Value: fmt.Sprintf("request: %.2f core, limit: %.2f core", cpuRequestChange, cpuLimitChange),
 		}
-		oi.OverviewChartRow.Values["memory_reduction"] = &golang.ChartRowItem{
-			Value: fmt.Sprintf("request: %s, limit: %s", SizeByte64(memoryRequestChange), SizeByte64(memoryLimitChange)),
+		oi.OverviewChartRow.Values["memory_change"] = &golang.ChartRowItem{
+			Value: fmt.Sprintf("request: %s, limit: %s", shared.SizeByte64(memoryRequestChange), shared.SizeByte64(memoryLimitChange)),
 		}
 
 	}
