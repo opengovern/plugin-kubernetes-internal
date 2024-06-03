@@ -63,12 +63,14 @@ func (m *Processor) ResultsSummary() *golang.ResultSummary {
 	var cpuLimitChanges float64
 	var memoryRequestChanges float64
 	var memoryLimitChanges float64
+	m.summaryMutex.RLock()
 	for _, item := range m.summary {
 		cpuRequestChanges += item.CPURequestChange
 		cpuLimitChanges += item.CPULimitChange
 		memoryRequestChanges += item.MemoryRequestChange
 		memoryLimitChanges += item.MemoryLimitChange
 	}
+	m.summaryMutex.RUnlock()
 	summary.Message = fmt.Sprintf("Overal changes: CPU request: %.2f core, CPU limit: %.2f core, Memory request: %s, Memory limit: %s", cpuRequestChanges, cpuLimitChanges, SizeByte64(memoryRequestChanges), SizeByte64(memoryLimitChanges))
 	return summary
 }
