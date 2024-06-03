@@ -208,26 +208,6 @@ func (i PodItem) ToOptimizationItem() *golang.ChartOptimizationItem {
 	if i.SkipReason != "" {
 		oi.SkipReason = &wrapperspb.StringValue{Value: i.SkipReason}
 	}
-	if cpuRequest != nil && *cpuRequest > 0 {
-		oi.OverviewChartRow.Values["current_cpu_request"] = &golang.ChartRowItem{
-			Value: fmt.Sprintf("%.2f Core", *cpuRequest),
-		}
-	}
-	if cpuLimit != nil && *cpuLimit > 0 {
-		oi.OverviewChartRow.Values["current_cpu_limit"] = &golang.ChartRowItem{
-			Value: fmt.Sprintf("%.2f Core", *cpuLimit),
-		}
-	}
-	if memoryRequest != nil && *memoryRequest > 0 {
-		oi.OverviewChartRow.Values["current_memory_request"] = &golang.ChartRowItem{
-			Value: fmt.Sprintf("%.2f GB", *memoryRequest/(1024*1024*1024)),
-		}
-	}
-	if memoryLimit != nil && *memoryLimit > 0 {
-		oi.OverviewChartRow.Values["current_memory_limit"] = &golang.ChartRowItem{
-			Value: fmt.Sprintf("%.2f GB", *memoryLimit/(1024*1024*1024)),
-		}
-	}
 
 	if i.Wastage != nil {
 		cpuRequestChange := 0.0
@@ -236,10 +216,10 @@ func (i PodItem) ToOptimizationItem() *golang.ChartOptimizationItem {
 		memoryLimitChange := 0.0
 		for _, container := range i.Wastage.Rightsizing.ContainerResizing {
 			if container.Current != nil && container.Recommended != nil {
-				cpuRequestChange += float64(container.Recommended.CpuRequest - container.Current.CpuRequest)
-				cpuLimitChange += float64(container.Recommended.CpuLimit - container.Current.CpuLimit)
-				memoryRequestChange += float64(container.Recommended.MemoryRequest - container.Current.MemoryRequest)
-				memoryLimitChange += float64(container.Recommended.MemoryLimit - container.Current.MemoryLimit)
+				cpuRequestChange += container.Recommended.CpuRequest - container.Current.CpuRequest
+				cpuLimitChange += container.Recommended.CpuLimit - container.Current.CpuLimit
+				memoryRequestChange += container.Recommended.MemoryRequest - container.Current.MemoryRequest
+				memoryLimitChange += container.Recommended.MemoryLimit - container.Current.MemoryLimit
 			}
 		}
 		oi.OverviewChartRow.Values["cpu_reduction"] = &golang.ChartRowItem{

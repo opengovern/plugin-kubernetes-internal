@@ -30,7 +30,7 @@ func (i DeploymentItem) GetID() string {
 
 func (i DeploymentItem) ToOptimizationItem() *golang.ChartOptimizationItem {
 	var cpuRequest, cpuLimit, memoryRequest, memoryLimit *float64
-	var recCpuRequest, recCpuLimit, recMemoryRequest, recMemoryLimit *float64
+	//var recCpuRequest, recCpuLimit, recMemoryRequest, recMemoryLimit *float64
 	for _, container := range i.Deployment.Spec.Template.Spec.Containers {
 		cReq, cLim, mReq, mLim := shared.GetContainerRequestLimits(container)
 		if cReq != nil {
@@ -132,46 +132,8 @@ func (i DeploymentItem) ToOptimizationItem() *golang.ChartOptimizationItem {
 	if i.SkipReason != "" {
 		oi.SkipReason = &wrapperspb.StringValue{Value: i.SkipReason}
 	}
-	if cpuRequest != nil && *cpuRequest > 0 {
-		oi.OverviewChartRow.Values["current_cpu_request"] = &golang.ChartRowItem{
-			Value: fmt.Sprintf("%.2f Core", *cpuRequest),
-		}
-	}
-	if cpuLimit != nil && *cpuLimit > 0 {
-		oi.OverviewChartRow.Values["current_cpu_limit"] = &golang.ChartRowItem{
-			Value: fmt.Sprintf("%.2f Core", *cpuLimit),
-		}
-	}
-	if memoryRequest != nil && *memoryRequest > 0 {
-		oi.OverviewChartRow.Values["current_memory_request"] = &golang.ChartRowItem{
-			Value: fmt.Sprintf("%.2f GB", *memoryRequest/(1024*1024*1024)),
-		}
-	}
-	if memoryLimit != nil && *memoryLimit > 0 {
-		oi.OverviewChartRow.Values["current_memory_limit"] = &golang.ChartRowItem{
-			Value: fmt.Sprintf("%.2f GB", *memoryLimit/(1024*1024*1024)),
-		}
-	}
-	if recCpuRequest != nil && *recCpuRequest > 0 {
-		oi.OverviewChartRow.Values["suggested_cpu_request"] = &golang.ChartRowItem{
-			Value: fmt.Sprintf("%.2f Core", *recCpuRequest),
-		}
-	}
-	if recCpuLimit != nil && *recCpuLimit > 0 {
-		oi.OverviewChartRow.Values["suggested_cpu_limit"] = &golang.ChartRowItem{
-			Value: fmt.Sprintf("%.2f Core", *recCpuLimit),
-		}
-	}
-	if recMemoryRequest != nil && *recMemoryRequest > 0 {
-		oi.OverviewChartRow.Values["suggested_memory_request"] = &golang.ChartRowItem{
-			Value: fmt.Sprintf("%.2f GB", *recMemoryRequest/(1024*1024*1024)),
-		}
-	}
-	if recMemoryLimit != nil && *recMemoryLimit > 0 {
-		oi.OverviewChartRow.Values["suggested_memory_limit"] = &golang.ChartRowItem{
-			Value: fmt.Sprintf("%.2f GB", *recMemoryLimit/(1024*1024*1024)),
-		}
-	}
+
+	// TODO show cpu & memory change from wastage response
 
 	return oi
 }
