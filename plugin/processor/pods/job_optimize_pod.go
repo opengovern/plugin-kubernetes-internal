@@ -2,6 +2,7 @@ package pods
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"github.com/golang/protobuf/ptypes/wrappers"
 	"github.com/google/uuid"
@@ -15,36 +16,40 @@ import (
 type OptimizePodJob struct {
 	ctx       context.Context
 	processor *Processor
-	item      PodItem
+	itemId    string
 }
 
-func NewOptimizePodJob(ctx context.Context, processor *Processor, item PodItem) *OptimizePodJob {
+func NewOptimizePodJob(ctx context.Context, processor *Processor, item string) *OptimizePodJob {
 	return &OptimizePodJob{
 		ctx:       ctx,
 		processor: processor,
-		item:      item,
+		itemId:    item,
 	}
 }
 
 func (j *OptimizePodJob) Id() string {
-	return fmt.Sprintf("optimize_pod_cluster_%s", j.item.Pod.Name)
+	return fmt.Sprintf("optimize_pod_cluster_%s", j.itemId)
 }
 func (j *OptimizePodJob) Description() string {
-	return fmt.Sprintf("Optimizing %s", j.item.Pod.Name)
+	return fmt.Sprintf("Optimizing pod %s", j.itemId)
 }
 func (j *OptimizePodJob) Run() error {
-	if j.item.LazyLoadingEnabled {
-		j.processor.jobQueue.Push(NewGetPodMetricsJob(j.ctx, j.processor, j.item.GetID()))
+	item, ok := j.processor.items.Get(j.itemId)
+	if !ok {
+		return errors.New("pod not found in items list")
+	}
+	if item.LazyLoadingEnabled {
+		j.processor.jobQueue.Push(NewGetPodMetricsJob(j.ctx, j.processor, item.GetID()))
 		return nil
 	}
 
 	reqID := uuid.New().String()
 
 	pod := golang.KubernetesPod{
-		Id:   j.item.Pod.Name,
-		Name: j.item.Pod.Name,
+		Id:   item.Pod.Name,
+		Name: item.Pod.Name,
 	}
-	for _, container := range j.item.Pod.Spec.Containers {
+	for _, container := range item.Pod.Spec.Containers {
 		pod.Containers = append(pod.Containers, &golang.KubernetesContainer{
 			Name:          container.Name,
 			MemoryRequest: container.Resources.Requests.Memory().AsApproximateFloat64(),
@@ -54,14 +59,14 @@ func (j *OptimizePodJob) Run() error {
 		})
 	}
 	preferencesMap := map[string]*wrappers.StringValue{}
-	for k, v := range preferences.Export(j.item.Preferences) {
+	for k, v := range preferences.Export(item.Preferences) {
 		preferencesMap[k] = nil
 		if v != nil {
 			preferencesMap[k] = wrapperspb.String(*v)
 		}
 	}
 	metrics := map[string]*golang.KubernetesContainerMetrics{}
-	for metricId, containerMetrics := range j.item.Metrics {
+	for metricId, containerMetrics := range item.Metrics {
 		for containerId, datapoints := range containerMetrics {
 			if metrics[containerId] == nil {
 				metrics[containerId] = &golang.KubernetesContainerMetrics{}
@@ -93,7 +98,7 @@ func (j *OptimizePodJob) Run() error {
 		CliVersion:     wrapperspb.String(version.VERSION),
 		Identification: j.processor.identification,
 		Pod:            &pod,
-		Namespace:      j.item.Namespace,
+		Namespace:      item.Namespace,
 		Preferences:    preferencesMap,
 		Metrics:        metrics,
 		Loading:        false,
@@ -102,17 +107,17 @@ func (j *OptimizePodJob) Run() error {
 		return err
 	}
 
-	j.item = PodItem{
-		Pod:                 j.item.Pod,
-		Namespace:           j.item.Namespace,
+	item = PodItem{
+		Pod:                 item.Pod,
+		Namespace:           item.Namespace,
 		LazyLoadingEnabled:  false,
 		OptimizationLoading: false,
-		Preferences:         j.item.Preferences,
+		Preferences:         item.Preferences,
 		Skipped:             false,
 		SkipReason:          "",
 		Wastage:             resp,
 	}
-	j.processor.items.Set(j.item.Pod.Name, j.item)
-	j.processor.publishOptimizationItem(j.item.ToOptimizationItem())
+	j.processor.items.Set(item.GetID(), item)
+	j.processor.publishOptimizationItem(item.ToOptimizationItem())
 	return nil
 }

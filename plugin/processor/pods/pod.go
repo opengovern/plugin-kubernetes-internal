@@ -46,5 +46,5 @@ func (m *Processor) ReEvaluate(id string, items []*golang.PreferenceItem) {
 	v.Preferences = items
 	v.OptimizationLoading = true
 	m.items.Set(id, v)
-	m.jobQueue.Push(NewOptimizePodJob(context.Background(), m, v))
+	m.jobQueue.Push(NewOptimizePodJob(context.Background(), m, id))
 }

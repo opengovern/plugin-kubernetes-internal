@@ -61,7 +61,7 @@ func (j *GetPodMetricsJob) Run() error {
 	j.processor.publishOptimizationItem(pod.ToOptimizationItem())
 
 	if !pod.Skipped {
-		j.processor.jobQueue.Push(NewOptimizePodJob(j.ctx, j.processor, pod))
+		j.processor.jobQueue.Push(NewOptimizePodJob(j.ctx, j.processor, pod.GetID()))
 	}
 	return nil
 }
