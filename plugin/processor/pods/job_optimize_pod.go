@@ -118,6 +118,7 @@ func (j *OptimizePodJob) Run() error {
 		Wastage:             resp,
 	}
 	j.processor.items.Set(item.GetID(), item)
-	j.processor.publishOptimizationItem(item.ToOptimizationItem(j.processor))
+	j.processor.publishOptimizationItem(item.ToOptimizationItem())
+	item.UpdateSummary(j.processor)
 	return nil
 }

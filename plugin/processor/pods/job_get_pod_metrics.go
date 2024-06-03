@@ -58,7 +58,8 @@ func (j *GetPodMetricsJob) Run() error {
 	}
 	pod.LazyLoadingEnabled = false
 	j.processor.items.Set(pod.GetID(), pod)
-	j.processor.publishOptimizationItem(pod.ToOptimizationItem(j.processor))
+	j.processor.publishOptimizationItem(pod.ToOptimizationItem())
+	pod.UpdateSummary(j.processor)
 
 	if !pod.Skipped {
 		j.processor.jobQueue.Push(NewOptimizePodJob(j.ctx, j.processor, pod.GetID()))

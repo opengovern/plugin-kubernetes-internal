@@ -185,7 +185,7 @@ func SizeByte64(v float64) string {
 	return fmt.Sprintf("%.1f GB", v)
 }
 
-func (i PodItem) ToOptimizationItem(p *Processor) *golang.ChartOptimizationItem {
+func (i PodItem) ToOptimizationItem() *golang.ChartOptimizationItem {
 	var cpuRequest, cpuLimit, memoryRequest, memoryLimit *float64
 	for _, container := range i.Pod.Spec.Containers {
 		cReq, cLim, mReq, mLim := getContainerRequestLimits(container)
@@ -300,6 +300,25 @@ func (i PodItem) ToOptimizationItem(p *Processor) *golang.ChartOptimizationItem 
 			Value: fmt.Sprintf("request: %s, limit: %s", SizeByte64(memoryRequestChange), SizeByte64(memoryLimitChange)),
 		}
 
+	}
+	return oi
+}
+
+func (i PodItem) UpdateSummary(p *Processor) {
+	if i.Wastage != nil {
+		cpuRequestChange := 0.0
+		cpuLimitChange := 0.0
+		memoryRequestChange := 0.0
+		memoryLimitChange := 0.0
+		for _, container := range i.Wastage.Rightsizing.ContainerResizing {
+			if container.Current != nil && container.Recommended != nil {
+				cpuRequestChange += float64(container.Recommended.CpuRequest - container.Current.CpuRequest)
+				cpuLimitChange += float64(container.Recommended.CpuLimit - container.Current.CpuLimit)
+				memoryRequestChange += float64(container.Recommended.MemoryRequest - container.Current.MemoryRequest)
+				memoryLimitChange += float64(container.Recommended.MemoryLimit - container.Current.MemoryLimit)
+			}
+		}
+
 		p.summaryMutex.Lock()
 		p.summary[i.GetID()] = PodSummary{
 			CPURequestChange:    cpuRequestChange,
@@ -310,8 +329,5 @@ func (i PodItem) ToOptimizationItem(p *Processor) *golang.ChartOptimizationItem 
 		p.summaryMutex.Unlock()
 
 	}
-
 	p.publishResultSummary(p.ResultsSummary())
-
-	return oi
 }

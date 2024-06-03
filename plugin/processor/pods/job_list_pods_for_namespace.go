@@ -55,7 +55,8 @@ func (j *ListPodsForNamespaceJob) Run() error {
 		}
 
 		j.processor.items.Set(item.GetID(), item)
-		j.processor.publishOptimizationItem(item.ToOptimizationItem(j.processor))
+		j.processor.publishOptimizationItem(item.ToOptimizationItem())
+		item.UpdateSummary(j.processor)
 	}
 
 	for _, pod := range pods {
