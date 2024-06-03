@@ -91,7 +91,7 @@ func (p *KubernetesPlugin) GetConfig() golang.RegisterConfig {
 				LoginRequired:      true,
 			},
 		},
-		MinKaytuVersion: "v0.11.2-rc.0",
+		MinKaytuVersion: "v0.9.0",
 		OverviewChart: &golang.ChartDefinition{
 			Columns: []*golang.ChartColumnItem{
 				{
