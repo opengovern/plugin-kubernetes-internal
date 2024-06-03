@@ -101,7 +101,12 @@ func (s *Kubernetes) DiscoverPrometheus(ctx context.Context, reconnectMutex *syn
 		return nil, errors.New("prometheus not found")
 	}
 
-	return s.portForward(ctx, svc.Namespace, svc.Name, []string{"9090:9090"}, reconnectMutex)
+	err = s.portForward(ctx, svc.Namespace, svc.Name, []string{"9090:9090"}, reconnectMutex)
+	if err != nil {
+		return nil, err
+	}
+
+	return s.stopChan, nil
 }
 
 func (s *Kubernetes) findPrometheusService(ctx context.Context) (*corev1.Service, error) {
@@ -129,61 +134,73 @@ func (s *Kubernetes) findPrometheusService(ctx context.Context) (*corev1.Service
 	return nil, nil
 }
 
-func (s *Kubernetes) portForward(ctx context.Context, namespace, serviceName string, ports []string, mutex *sync.Mutex) (chan struct{}, error) {
+func (s *Kubernetes) portForward(ctx context.Context, namespace, serviceName string, ports []string, mutex *sync.Mutex) error {
 	service, err := s.clientset.CoreV1().Services(namespace).Get(ctx, serviceName, metav1.GetOptions{})
 	if err != nil {
-		return nil, err
+		return err
 	}
 
 	pods, err := s.clientset.CoreV1().Pods(namespace).List(ctx, metav1.ListOptions{
 		LabelSelector: labels.Set(service.Spec.Selector).AsSelector().String(),
 	})
 	if err != nil {
-		return nil, err
+		return err
 	}
 
 	if len(pods.Items) == 0 {
-		return nil, errors.New("no pods found for service selector")
+		return errors.New("no pods found for service selector")
 	}
 	podName := pods.Items[0].Name
 
 	roundTripper, upgrader, err := spdy.RoundTripperFor(s.restClientCfg)
 	if err != nil {
-		return nil, err
+		return err
 	}
 
 	path := fmt.Sprintf("/api/v1/namespaces/%s/pods/%s/portforward", namespace, podName)
 	hostIP, err := url.Parse(s.restClientCfg.Host)
 	if err != nil {
-		return nil, err
+		return err
 	}
 
 	serverURL := url.URL{Scheme: "https", Path: path, Host: hostIP.Host}
-	dialer := spdy.NewDialer(upgrader, &http.Client{Transport: roundTripper}, "POST", &serverURL)
+	fmt.Println("prometheus - connecting")
+	s.reconnect(upgrader, ports, roundTripper, serverURL, mutex)
 
-	readyChan := make(chan struct{}, 1)
-	stopChan := make(chan struct{}, 1)
-	out, errOut := new(bytes.Buffer), new(bytes.Buffer)
-
-	forwarder, err := portforward.New(dialer, ports, stopChan, readyChan, out, errOut)
-	if err != nil {
-		return nil, err
-	}
-
-	reconnect(forwarder, readyChan, mutex)
-
-	return stopChan, nil
+	return nil
 }
 
-func reconnect(forwarder *portforward.PortForwarder, readyChan chan struct{}, mutex *sync.Mutex) {
+func (s *Kubernetes) reconnect(upgrader spdy.Upgrader, ports []string, roundTripper http.RoundTripper, serverURL url.URL, mutex *sync.Mutex) {
+	fmt.Println("prometheus - reconnect")
+	readyChan := make(chan struct{}, 1)
+	s.stopChan = make(chan struct{}, 1)
+
 	mutex.Lock()
+
 	go func() {
-		if err := forwarder.ForwardPorts(); err != nil {
-			if errors.Is(err, portforward.ErrLostConnectionToPod) {
-				reconnect(forwarder, readyChan, mutex)
-				return
+		defer func() {
+			if r := recover(); r != nil {
+				fmt.Println("prometheus - ", r)
 			}
-			panic(err.Error())
+
+			s.reconnect(upgrader, ports, roundTripper, serverURL, mutex)
+			return
+		}()
+
+		out, errOut := new(bytes.Buffer), new(bytes.Buffer)
+
+		dialer := spdy.NewDialer(upgrader, &http.Client{Transport: roundTripper}, "POST", &serverURL)
+
+		forwarder, err := portforward.New(dialer, ports, s.stopChan, readyChan, out, errOut)
+		if err != nil {
+			fmt.Println("prometheus - ", err)
+			return
+		}
+
+		err = forwarder.ForwardPorts()
+		if err != nil {
+			fmt.Println("prometheus - ", err)
+			return
 		}
 	}()
 	<-readyChan // This line will block until the port forwarding is ready to get traffic.

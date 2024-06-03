@@ -2,6 +2,7 @@ package plugin
 
 import (
 	"context"
+	"fmt"
 	"github.com/kaytu-io/kaytu/pkg/plugin/proto/src/golang"
 	"github.com/kaytu-io/kaytu/pkg/plugin/sdk"
 	"github.com/kaytu-io/plugin-kubernetes/plugin/kaytu"
@@ -244,6 +245,11 @@ func (p *KubernetesPlugin) StartProcess(command string, flags map[string]string,
 	promClient, err := kaytuPrometheus.NewPrometheus(promCfg)
 	if err != nil {
 		return err
+	}
+
+	err = promClient.Ping(ctx)
+	if err != nil {
+		return fmt.Errorf("failed to connect to prometheus on %s due to %v", promCfg.Address, err)
 	}
 
 	publishOptimizationItem := func(item *golang.ChartOptimizationItem) {
