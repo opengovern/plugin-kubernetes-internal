@@ -15,8 +15,8 @@ import (
 
 var (
 	unchangedStyle     = lipgloss.NewStyle().Background(lipgloss.Color("0")).Foreground(lipgloss.Color("#eeeeee"))
-	increaseStyle      = lipgloss.NewStyle().Background(lipgloss.Color("0")).Foreground(lipgloss.Color("#00ee00"))
-	decreaseStyle      = lipgloss.NewStyle().Background(lipgloss.Color("0")).Foreground(lipgloss.Color("#ee0000"))
+	increaseStyle      = lipgloss.NewStyle().Background(lipgloss.Color("0")).Foreground(lipgloss.Color("#ee0000"))
+	decreaseStyle      = lipgloss.NewStyle().Background(lipgloss.Color("0")).Foreground(lipgloss.Color("#00ee00"))
 	notConfiguredStyle = lipgloss.NewStyle().Background(lipgloss.Color("0")).Foreground(lipgloss.Color("#eeee00"))
 )
 
@@ -67,6 +67,10 @@ func (i PodItem) Devices() ([]*golang.ChartRow, map[string]*golang.Properties) {
 			row.Values["current_cpu_request"] = &golang.ChartRowItem{
 				Value: fmt.Sprintf("%.2f Core", *cpuRequest),
 			}
+		} else {
+			row.Values["current_cpu_request"] = &golang.ChartRowItem{
+				Value: "Not configured",
+			}
 		}
 		properties.Properties = append(properties.Properties, &cpuRequestProperty)
 
@@ -76,6 +80,10 @@ func (i PodItem) Devices() ([]*golang.ChartRow, map[string]*golang.Properties) {
 		if cpuLimit != nil {
 			row.Values["current_cpu_limit"] = &golang.ChartRowItem{
 				Value: fmt.Sprintf("%.2f Core", *cpuLimit),
+			}
+		} else {
+			row.Values["current_cpu_limit"] = &golang.ChartRowItem{
+				Value: "Not configured",
 			}
 		}
 		properties.Properties = append(properties.Properties, &cpuLimitProperty)
@@ -87,6 +95,10 @@ func (i PodItem) Devices() ([]*golang.ChartRow, map[string]*golang.Properties) {
 			row.Values["current_memory_request"] = &golang.ChartRowItem{
 				Value: fmt.Sprintf("%.2f GB", *memoryRequest/(1024*1024*1024)),
 			}
+		} else {
+			row.Values["current_memory_request"] = &golang.ChartRowItem{
+				Value: "Not configured",
+			}
 		}
 		properties.Properties = append(properties.Properties, &memoryRequestProperty)
 
@@ -97,27 +109,44 @@ func (i PodItem) Devices() ([]*golang.ChartRow, map[string]*golang.Properties) {
 			row.Values["current_memory_limit"] = &golang.ChartRowItem{
 				Value: fmt.Sprintf("%.2f GB", *memoryLimit/(1024*1024*1024)),
 			}
+		} else {
+			row.Values["current_memory_limit"] = &golang.ChartRowItem{
+				Value: "Not configured",
+			}
 		}
 		properties.Properties = append(properties.Properties, &memoryLimitProperty)
 
 		if righSizing != nil && righSizing.Recommended != nil {
 			cpuRequestProperty.Current = fmt.Sprintf("%.2f", righSizing.Current.CpuRequest)
+			if cpuRequest == nil {
+				cpuRequestProperty.Current = "Not configured"
+			}
 			cpuRequestProperty.Recommended = fmt.Sprintf("%.2f", righSizing.Recommended.CpuRequest)
 			if righSizing.CpuTrimmedMean != nil {
 				cpuRequestProperty.Average = fmt.Sprintf("Avg: %.2f", righSizing.CpuTrimmedMean.Value)
 			}
+
 			cpuLimitProperty.Current = fmt.Sprintf("%.2f", righSizing.Current.CpuLimit)
+			if cpuLimit == nil {
+				cpuLimitProperty.Current = "Not configured"
+			}
 			cpuLimitProperty.Recommended = fmt.Sprintf("%.2f", righSizing.Recommended.CpuLimit)
 			if righSizing.CpuMax != nil {
 				cpuLimitProperty.Average = fmt.Sprintf("Max: %.2f", righSizing.CpuMax.Value)
 			}
 
 			memoryRequestProperty.Current = shared.SizeByte(righSizing.Current.MemoryRequest)
+			if memoryRequest == nil {
+				memoryRequestProperty.Current = "Not configured"
+			}
 			memoryRequestProperty.Recommended = shared.SizeByte(righSizing.Recommended.MemoryRequest)
 			if righSizing.MemoryTrimmedMean != nil {
 				memoryRequestProperty.Average = "Avg: " + shared.SizeByte(righSizing.MemoryTrimmedMean.Value)
 			}
 			memoryLimitProperty.Current = shared.SizeByte(righSizing.Current.MemoryLimit)
+			if memoryLimit == nil {
+				memoryLimitProperty.Current = "Not configured"
+			}
 			memoryLimitProperty.Recommended = shared.SizeByte(righSizing.Recommended.MemoryLimit)
 			if righSizing.MemoryMax != nil {
 				memoryLimitProperty.Average = "Max: " + shared.SizeByte(righSizing.MemoryMax.Value)
