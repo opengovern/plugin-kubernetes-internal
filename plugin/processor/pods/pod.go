@@ -47,4 +47,7 @@ func (m *Processor) ReEvaluate(id string, items []*golang.PreferenceItem) {
 	v.OptimizationLoading = true
 	m.items.Set(id, v)
 	m.jobQueue.Push(NewOptimizePodJob(context.Background(), m, id))
+
+	v.LazyLoadingEnabled = false
+	m.publishOptimizationItem(v.ToOptimizationItem())
 }
