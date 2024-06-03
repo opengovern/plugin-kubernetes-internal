@@ -63,18 +63,21 @@ func (m *Processor) ReEvaluate(id string, items []*golang.PreferenceItem) {
 
 func (m *Processor) ResultsSummary() *golang.ResultSummary {
 	summary := &golang.ResultSummary{}
-	var cpuRequestChanges float64
-	var cpuLimitChanges float64
-	var memoryRequestChanges float64
-	var memoryLimitChanges float64
+	var cpuRequestChanges, cpuLimitChanges, memoryRequestChanges, memoryLimitChanges float64
+	var totalCpuRequest, totalCpuLimit, totalMemoryRequest, totalMemoryLimit float64
 	m.summaryMutex.RLock()
 	for _, item := range m.summary {
 		cpuRequestChanges += item.CPURequestChange
 		cpuLimitChanges += item.CPULimitChange
 		memoryRequestChanges += item.MemoryRequestChange
 		memoryLimitChanges += item.MemoryLimitChange
+
+		totalCpuRequest += item.TotalCPURequest
+		totalCpuLimit += item.TotalCPULimit
+		totalMemoryRequest += item.TotalMemoryRequest
+		totalMemoryLimit += item.TotalMemoryLimit
 	}
 	m.summaryMutex.RUnlock()
-	summary.Message = fmt.Sprintf("Overal changes: CPU request: %.2f core, CPU limit: %.2f core, Memory request: %s, Memory limit: %s", cpuRequestChanges, cpuLimitChanges, shared.SizeByte64(memoryRequestChanges), shared.SizeByte64(memoryLimitChanges))
+	summary.Message = fmt.Sprintf("Overall changes: CPU request: %.2f of %.2f core, CPU limit: %.2f of %.2f core, Memory request: %s of %s, Memory limit: %s of %s", cpuRequestChanges, totalCpuRequest, cpuLimitChanges, totalCpuLimit, shared.SizeByte64(memoryRequestChanges), shared.SizeByte64(totalMemoryRequest), shared.SizeByte64(memoryLimitChanges), shared.SizeByte64(totalMemoryLimit))
 	return summary
 }
