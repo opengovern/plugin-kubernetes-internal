@@ -78,7 +78,7 @@ func (j *OptimizePodJob) Run() error {
 					if v.Cpu == nil {
 						v.Cpu = map[string]float64{}
 					}
-					v.Cpu[dp.Timestamp.Format("2006-05-04 15:02:01")] = dp.Value
+					v.Cpu[dp.Timestamp.Format("2006-01-02 15:04:05")] = dp.Value
 				}
 			} else if metricId == "memory_usage" {
 				v := metrics[containerId]
@@ -86,7 +86,7 @@ func (j *OptimizePodJob) Run() error {
 					if v.Memory == nil {
 						v.Memory = map[string]float64{}
 					}
-					v.Memory[dp.Timestamp.Format("2006-05-04 15:02:01")] = dp.Value
+					v.Memory[dp.Timestamp.Format("2006-01-02 15:04:05")] = dp.Value
 				}
 			}
 		}
