@@ -116,3 +116,8 @@ func (p *Prometheus) GetMemoryMetricsForPodContainer(ctx context.Context, namesp
 
 	return parsePrometheusResponse(value)
 }
+
+func (p *Prometheus) Ping(ctx context.Context) error {
+	_, err := p.api.Config(ctx)
+	return err
+}

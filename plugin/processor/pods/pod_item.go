@@ -2,6 +2,7 @@ package pods
 
 import (
 	"fmt"
+	"github.com/charmbracelet/lipgloss"
 	"github.com/kaytu-io/kaytu/pkg/plugin/proto/src/golang"
 	"github.com/kaytu-io/plugin-kubernetes/plugin/processor/shared"
 	kaytuPrometheus "github.com/kaytu-io/plugin-kubernetes/plugin/prometheus"
@@ -9,6 +10,14 @@ import (
 	"google.golang.org/protobuf/types/known/wrapperspb"
 	corev1 "k8s.io/api/core/v1"
 	"strconv"
+	"strings"
+)
+
+var (
+	unchangedStyle     = lipgloss.NewStyle().Background(lipgloss.Color("0")).Foreground(lipgloss.Color("#eeeeee"))
+	increaseStyle      = lipgloss.NewStyle().Background(lipgloss.Color("0")).Foreground(lipgloss.Color("#ee0000"))
+	decreaseStyle      = lipgloss.NewStyle().Background(lipgloss.Color("0")).Foreground(lipgloss.Color("#00ee00"))
+	notConfiguredStyle = lipgloss.NewStyle().Background(lipgloss.Color("0")).Foreground(lipgloss.Color("#eeee00"))
 )
 
 type PodItem struct {
@@ -58,6 +67,10 @@ func (i PodItem) Devices() ([]*golang.ChartRow, map[string]*golang.Properties) {
 			row.Values["current_cpu_request"] = &golang.ChartRowItem{
 				Value: fmt.Sprintf("%.2f Core", *cpuRequest),
 			}
+		} else {
+			row.Values["current_cpu_request"] = &golang.ChartRowItem{
+				Value: "Not configured",
+			}
 		}
 		properties.Properties = append(properties.Properties, &cpuRequestProperty)
 
@@ -67,6 +80,10 @@ func (i PodItem) Devices() ([]*golang.ChartRow, map[string]*golang.Properties) {
 		if cpuLimit != nil {
 			row.Values["current_cpu_limit"] = &golang.ChartRowItem{
 				Value: fmt.Sprintf("%.2f Core", *cpuLimit),
+			}
+		} else {
+			row.Values["current_cpu_limit"] = &golang.ChartRowItem{
+				Value: "Not configured",
 			}
 		}
 		properties.Properties = append(properties.Properties, &cpuLimitProperty)
@@ -78,6 +95,10 @@ func (i PodItem) Devices() ([]*golang.ChartRow, map[string]*golang.Properties) {
 			row.Values["current_memory_request"] = &golang.ChartRowItem{
 				Value: fmt.Sprintf("%.2f GB", *memoryRequest/(1024*1024*1024)),
 			}
+		} else {
+			row.Values["current_memory_request"] = &golang.ChartRowItem{
+				Value: "Not configured",
+			}
 		}
 		properties.Properties = append(properties.Properties, &memoryRequestProperty)
 
@@ -88,27 +109,44 @@ func (i PodItem) Devices() ([]*golang.ChartRow, map[string]*golang.Properties) {
 			row.Values["current_memory_limit"] = &golang.ChartRowItem{
 				Value: fmt.Sprintf("%.2f GB", *memoryLimit/(1024*1024*1024)),
 			}
+		} else {
+			row.Values["current_memory_limit"] = &golang.ChartRowItem{
+				Value: "Not configured",
+			}
 		}
 		properties.Properties = append(properties.Properties, &memoryLimitProperty)
 
 		if righSizing != nil && righSizing.Recommended != nil {
 			cpuRequestProperty.Current = fmt.Sprintf("%.2f", righSizing.Current.CpuRequest)
+			if cpuRequest == nil {
+				cpuRequestProperty.Current = "Not configured"
+			}
 			cpuRequestProperty.Recommended = fmt.Sprintf("%.2f", righSizing.Recommended.CpuRequest)
 			if righSizing.CpuTrimmedMean != nil {
 				cpuRequestProperty.Average = fmt.Sprintf("Avg: %.2f", righSizing.CpuTrimmedMean.Value)
 			}
+
 			cpuLimitProperty.Current = fmt.Sprintf("%.2f", righSizing.Current.CpuLimit)
+			if cpuLimit == nil {
+				cpuLimitProperty.Current = "Not configured"
+			}
 			cpuLimitProperty.Recommended = fmt.Sprintf("%.2f", righSizing.Recommended.CpuLimit)
 			if righSizing.CpuMax != nil {
 				cpuLimitProperty.Average = fmt.Sprintf("Max: %.2f", righSizing.CpuMax.Value)
 			}
 
 			memoryRequestProperty.Current = shared.SizeByte(righSizing.Current.MemoryRequest)
+			if memoryRequest == nil {
+				memoryRequestProperty.Current = "Not configured"
+			}
 			memoryRequestProperty.Recommended = shared.SizeByte(righSizing.Recommended.MemoryRequest)
 			if righSizing.MemoryTrimmedMean != nil {
 				memoryRequestProperty.Average = "Avg: " + shared.SizeByte(righSizing.MemoryTrimmedMean.Value)
 			}
 			memoryLimitProperty.Current = shared.SizeByte(righSizing.Current.MemoryLimit)
+			if memoryLimit == nil {
+				memoryLimitProperty.Current = "Not configured"
+			}
 			memoryLimitProperty.Recommended = shared.SizeByte(righSizing.Recommended.MemoryLimit)
 			if righSizing.MemoryMax != nil {
 				memoryLimitProperty.Average = "Max: " + shared.SizeByte(righSizing.MemoryMax.Value)
@@ -136,6 +174,7 @@ func (i PodItem) Devices() ([]*golang.ChartRow, map[string]*golang.Properties) {
 
 func (i PodItem) ToOptimizationItem() *golang.ChartOptimizationItem {
 	var cpuRequest, cpuLimit, memoryRequest, memoryLimit *float64
+	cpuRequestNotConfigured, cpuLimitNotConfigured, memoryRequestNotConfigured, memoryLimitNotConfigured := false, false, false, false
 	for _, container := range i.Pod.Spec.Containers {
 		cReq, cLim, mReq, mLim := shared.GetContainerRequestLimits(container)
 		if cReq != nil {
@@ -143,24 +182,32 @@ func (i PodItem) ToOptimizationItem() *golang.ChartOptimizationItem {
 				*cReq = *cpuRequest + *cReq
 			}
 			cpuRequest = cReq
+		} else {
+			cpuRequestNotConfigured = true
 		}
 		if cLim != nil {
 			if cpuLimit != nil {
 				*cLim = *cpuLimit + *cLim
 			}
 			cpuLimit = cLim
+		} else {
+			cpuLimitNotConfigured = true
 		}
 		if mReq != nil {
 			if memoryRequest != nil {
 				*mReq = *memoryRequest + *mReq
 			}
 			memoryRequest = mReq
+		} else {
+			memoryRequestNotConfigured = true
 		}
 		if mLim != nil {
 			if memoryLimit != nil {
 				*mLim = *memoryLimit + *mLim
 			}
 			memoryLimit = mLim
+		} else {
+			memoryLimitNotConfigured = true
 		}
 	}
 
@@ -222,38 +269,84 @@ func (i PodItem) ToOptimizationItem() *golang.ChartOptimizationItem {
 				memoryLimitChange += container.Recommended.MemoryLimit - container.Current.MemoryLimit
 			}
 		}
+
+		cpuRequestReductionString := SprintfWithStyle("request: %.2f core", cpuRequestChange, cpuRequestNotConfigured)
+		cpuLimitReductionString := SprintfWithStyle("limit: %.2f core", cpuLimitChange, cpuLimitNotConfigured)
+		memoryRequestReductionString := SprintfWithStyle(fmt.Sprintf("request: %s", shared.SizeByte(memoryRequestChange)), memoryRequestChange, memoryRequestNotConfigured)
+		memoryLimitReductionString := SprintfWithStyle(fmt.Sprintf("limit: %s", shared.SizeByte(memoryLimitChange)), memoryLimitChange, memoryLimitNotConfigured)
+
 		oi.OverviewChartRow.Values["cpu_change"] = &golang.ChartRowItem{
-			Value: fmt.Sprintf("request: %.2f core, limit: %.2f core", cpuRequestChange, cpuLimitChange),
+			Value: cpuRequestReductionString + ", " + cpuLimitReductionString,
 		}
 		oi.OverviewChartRow.Values["memory_change"] = &golang.ChartRowItem{
-			Value: fmt.Sprintf("request: %s, limit: %s", shared.SizeByte64(memoryRequestChange), shared.SizeByte64(memoryLimitChange)),
+			Value: memoryRequestReductionString + ", " + memoryLimitReductionString,
 		}
 
 	}
 	return oi
 }
 
+func SprintfWithStyle(format string, value float64, notConfigured bool) string {
+	str := format
+	if strings.Contains(format, "%") {
+		str = fmt.Sprintf(format, value)
+	}
+	if notConfigured {
+		str = notConfiguredStyle.Render(str)
+	} else if value < 0 {
+		str = decreaseStyle.Render(str)
+	} else if value > 0 {
+		str = increaseStyle.Render(str)
+	} else {
+		str = unchangedStyle.Render(str)
+	}
+	return str
+}
+
 func (i PodItem) UpdateSummary(p *Processor) {
 	if i.Wastage != nil {
-		cpuRequestChange := 0.0
-		cpuLimitChange := 0.0
-		memoryRequestChange := 0.0
-		memoryLimitChange := 0.0
+		cpuRequestChange, totalCpuRequest := 0.0, 0.0
+		cpuLimitChange, totalCpuLimit := 0.0, 0.0
+		memoryRequestChange, totalMemoryRequest := 0.0, 0.0
+		memoryLimitChange, totalMemoryLimit := 0.0, 0.0
 		for _, container := range i.Wastage.Rightsizing.ContainerResizing {
+			var pContainer corev1.Container
+			for _, podContainer := range i.Pod.Spec.Containers {
+				if podContainer.Name == container.Name {
+					pContainer = podContainer
+				}
+			}
+			cpuRequest, cpuLimit, memoryRequest, memoryLimit := shared.GetContainerRequestLimits(pContainer)
 			if container.Current != nil && container.Recommended != nil {
-				cpuRequestChange += float64(container.Recommended.CpuRequest - container.Current.CpuRequest)
-				cpuLimitChange += float64(container.Recommended.CpuLimit - container.Current.CpuLimit)
-				memoryRequestChange += float64(container.Recommended.MemoryRequest - container.Current.MemoryRequest)
-				memoryLimitChange += float64(container.Recommended.MemoryLimit - container.Current.MemoryLimit)
+				if cpuRequest != nil {
+					totalCpuRequest += container.Current.CpuRequest
+					cpuRequestChange += container.Recommended.CpuRequest - container.Current.CpuRequest
+				}
+				if cpuLimit != nil {
+					totalCpuLimit += container.Current.CpuLimit
+					cpuLimitChange += container.Recommended.CpuLimit - container.Current.CpuLimit
+				}
+				if memoryRequest != nil {
+					totalMemoryRequest += container.Current.MemoryRequest
+					memoryRequestChange += container.Recommended.MemoryRequest - container.Current.MemoryRequest
+				}
+				if memoryLimit != nil {
+					totalMemoryLimit += container.Current.MemoryLimit
+					memoryLimitChange += container.Recommended.MemoryLimit - container.Current.MemoryLimit
+				}
 			}
 		}
 
 		p.summaryMutex.Lock()
 		p.summary[i.GetID()] = PodSummary{
 			CPURequestChange:    cpuRequestChange,
+			TotalCPURequest:     totalCpuRequest,
 			CPULimitChange:      cpuLimitChange,
+			TotalCPULimit:       totalCpuLimit,
 			MemoryRequestChange: memoryRequestChange,
+			TotalMemoryRequest:  totalMemoryRequest,
 			MemoryLimitChange:   memoryLimitChange,
+			TotalMemoryLimit:    totalMemoryLimit,
 		}
 		p.summaryMutex.Unlock()
 
