@@ -39,6 +39,12 @@ func (p *KubernetesPlugin) GetConfig() golang.RegisterConfig {
 			Required:    false,
 		},
 		{
+			Name:        "namespace",
+			Default:     "",
+			Description: "Kubernetes namespace",
+			Required:    false,
+		},
+		{
 			Name:        "prom-address",
 			Default:     "",
 			Description: "Prometheus address",
@@ -285,9 +291,11 @@ func (p *KubernetesPlugin) StartProcess(command string, flags map[string]string,
 		return err
 	}
 
+	namespace := getFlagOrNil(flags, "namespace")
+
 	switch command {
 	case "kubernetes-pods":
-		p.processor = pods.NewProcessor(ctx, identification, kubeClient, promClient, publishOptimizationItem, publishResultSummary, kaytuAccessToken, jobQueue, configurations, client)
+		p.processor = pods.NewProcessor(ctx, identification, kubeClient, promClient, publishOptimizationItem, publishResultSummary, kaytuAccessToken, jobQueue, configurations, client, namespace)
 		if err != nil {
 			return err
 		}

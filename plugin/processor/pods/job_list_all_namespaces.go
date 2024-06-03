@@ -23,15 +23,25 @@ func (j *ListAllNamespacesJob) Description() string {
 	return "Listing all available namespaces (Kubernetes Pods)"
 }
 func (j *ListAllNamespacesJob) Run() error {
-	namespaces, err := j.processor.kubernetesProvider.ListAllNamespaces(j.ctx)
-	if err != nil {
-		return err
+	var namespaces []string
+	if j.processor.namespace != nil &&
+		*j.processor.namespace != "" {
+		namespaces = []string{*j.processor.namespace}
+	} else {
+		nss, err := j.processor.kubernetesProvider.ListAllNamespaces(j.ctx)
+		if err != nil {
+			return err
+		}
+
+		for _, ns := range nss {
+			namespaces = append(namespaces, ns.Name)
+		}
 	}
 	for _, namespace := range namespaces {
-		if namespace.Name == "kube-system" {
+		if namespace == "kube-system" {
 			continue
 		}
-		j.processor.jobQueue.Push(NewListPodsForNamespaceJob(j.ctx, j.processor, namespace.Name))
+		j.processor.jobQueue.Push(NewListPodsForNamespaceJob(j.ctx, j.processor, namespace))
 	}
 	return nil
 }
