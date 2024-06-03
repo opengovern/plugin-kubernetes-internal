@@ -185,7 +185,7 @@ func SizeByte64(v float64) string {
 	return fmt.Sprintf("%.1f GB", v)
 }
 
-func (i PodItem) ToOptimizationItem() *golang.ChartOptimizationItem {
+func (i PodItem) ToOptimizationItem(p *Processor) *golang.ChartOptimizationItem {
 	var cpuRequest, cpuLimit, memoryRequest, memoryLimit *float64
 	var recCpuRequest, recCpuLimit, recMemoryRequest, recMemoryLimit *float64
 	for _, container := range i.Pod.Spec.Containers {
@@ -333,25 +333,43 @@ func (i PodItem) ToOptimizationItem() *golang.ChartOptimizationItem {
 	}
 
 	if i.Wastage != nil {
-		cpuRequestReduction := 0.0
-		cpuLimitReduction := 0.0
-		memoryRequestReduction := 0.0
-		memoryLimitReduction := 0.0
+		cpuRequestChange := 0.0
+		cpuLimitChange := 0.0
+		memoryRequestChange := 0.0
+		memoryLimitChange := 0.0
 		for _, container := range i.Wastage.Rightsizing.ContainerResizing {
 			if container.Current != nil && container.Recommended != nil {
-				cpuRequestReduction += float64(container.Current.CpuRequest - container.Recommended.CpuRequest)
-				cpuLimitReduction += float64(container.Current.CpuLimit - container.Recommended.CpuLimit)
-				memoryRequestReduction += float64(container.Current.MemoryRequest - container.Recommended.MemoryRequest)
-				memoryLimitReduction += float64(container.Current.MemoryLimit - container.Recommended.MemoryLimit)
+				cpuRequestChange += float64(container.Recommended.CpuRequest - container.Current.CpuRequest)
+				cpuLimitChange += float64(container.Recommended.CpuLimit - container.Current.CpuLimit)
+				memoryRequestChange += float64(container.Recommended.MemoryRequest - container.Current.MemoryRequest)
+				memoryLimitChange += float64(container.Recommended.MemoryLimit - container.Current.MemoryLimit)
 			}
 		}
 		oi.OverviewChartRow.Values["cpu_reduction"] = &golang.ChartRowItem{
-			Value: fmt.Sprintf("request: %.2f core, limit: %.2f core", cpuRequestReduction, cpuLimitReduction),
+			Value: fmt.Sprintf("request: %.2f core, limit: %.2f core", cpuRequestChange, cpuLimitChange),
 		}
 		oi.OverviewChartRow.Values["memory_reduction"] = &golang.ChartRowItem{
-			Value: fmt.Sprintf("request: %s, limit: %s", SizeByte64(memoryRequestReduction), SizeByte64(memoryLimitReduction)),
+			Value: fmt.Sprintf("request: %s, limit: %s", SizeByte64(memoryRequestChange), SizeByte64(memoryLimitChange)),
 		}
 	}
+	p.summaryMutex.Lock()
+	var podSummary PodSummary
+	if cpuRequest != nil && recCpuRequest != nil {
+		podSummary.CPURequestChange = *recCpuRequest - *cpuRequest
+	}
+	if cpuLimit != nil && recCpuLimit != nil {
+		podSummary.CPULimitChange = *recCpuLimit - *cpuLimit
+	}
+	if memoryRequest != nil && recMemoryRequest != nil {
+		podSummary.MemoryRequestChange = *recMemoryRequest - *memoryRequest
+	}
+	if memoryLimit != nil && recMemoryLimit != nil {
+		podSummary.MemoryLimitChange = *recMemoryLimit - *memoryLimit
+	}
+	p.summary[i.GetID()] = podSummary
+	p.summaryMutex.Unlock()
+
+	p.publishResultSummary(p.ResultsSummary())
 
 	return oi
 }
