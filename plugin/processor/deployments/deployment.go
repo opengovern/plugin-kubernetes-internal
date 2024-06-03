@@ -37,7 +37,7 @@ func NewProcessor(ctx context.Context, identification map[string]string, kuberne
 		configuration:           configuration,
 		client:                  client,
 	}
-	//jobQueue.Push(NewListAllNamespacesJob(ctx, r))
+	jobQueue.Push(NewListAllNamespacesJob(ctx, r))
 	return r
 }
 
@@ -49,5 +49,5 @@ func (m *Processor) ReEvaluate(id string, items []*golang.PreferenceItem) {
 	//m.jobQueue.Push(NewOptimizePodJob(context.Background(), m, id))
 
 	v.LazyLoadingEnabled = false
-	//m.publishOptimizationItem(v.ToOptimizationItem())
+	m.publishOptimizationItem(v.ToOptimizationItem())
 }

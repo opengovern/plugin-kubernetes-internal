@@ -7,6 +7,7 @@ import (
 	"github.com/kaytu-io/kaytu/pkg/plugin/sdk"
 	"github.com/kaytu-io/plugin-kubernetes/plugin/kaytu"
 	kaytuKubernetes "github.com/kaytu-io/plugin-kubernetes/plugin/kubernetes"
+	"github.com/kaytu-io/plugin-kubernetes/plugin/processor/shared"
 	kaytuPrometheus "github.com/kaytu-io/plugin-kubernetes/plugin/prometheus"
 	golang2 "github.com/kaytu-io/plugin-kubernetes/plugin/proto/src/golang"
 	util "github.com/kaytu-io/plugin-kubernetes/utils"
@@ -74,6 +75,6 @@ func (m *Processor) ResultsSummary() *golang.ResultSummary {
 		memoryLimitChanges += item.MemoryLimitChange
 	}
 	m.summaryMutex.RUnlock()
-	summary.Message = fmt.Sprintf("Overal changes: CPU request: %.2f core, CPU limit: %.2f core, Memory request: %s, Memory limit: %s", cpuRequestChanges, cpuLimitChanges, SizeByte64(memoryRequestChanges), SizeByte64(memoryLimitChanges))
+	summary.Message = fmt.Sprintf("Overal changes: CPU request: %.2f core, CPU limit: %.2f core, Memory request: %s, Memory limit: %s", cpuRequestChanges, cpuLimitChanges, shared.SizeByte64(memoryRequestChanges), shared.SizeByte64(memoryLimitChanges))
 	return summary
 }

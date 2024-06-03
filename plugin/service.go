@@ -8,6 +8,7 @@ import (
 	kaytuKubernetes "github.com/kaytu-io/plugin-kubernetes/plugin/kubernetes"
 	"github.com/kaytu-io/plugin-kubernetes/plugin/preferences"
 	"github.com/kaytu-io/plugin-kubernetes/plugin/processor"
+	"github.com/kaytu-io/plugin-kubernetes/plugin/processor/deployments"
 	"github.com/kaytu-io/plugin-kubernetes/plugin/processor/pods"
 	kaytuPrometheus "github.com/kaytu-io/plugin-kubernetes/plugin/prometheus"
 	golang2 "github.com/kaytu-io/plugin-kubernetes/plugin/proto/src/golang"
@@ -29,65 +30,73 @@ func NewPlugin() *KubernetesPlugin {
 }
 
 func (p *KubernetesPlugin) GetConfig() golang.RegisterConfig {
+	commonFlags := []*golang.Flag{
+		{
+			Name:        "context",
+			Default:     "",
+			Description: "Kubectl context name",
+			Required:    false,
+		},
+		{
+			Name:        "prom-address",
+			Default:     "",
+			Description: "Prometheus address",
+			Required:    false,
+		},
+		{
+			Name:        "prom-username",
+			Default:     "",
+			Description: "Prometheus basic auth username",
+			Required:    false,
+		},
+		{
+			Name:        "prom-password",
+			Default:     "",
+			Description: "Prometheus basic auth password",
+			Required:    false,
+		},
+		{
+			Name:        "prom-client-id",
+			Default:     "",
+			Description: "Prometheus OAuth2 client id",
+			Required:    false,
+		},
+		{
+			Name:        "prom-client-secret",
+			Default:     "",
+			Description: "Prometheus OAuth2 client secret",
+			Required:    false,
+		},
+		{
+			Name:        "prom-token-url",
+			Default:     "",
+			Description: "Prometheus OAuth2 token url",
+			Required:    false,
+		},
+		{
+			Name:        "prom-scopes",
+			Default:     "",
+			Description: "Prometheus OAuth2 comma seperated scopes",
+			Required:    false,
+		},
+	}
 	return golang.RegisterConfig{
 		Name:     "kaytu-io/plugin-kubernetes",
 		Version:  version.VERSION,
 		Provider: "kubernetes",
 		Commands: []*golang.Command{
 			{
-				Name:        "kubernetes-pods",
-				Description: "Get optimization suggestions for your Kubernetes Pods",
-				Flags: []*golang.Flag{
-					{
-						Name:        "context",
-						Default:     "",
-						Description: "Kubectl context name",
-						Required:    false,
-					},
-					{
-						Name:        "prom-address",
-						Default:     "",
-						Description: "Prometheus address",
-						Required:    false,
-					},
-					{
-						Name:        "prom-username",
-						Default:     "",
-						Description: "Prometheus basic auth username",
-						Required:    false,
-					},
-					{
-						Name:        "prom-password",
-						Default:     "",
-						Description: "Prometheus basic auth password",
-						Required:    false,
-					},
-					{
-						Name:        "prom-client-id",
-						Default:     "",
-						Description: "Prometheus OAuth2 client id",
-						Required:    false,
-					},
-					{
-						Name:        "prom-client-secret",
-						Default:     "",
-						Description: "Prometheus OAuth2 client secret",
-						Required:    false,
-					},
-					{
-						Name:        "prom-token-url",
-						Default:     "",
-						Description: "Prometheus OAuth2 token url",
-						Required:    false,
-					},
-					{
-						Name:        "prom-scopes",
-						Default:     "",
-						Description: "Prometheus OAuth2 comma seperated scopes",
-						Required:    false,
-					},
-				},
+				Name:               "kubernetes-pods",
+				Description:        "Get optimization suggestions for your Kubernetes Pods",
+				Flags:              commonFlags,
 				DefaultPreferences: preferences.DefaultPodsPreferences,
+				LoginRequired:      true,
+			},
+			{
+				Name:               "kubernetes-deployments",
+				Description:        "Get optimization suggestions for your Kubernetes Deployments",
+				Flags:              commonFlags,
+				DefaultPreferences: preferences.DefaultDeploymentsPreferences,
 				LoginRequired:      true,
 			},
 		},
@@ -204,7 +213,7 @@ func (p *KubernetesPlugin) StartProcess(command string, flags map[string]string,
 
 	identification := kubeClient.Identify()
 
-	conn, err := grpc.Dial("gapi.kaytu.io:443",
+	conn, err := grpc.NewClient("gapi.kaytu.io:443",
 		grpc.WithTransportCredentials(credentials.NewTLS(nil)),
 		grpc.WithPerRPCCredentials(oauth.TokenSource{
 			TokenSource: oauth2.StaticTokenSource(&oauth2.Token{
@@ -273,6 +282,59 @@ func (p *KubernetesPlugin) StartProcess(command string, flags map[string]string,
 	switch command {
 	case "kubernetes-pods":
 		p.processor = pods.NewProcessor(ctx, identification, kubeClient, promClient, publishOptimizationItem, publishResultSummary, kaytuAccessToken, jobQueue, configurations, client)
+		if err != nil {
+			return err
+		}
+	case "kubernetes-deployments":
+		err = p.stream.Send(&golang.PluginMessage{
+			PluginMessage: &golang.PluginMessage_UpdateChart{
+				UpdateChart: &golang.UpdateChartDefinition{
+					OverviewChart: &golang.ChartDefinition{
+						Columns: []*golang.ChartColumnItem{
+							{
+								Id:    "name",
+								Name:  "Name",
+								Width: 20,
+							},
+							{
+								Id:    "namespace",
+								Name:  "Namespace",
+								Width: 15,
+							},
+							{
+								Id:    "pod_count",
+								Name:  "# Pods",
+								Width: 6,
+							},
+							{
+								Id:    "cpu_reduction",
+								Name:  "CPU Change",
+								Width: 40,
+							},
+							{
+								Id:    "memory_reduction",
+								Name:  "Memory Change",
+								Width: 40,
+							},
+							{
+								Id:    "status",
+								Name:  "Status",
+								Width: 21,
+							},
+							{
+								Id:    "right_arrow",
+								Name:  "",
+								Width: 1,
+							},
+						},
+					},
+				},
+			},
+		})
+		if err != nil {
+			return err
+		}
+		p.processor = deployments.NewProcessor(ctx, identification, kubeClient, promClient, publishOptimizationItem, kaytuAccessToken, jobQueue, configurations, client)
 		if err != nil {
 			return err
 		}

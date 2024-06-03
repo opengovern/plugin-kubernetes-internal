@@ -118,6 +118,9 @@ func (i DeploymentItem) ToOptimizationItem() *golang.ChartOptimizationItem {
 				"loading": {
 					Value: strconv.FormatBool(i.OptimizationLoading),
 				},
+				"pod_count": {
+					Value: strconv.Itoa(len(i.Pods)),
+				},
 			},
 		},
 		Preferences:        i.Preferences,
