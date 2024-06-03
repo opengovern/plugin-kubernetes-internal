@@ -34,7 +34,6 @@ func (j *GetDeploymentPodMetricsJob) Run() error {
 	}
 
 	for _, pod := range deployment.Pods {
-
 		for _, container := range pod.Spec.Containers {
 			cpuUsage, err := j.processor.prometheusProvider.GetCpuMetricsForPodContainer(j.ctx, pod.Namespace, pod.Name, container.Name)
 			if err != nil {
@@ -72,7 +71,7 @@ func (j *GetDeploymentPodMetricsJob) Run() error {
 	j.processor.publishOptimizationItem(deployment.ToOptimizationItem())
 
 	if !deployment.Skipped {
-		//j.processor.jobQueue.Push(NewOptimizePodJob(j.ctx, j.processor, deployment.GetID()))
+		j.processor.jobQueue.Push(NewOptimizeDeploymentJob(j.ctx, j.processor, deployment.GetID()))
 	}
 	return nil
 }
