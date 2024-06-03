@@ -85,11 +85,12 @@ func (p *Prometheus) GetCpuMetricsForPodContainer(ctx context.Context, namespace
 	p.cfg.reconnectWait.Lock()
 	p.cfg.reconnectWait.Unlock()
 
+	step := time.Minute
 	query := fmt.Sprintf(`sum(rate(container_cpu_usage_seconds_total{namespace="%s", pod="%s", container="%s"}[1m])) by (container)`, namespace, podName, containerName)
 	value, _, err := p.api.QueryRange(ctx, query, prometheus.Range{
-		Start: time.Now().Add(-7 * 24 * time.Hour).Truncate(time.Hour),
-		End:   time.Now().Truncate(time.Hour),
-		Step:  time.Hour,
+		Start: time.Now().Add(-1 * 24 * time.Hour).Truncate(step),
+		End:   time.Now().Truncate(step),
+		Step:  step,
 	})
 	if err != nil {
 		return nil, err
@@ -102,11 +103,12 @@ func (p *Prometheus) GetMemoryMetricsForPodContainer(ctx context.Context, namesp
 	p.cfg.reconnectWait.Lock()
 	p.cfg.reconnectWait.Unlock()
 
+	step := time.Minute
 	query := fmt.Sprintf(`sum(container_memory_usage_bytes{namespace="%s", pod="%s", container="%s"}) by (container)`, namespace, podName, containerName)
 	value, _, err := p.api.QueryRange(ctx, query, prometheus.Range{
-		Start: time.Now().Add(-7 * 24 * time.Hour).Truncate(time.Hour),
-		End:   time.Now().Truncate(time.Hour),
-		Step:  time.Hour,
+		Start: time.Now().Add(-1 * 24 * time.Hour).Truncate(step),
+		End:   time.Now().Truncate(step),
+		Step:  step,
 	})
 	if err != nil {
 		return nil, err
