@@ -4,7 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	kaytuPrometheus "github.com/kaytu-io/plugin-kubernetes/plugin/prometheus"
+	kaytuPrometheus "github.com/kaytu-io/plugin-kubernetes-internal/plugin/prometheus"
 )
 
 type GetDeploymentPodMetricsJob struct {

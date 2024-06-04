@@ -4,11 +4,10 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"github.com/golang/protobuf/ptypes/wrappers"
 	"github.com/google/uuid"
 	"github.com/kaytu-io/kaytu/preferences"
-	"github.com/kaytu-io/plugin-kubernetes/plugin/proto/src/golang"
-	"github.com/kaytu-io/plugin-kubernetes/plugin/version"
+	"github.com/kaytu-io/plugin-kubernetes-internal/plugin/proto/src/golang"
+	"github.com/kaytu-io/plugin-kubernetes-internal/plugin/version"
 	"google.golang.org/grpc/metadata"
 	"google.golang.org/protobuf/types/known/wrapperspb"
 )
@@ -58,7 +57,7 @@ func (j *OptimizeDeploymentJob) Run() error {
 			CpuLimit:      container.Resources.Limits.Cpu().AsApproximateFloat64(),
 		})
 	}
-	preferencesMap := map[string]*wrappers.StringValue{}
+	preferencesMap := map[string]*wrapperspb.StringValue{}
 	for k, v := range preferences.Export(item.Preferences) {
 		preferencesMap[k] = nil
 		if v != nil {

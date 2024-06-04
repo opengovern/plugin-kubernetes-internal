@@ -5,12 +5,12 @@ import (
 	"fmt"
 	"github.com/kaytu-io/kaytu/pkg/plugin/proto/src/golang"
 	"github.com/kaytu-io/kaytu/pkg/plugin/sdk"
-	"github.com/kaytu-io/plugin-kubernetes/plugin/kaytu"
-	kaytuKubernetes "github.com/kaytu-io/plugin-kubernetes/plugin/kubernetes"
-	"github.com/kaytu-io/plugin-kubernetes/plugin/processor/shared"
-	kaytuPrometheus "github.com/kaytu-io/plugin-kubernetes/plugin/prometheus"
-	golang2 "github.com/kaytu-io/plugin-kubernetes/plugin/proto/src/golang"
-	util "github.com/kaytu-io/plugin-kubernetes/utils"
+	"github.com/kaytu-io/plugin-kubernetes-internal/plugin/kaytu"
+	kaytuKubernetes "github.com/kaytu-io/plugin-kubernetes-internal/plugin/kubernetes"
+	"github.com/kaytu-io/plugin-kubernetes-internal/plugin/processor/shared"
+	kaytuPrometheus "github.com/kaytu-io/plugin-kubernetes-internal/plugin/prometheus"
+	golang2 "github.com/kaytu-io/plugin-kubernetes-internal/plugin/proto/src/golang"
+	util "github.com/kaytu-io/plugin-kubernetes-internal/utils"
 	"sync"
 )
 

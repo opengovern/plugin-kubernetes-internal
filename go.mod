@@ -1,4 +1,4 @@
-module github.com/kaytu-io/plugin-kubernetes
+module github.com/kaytu-io/plugin-kubernetes-internal
 
 go 1.22.0
 
@@ -6,7 +6,6 @@ toolchain go1.22.3
 
 require (
 	github.com/charmbracelet/lipgloss v0.9.1
-	github.com/golang/protobuf v1.5.4
 	github.com/google/uuid v1.6.0
 	github.com/kaytu-io/kaytu v0.11.5-rc.0.0.20240603162013-2151434ddf83
 	github.com/prometheus/client_golang v1.19.1
@@ -31,6 +30,7 @@ require (
 	github.com/go-openapi/jsonreference v0.20.2 // indirect
 	github.com/go-openapi/swag v0.22.3 // indirect
 	github.com/gogo/protobuf v1.3.2 // indirect
+	github.com/golang/protobuf v1.5.4 // indirect
 	github.com/google/gnostic-models v0.6.8 // indirect
 	github.com/google/gofuzz v1.2.0 // indirect
 	github.com/google/pprof v0.0.0-20211214055906-6f57359322fd // indirect

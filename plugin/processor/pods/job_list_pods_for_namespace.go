@@ -3,7 +3,7 @@ package pods
 import (
 	"context"
 	"fmt"
-	"github.com/kaytu-io/plugin-kubernetes/plugin/preferences"
+	"github.com/kaytu-io/plugin-kubernetes-internal/plugin/preferences"
 	v1 "k8s.io/api/core/v1"
 )
 

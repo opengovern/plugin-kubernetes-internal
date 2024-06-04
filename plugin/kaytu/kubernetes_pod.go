@@ -1,7 +1,7 @@
 package kaytu
 
 import (
-	kaytuPrometheus "github.com/kaytu-io/plugin-kubernetes/plugin/prometheus"
+	kaytuPrometheus "github.com/kaytu-io/plugin-kubernetes-internal/plugin/prometheus"
 	corev1 "k8s.io/api/core/v1"
 )
 
