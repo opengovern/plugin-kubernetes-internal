@@ -85,8 +85,9 @@ func (m *Processor) ResultsSummary() *golang.ResultSummary {
 	return summary
 }
 
-func (m *Processor) UpdateSummary(i PodItem) {
-	if i.Wastage != nil {
+func (m *Processor) UpdateSummary(itemId string) {
+	i, ok := m.items.Get(itemId)
+	if ok && i.Wastage != nil {
 		cpuRequestChange, totalCpuRequest := 0.0, 0.0
 		cpuLimitChange, totalCpuLimit := 0.0, 0.0
 		memoryRequestChange, totalMemoryRequest := 0.0, 0.0
