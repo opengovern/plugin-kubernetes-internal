@@ -136,7 +136,11 @@ func (i DeploymentItem) Devices() ([]*golang.ChartRow, map[string]*golang.Proper
 	}
 
 	for _, pod := range i.Pods {
-		podRs, podRsFound := i.Wastage.Rightsizing.PodContainerResizing[pod.Name]
+		var podRs *golang2.KubernetesPodRightsizingRecommendation
+		var podRsFound = false
+		if i.Wastage != nil && i.Wastage.Rightsizing != nil {
+			podRs, podRsFound = i.Wastage.Rightsizing.PodContainerResizing[pod.Name]
+		}
 		for _, container := range pod.Spec.Containers {
 			var rightSizing *golang2.KubernetesContainerRightsizingRecommendation
 			if i.Wastage != nil && podRsFound {

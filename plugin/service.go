@@ -296,9 +296,6 @@ func (p *KubernetesPlugin) StartProcess(command string, flags map[string]string,
 	switch command {
 	case "kubernetes-pods":
 		p.processor = pods.NewProcessor(ctx, identification, kubeClient, promClient, publishOptimizationItem, publishResultSummary, kaytuAccessToken, jobQueue, configurations, client, namespace)
-		if err != nil {
-			return err
-		}
 	case "kubernetes-deployments":
 		err = p.stream.Send(&golang.PluginMessage{
 			PluginMessage: &golang.PluginMessage_UpdateChart{
@@ -349,9 +346,6 @@ func (p *KubernetesPlugin) StartProcess(command string, flags map[string]string,
 			return err
 		}
 		p.processor = deployments.NewProcessor(ctx, identification, kubeClient, promClient, publishOptimizationItem, kaytuAccessToken, jobQueue, configurations, client)
-		if err != nil {
-			return err
-		}
 	}
 
 	jobQueue.SetOnFinish(func() {
