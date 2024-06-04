@@ -49,9 +49,15 @@ func (i DeploymentItem) Devices() ([]*golang.ChartRow, map[string]*golang.Proper
 		}
 		properties := golang.Properties{}
 
-		row.Values["name"] = &golang.ChartRowItem{
-			Value: fmt.Sprintf("%s Overall", container.Name),
+		nameProperty := golang.Property{
+			Key: "Name",
 		}
+		row.Values["name"] = &golang.ChartRowItem{
+			Value: fmt.Sprintf("%s - Overall", container.Name),
+		}
+		nameProperty.Current = row.Values["name"].Value
+		properties.Properties = append(properties.Properties, &nameProperty)
+
 		cpuRequest, cpuLimit, memoryRequest, memoryLimit := shared.GetContainerRequestLimits(container)
 
 		cpuRequestProperty := golang.Property{
@@ -158,8 +164,17 @@ func (i DeploymentItem) Devices() ([]*golang.ChartRow, map[string]*golang.Proper
 			properties := golang.Properties{}
 
 			row.Values["name"] = &golang.ChartRowItem{
-				Value: fmt.Sprintf("%s/%s", pod.Name, container.Name),
+				Value: fmt.Sprintf("%s - %s", container.Name, pod.Name),
 			}
+			properties.Properties = append(properties.Properties, &golang.Property{
+				Key:     "Container Name",
+				Current: container.Name,
+			})
+			properties.Properties = append(properties.Properties, &golang.Property{
+				Key:     "Pod Name",
+				Current: pod.Name,
+			})
+
 			cpuRequest, cpuLimit, memoryRequest, memoryLimit := shared.GetContainerRequestLimits(container)
 
 			cpuRequestProperty := golang.Property{
@@ -249,7 +264,7 @@ func (i DeploymentItem) Devices() ([]*golang.ChartRow, map[string]*golang.Proper
 
 func (i DeploymentItem) ToOptimizationItem() *golang.ChartOptimizationItem {
 	var cpuRequest, cpuLimit, memoryRequest, memoryLimit *float64
-	var recCpuRequest, recCpuLimit, recMemoryRequest, recMemoryLimit *float64
+	cpuRequestNotConfigured, cpuLimitNotConfigured, memoryRequestNotConfigured, memoryLimitNotConfigured := false, false, false, false
 	for _, container := range i.Deployment.Spec.Template.Spec.Containers {
 		cReq, cLim, mReq, mLim := shared.GetContainerRequestLimits(container)
 		if cReq != nil {
@@ -257,55 +272,32 @@ func (i DeploymentItem) ToOptimizationItem() *golang.ChartOptimizationItem {
 				*cReq = *cpuRequest + *cReq
 			}
 			cpuRequest = cReq
+		} else {
+			cpuRequestNotConfigured = true
 		}
 		if cLim != nil {
 			if cpuLimit != nil {
 				*cLim = *cpuLimit + *cLim
 			}
 			cpuLimit = cLim
+		} else {
+			cpuLimitNotConfigured = true
 		}
 		if mReq != nil {
 			if memoryRequest != nil {
 				*mReq = *memoryRequest + *mReq
 			}
 			memoryRequest = mReq
+		} else {
+			memoryRequestNotConfigured = true
 		}
 		if mLim != nil {
 			if memoryLimit != nil {
 				*mLim = *memoryLimit + *mLim
 			}
 			memoryLimit = mLim
-		}
-
-		var rightSizing *golang2.KubernetesContainerRightsizingRecommendation
-		if i.Wastage != nil {
-			for _, c := range i.Wastage.Rightsizing.ContainerResizing {
-				if c.Name == container.Name {
-					rightSizing = c
-				}
-			}
-		}
-		if rightSizing != nil && rightSizing.Recommended != nil {
-			if recCpuRequest != nil {
-				*recCpuRequest = *recCpuRequest + rightSizing.Recommended.CpuRequest
-			} else {
-				recCpuRequest = &rightSizing.Recommended.CpuRequest
-			}
-			if recCpuLimit != nil {
-				*recCpuLimit = *recCpuLimit + rightSizing.Recommended.CpuLimit
-			} else {
-				recCpuLimit = &rightSizing.Recommended.CpuLimit
-			}
-			if recMemoryRequest != nil {
-				*recMemoryRequest = *recMemoryRequest + rightSizing.Recommended.MemoryRequest
-			} else {
-				recMemoryRequest = &rightSizing.Recommended.MemoryRequest
-			}
-			if recMemoryLimit != nil {
-				*recMemoryLimit = *recMemoryLimit + rightSizing.Recommended.MemoryLimit
-			} else {
-				recMemoryLimit = &rightSizing.Recommended.MemoryLimit
-			}
+		} else {
+			memoryLimitNotConfigured = true
 		}
 	}
 
@@ -370,11 +362,17 @@ func (i DeploymentItem) ToOptimizationItem() *golang.ChartOptimizationItem {
 				memoryLimitChange += container.Recommended.MemoryLimit - container.Current.MemoryLimit
 			}
 		}
+
+		cpuRequestReductionString := shared.SprintfWithStyle("request: %.2f core", cpuRequestChange, cpuRequestNotConfigured)
+		cpuLimitReductionString := shared.SprintfWithStyle("limit: %.2f core", cpuLimitChange, cpuLimitNotConfigured)
+		memoryRequestReductionString := shared.SprintfWithStyle(fmt.Sprintf("request: %s", shared.SizeByte(memoryRequestChange)), memoryRequestChange, memoryRequestNotConfigured)
+		memoryLimitReductionString := shared.SprintfWithStyle(fmt.Sprintf("limit: %s", shared.SizeByte(memoryLimitChange)), memoryLimitChange, memoryLimitNotConfigured)
+
 		oi.OverviewChartRow.Values["cpu_change"] = &golang.ChartRowItem{
-			Value: fmt.Sprintf("request: %.2f core, limit: %.2f core", cpuRequestChange, cpuLimitChange),
+			Value: cpuRequestReductionString + ", " + cpuLimitReductionString,
 		}
 		oi.OverviewChartRow.Values["memory_change"] = &golang.ChartRowItem{
-			Value: fmt.Sprintf("request: %s, limit: %s", shared.SizeByte64(memoryRequestChange), shared.SizeByte64(memoryLimitChange)),
+			Value: memoryRequestReductionString + ", " + memoryLimitReductionString,
 		}
 	}
 

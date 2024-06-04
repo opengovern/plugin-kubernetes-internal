@@ -2,7 +2,6 @@ package pods
 
 import (
 	"fmt"
-	"github.com/charmbracelet/lipgloss"
 	"github.com/kaytu-io/kaytu/pkg/plugin/proto/src/golang"
 	"github.com/kaytu-io/plugin-kubernetes-internal/plugin/processor/shared"
 	kaytuPrometheus "github.com/kaytu-io/plugin-kubernetes-internal/plugin/prometheus"
@@ -10,14 +9,6 @@ import (
 	"google.golang.org/protobuf/types/known/wrapperspb"
 	corev1 "k8s.io/api/core/v1"
 	"strconv"
-	"strings"
-)
-
-var (
-	unchangedStyle     = lipgloss.NewStyle().Background(lipgloss.Color("0")).Foreground(lipgloss.Color("#eeeeee"))
-	increaseStyle      = lipgloss.NewStyle().Background(lipgloss.Color("0")).Foreground(lipgloss.Color("#ee0000"))
-	decreaseStyle      = lipgloss.NewStyle().Background(lipgloss.Color("0")).Foreground(lipgloss.Color("#00ee00"))
-	notConfiguredStyle = lipgloss.NewStyle().Background(lipgloss.Color("0")).Foreground(lipgloss.Color("#eeee00"))
 )
 
 type PodItem struct {
@@ -270,10 +261,10 @@ func (i PodItem) ToOptimizationItem() *golang.ChartOptimizationItem {
 			}
 		}
 
-		cpuRequestReductionString := SprintfWithStyle("request: %.2f core", cpuRequestChange, cpuRequestNotConfigured)
-		cpuLimitReductionString := SprintfWithStyle("limit: %.2f core", cpuLimitChange, cpuLimitNotConfigured)
-		memoryRequestReductionString := SprintfWithStyle(fmt.Sprintf("request: %s", shared.SizeByte(memoryRequestChange)), memoryRequestChange, memoryRequestNotConfigured)
-		memoryLimitReductionString := SprintfWithStyle(fmt.Sprintf("limit: %s", shared.SizeByte(memoryLimitChange)), memoryLimitChange, memoryLimitNotConfigured)
+		cpuRequestReductionString := shared.SprintfWithStyle("request: %.2f core", cpuRequestChange, cpuRequestNotConfigured)
+		cpuLimitReductionString := shared.SprintfWithStyle("limit: %.2f core", cpuLimitChange, cpuLimitNotConfigured)
+		memoryRequestReductionString := shared.SprintfWithStyle(fmt.Sprintf("request: %s", shared.SizeByte(memoryRequestChange)), memoryRequestChange, memoryRequestNotConfigured)
+		memoryLimitReductionString := shared.SprintfWithStyle(fmt.Sprintf("limit: %s", shared.SizeByte(memoryLimitChange)), memoryLimitChange, memoryLimitNotConfigured)
 
 		oi.OverviewChartRow.Values["cpu_change"] = &golang.ChartRowItem{
 			Value: cpuRequestReductionString + ", " + cpuLimitReductionString,
@@ -284,23 +275,6 @@ func (i PodItem) ToOptimizationItem() *golang.ChartOptimizationItem {
 
 	}
 	return oi
-}
-
-func SprintfWithStyle(format string, value float64, notConfigured bool) string {
-	str := format
-	if strings.Contains(format, "%") {
-		str = fmt.Sprintf(format, value)
-	}
-	if notConfigured {
-		str = notConfiguredStyle.Render(str)
-	} else if value < 0 {
-		str = decreaseStyle.Render(str)
-	} else if value > 0 {
-		str = increaseStyle.Render(str)
-	} else {
-		str = unchangedStyle.Render(str)
-	}
-	return str
 }
 
 func (i PodItem) UpdateSummary(p *Processor) {
