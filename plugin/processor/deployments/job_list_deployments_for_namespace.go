@@ -46,8 +46,17 @@ func (j *ListDeploymentsForNamespaceJob) Run() error {
 			item.Skipped = true
 			item.SkipReason = "no available replicas"
 		}
-
+		j.processor.lazyloadCounter.Increment()
+		if j.processor.lazyloadCounter.Get() > j.processor.configuration.KubernetesLazyLoad {
+			item.LazyLoadingEnabled = true
+			item.OptimizationLoading = false
+		}
 		j.processor.items.Set(item.GetID(), item)
+		j.processor.publishOptimizationItem(item.ToOptimizationItem())
+
+		if item.LazyLoadingEnabled || !item.OptimizationLoading || item.Skipped {
+			continue
+		}
 		j.processor.jobQueue.Push(NewListPodsForDeploymentJob(j.ctx, j.processor, item.GetID()))
 	}
 
