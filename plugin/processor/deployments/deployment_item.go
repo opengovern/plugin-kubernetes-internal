@@ -163,14 +163,17 @@ func (i DeploymentItem) Devices() ([]*golang.ChartRow, map[string]*golang.Proper
 			}
 			properties := golang.Properties{}
 
-			nameProperty := golang.Property{
-				Key: "Name",
-			}
 			row.Values["name"] = &golang.ChartRowItem{
 				Value: fmt.Sprintf("%s - %s", container.Name, pod.Name),
 			}
-			nameProperty.Current = row.Values["name"].Value
-			properties.Properties = append(properties.Properties, &nameProperty)
+			properties.Properties = append(properties.Properties, &golang.Property{
+				Key:     "Container Name",
+				Current: container.Name,
+			})
+			properties.Properties = append(properties.Properties, &golang.Property{
+				Key:     "Pod Name",
+				Current: pod.Name,
+			})
 
 			cpuRequest, cpuLimit, memoryRequest, memoryLimit := shared.GetContainerRequestLimits(container)
 
