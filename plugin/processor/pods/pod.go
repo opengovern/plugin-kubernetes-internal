@@ -22,14 +22,15 @@ type Processor struct {
 	items                   util.ConcurrentMap[string, PodItem]
 	publishOptimizationItem func(item *golang.ChartOptimizationItem)
 	publishResultSummary    func(summary *golang.ResultSummary)
-	summary                 map[string]PodSummary
-	summaryMutex            sync.RWMutex
 	kaytuAcccessToken       string
 	jobQueue                *sdk.JobQueue
 	lazyloadCounter         *sdk.SafeCounter
 	configuration           *kaytu.Configuration
 	client                  golang2.OptimizationClient
 	namespace               *string
+
+	summary      map[string]PodSummary
+	summaryMutex sync.RWMutex
 }
 
 func NewProcessor(ctx context.Context, identification map[string]string, kubernetesProvider *kaytuKubernetes.Kubernetes, prometheusProvider *kaytuPrometheus.Prometheus, publishOptimizationItem func(item *golang.ChartOptimizationItem), publishResultSummary func(summary *golang.ResultSummary), kaytuAcccessToken string, jobQueue *sdk.JobQueue, configuration *kaytu.Configuration, client golang2.OptimizationClient, namespace *string) *Processor {
@@ -40,14 +41,15 @@ func NewProcessor(ctx context.Context, identification map[string]string, kuberne
 		items:                   util.NewMap[string, PodItem](),
 		publishOptimizationItem: publishOptimizationItem,
 		publishResultSummary:    publishResultSummary,
-		summary:                 map[string]PodSummary{},
-		summaryMutex:            sync.RWMutex{},
 		kaytuAcccessToken:       kaytuAcccessToken,
 		jobQueue:                jobQueue,
 		lazyloadCounter:         &sdk.SafeCounter{},
 		configuration:           configuration,
 		client:                  client,
 		namespace:               namespace,
+
+		summary:      map[string]PodSummary{},
+		summaryMutex: sync.RWMutex{},
 	}
 	jobQueue.Push(NewListAllNamespacesJob(ctx, r))
 	return r

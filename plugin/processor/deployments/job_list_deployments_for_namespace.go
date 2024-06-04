@@ -53,6 +53,7 @@ func (j *ListDeploymentsForNamespaceJob) Run() error {
 		}
 		j.processor.items.Set(item.GetID(), item)
 		j.processor.publishOptimizationItem(item.ToOptimizationItem())
+		j.processor.UpdateSummary(item.GetID())
 
 		if item.LazyLoadingEnabled || !item.OptimizationLoading || item.Skipped {
 			continue

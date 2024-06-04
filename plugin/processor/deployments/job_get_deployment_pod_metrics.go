@@ -69,6 +69,7 @@ func (j *GetDeploymentPodMetricsJob) Run() error {
 	deployment.LazyLoadingEnabled = false
 	j.processor.items.Set(deployment.GetID(), deployment)
 	j.processor.publishOptimizationItem(deployment.ToOptimizationItem())
+	j.processor.UpdateSummary(deployment.GetID())
 
 	if !deployment.Skipped {
 		j.processor.jobQueue.Push(NewOptimizeDeploymentJob(j.ctx, j.processor, deployment.GetID()))
