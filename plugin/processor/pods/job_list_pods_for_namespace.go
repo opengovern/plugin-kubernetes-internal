@@ -56,7 +56,7 @@ func (j *ListPodsForNamespaceJob) Run() error {
 
 		j.processor.items.Set(item.GetID(), item)
 		j.processor.publishOptimizationItem(item.ToOptimizationItem())
-		item.UpdateSummary(j.processor)
+		j.processor.UpdateSummary(item)
 
 		if item.LazyLoadingEnabled || !item.OptimizationLoading || item.Skipped {
 			continue
