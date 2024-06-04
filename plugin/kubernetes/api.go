@@ -17,6 +17,7 @@ import (
 	"k8s.io/client-go/transport/spdy"
 	"net/http"
 	"net/url"
+	"sort"
 	"strings"
 	"sync"
 )
@@ -82,14 +83,65 @@ func (s *Kubernetes) ListDeploymentsInNamespace(ctx context.Context, namespace s
 }
 
 func (s *Kubernetes) ListDeploymentPods(ctx context.Context, deployment appv1.Deployment) ([]corev1.Pod, error) {
-	pods, err := s.clientset.CoreV1().Pods(deployment.Namespace).List(ctx, metav1.ListOptions{
+	probableReplicaSets, err := s.clientset.AppsV1().ReplicaSets(deployment.Namespace).List(ctx, metav1.ListOptions{
+		LabelSelector: labels.Set(deployment.Spec.Selector.MatchLabels).AsSelector().String(),
+	})
+	if err != nil {
+		return nil, err
+	}
+	var activeReplicaSets []appv1.ReplicaSet
+	for _, rs := range probableReplicaSets.Items {
+		isOwnerByDeployment := false
+		for _, owner := range rs.ObjectMeta.OwnerReferences {
+			if owner.UID == deployment.UID {
+				isOwnerByDeployment = true
+				break
+			}
+		}
+		if !isOwnerByDeployment {
+			continue
+		}
+		rs := rs
+		if rs.Status.Replicas == deployment.Status.Replicas {
+			activeReplicaSets = append(activeReplicaSets, rs)
+			break
+		}
+	}
+	sort.Slice(activeReplicaSets, func(i, j int) bool {
+		return activeReplicaSets[j].CreationTimestamp.Before(&activeReplicaSets[i].CreationTimestamp)
+	})
+	var activeReplicaSet *appv1.ReplicaSet
+	if len(activeReplicaSets) > 0 {
+		activeReplicaSet = &activeReplicaSets[0]
+	}
+
+	if activeReplicaSet == nil {
+		return nil, errors.New("no active replica set found for deployment")
+	}
+
+	probablePods, err := s.clientset.CoreV1().Pods(deployment.Namespace).List(ctx, metav1.ListOptions{
 		LabelSelector: labels.Set(deployment.Spec.Selector.MatchLabels).AsSelector().String(),
 	})
 	if err != nil {
 		return nil, err
 	}
 
-	return pods.Items, nil
+	pods := make([]corev1.Pod, 0, len(probablePods.Items))
+	for _, pod := range probablePods.Items {
+		isOwnerByReplicaSet := false
+		for _, owner := range pod.ObjectMeta.OwnerReferences {
+			if owner.UID == activeReplicaSet.UID {
+				isOwnerByReplicaSet = true
+				break
+			}
+		}
+		if !isOwnerByReplicaSet {
+			continue
+		}
+		pods = append(pods, pod)
+	}
+
+	return pods, nil
 }
 
 func (s *Kubernetes) DiscoverPrometheus(ctx context.Context, reconnectMutex *sync.Mutex) (chan struct{}, error) {
