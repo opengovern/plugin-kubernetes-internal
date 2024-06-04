@@ -11,6 +11,7 @@ import (
 	kaytuPrometheus "github.com/kaytu-io/plugin-kubernetes-internal/plugin/prometheus"
 	golang2 "github.com/kaytu-io/plugin-kubernetes-internal/plugin/proto/src/golang"
 	util "github.com/kaytu-io/plugin-kubernetes-internal/utils"
+	corev1 "k8s.io/api/core/v1"
 	"sync"
 )
 
@@ -82,4 +83,55 @@ func (m *Processor) ResultsSummary() *golang.ResultSummary {
 	m.summaryMutex.RUnlock()
 	summary.Message = fmt.Sprintf("Overall changes: CPU request: %.2f of %.2f core, CPU limit: %.2f of %.2f core, Memory request: %s of %s, Memory limit: %s of %s", cpuRequestChanges, totalCpuRequest, cpuLimitChanges, totalCpuLimit, shared.SizeByte64(memoryRequestChanges), shared.SizeByte64(totalMemoryRequest), shared.SizeByte64(memoryLimitChanges), shared.SizeByte64(totalMemoryLimit))
 	return summary
+}
+
+func (m *Processor) UpdateSummary(i PodItem) {
+	if i.Wastage != nil {
+		cpuRequestChange, totalCpuRequest := 0.0, 0.0
+		cpuLimitChange, totalCpuLimit := 0.0, 0.0
+		memoryRequestChange, totalMemoryRequest := 0.0, 0.0
+		memoryLimitChange, totalMemoryLimit := 0.0, 0.0
+		for _, container := range i.Wastage.Rightsizing.ContainerResizing {
+			var pContainer corev1.Container
+			for _, podContainer := range i.Pod.Spec.Containers {
+				if podContainer.Name == container.Name {
+					pContainer = podContainer
+				}
+			}
+			cpuRequest, cpuLimit, memoryRequest, memoryLimit := shared.GetContainerRequestLimits(pContainer)
+			if container.Current != nil && container.Recommended != nil {
+				if cpuRequest != nil {
+					totalCpuRequest += container.Current.CpuRequest
+					cpuRequestChange += container.Recommended.CpuRequest - container.Current.CpuRequest
+				}
+				if cpuLimit != nil {
+					totalCpuLimit += container.Current.CpuLimit
+					cpuLimitChange += container.Recommended.CpuLimit - container.Current.CpuLimit
+				}
+				if memoryRequest != nil {
+					totalMemoryRequest += container.Current.MemoryRequest
+					memoryRequestChange += container.Recommended.MemoryRequest - container.Current.MemoryRequest
+				}
+				if memoryLimit != nil {
+					totalMemoryLimit += container.Current.MemoryLimit
+					memoryLimitChange += container.Recommended.MemoryLimit - container.Current.MemoryLimit
+				}
+			}
+		}
+
+		m.summaryMutex.Lock()
+		m.summary[i.GetID()] = PodSummary{
+			CPURequestChange:    cpuRequestChange,
+			TotalCPURequest:     totalCpuRequest,
+			CPULimitChange:      cpuLimitChange,
+			TotalCPULimit:       totalCpuLimit,
+			MemoryRequestChange: memoryRequestChange,
+			TotalMemoryRequest:  totalMemoryRequest,
+			MemoryLimitChange:   memoryLimitChange,
+			TotalMemoryLimit:    totalMemoryLimit,
+		}
+		m.summaryMutex.Unlock()
+
+	}
+	m.publishResultSummary(m.ResultsSummary())
 }
