@@ -45,6 +45,7 @@ func (j *OptimizeDeploymentJob) Run() error {
 	reqID := uuid.New().String()
 
 	deployment := golang.KubernetesDeployment{
+		Id:         item.GetID(),
 		Name:       item.Deployment.Name,
 		Containers: nil,
 	}
