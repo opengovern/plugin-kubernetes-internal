@@ -2,7 +2,7 @@ package main
 
 import (
 	"github.com/kaytu-io/kaytu/pkg/plugin/sdk"
-	"github.com/kaytu-io/plugin-kubernetes/plugin"
+	"github.com/kaytu-io/plugin-kubernetes-internal/plugin"
 )
 
 func main() {

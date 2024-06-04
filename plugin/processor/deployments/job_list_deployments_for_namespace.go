@@ -3,7 +3,7 @@ package deployments
 import (
 	"context"
 	"fmt"
-	"github.com/kaytu-io/plugin-kubernetes/plugin/preferences"
+	"github.com/kaytu-io/plugin-kubernetes-internal/plugin/preferences"
 )
 
 type ListDeploymentsForNamespaceJob struct {

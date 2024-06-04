@@ -3,9 +3,9 @@ package deployments
 import (
 	"fmt"
 	"github.com/kaytu-io/kaytu/pkg/plugin/proto/src/golang"
-	"github.com/kaytu-io/plugin-kubernetes/plugin/processor/shared"
-	kaytuPrometheus "github.com/kaytu-io/plugin-kubernetes/plugin/prometheus"
-	golang2 "github.com/kaytu-io/plugin-kubernetes/plugin/proto/src/golang"
+	"github.com/kaytu-io/plugin-kubernetes-internal/plugin/processor/shared"
+	kaytuPrometheus "github.com/kaytu-io/plugin-kubernetes-internal/plugin/prometheus"
+	golang2 "github.com/kaytu-io/plugin-kubernetes-internal/plugin/proto/src/golang"
 	"google.golang.org/protobuf/types/known/wrapperspb"
 	appv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
