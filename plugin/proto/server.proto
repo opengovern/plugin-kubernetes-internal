@@ -14,8 +14,9 @@ message KubernetesContainer{
 }
 
 message KubernetesDeployment{
-  string name = 1;
-  repeated KubernetesContainer containers = 2;
+  string id = 1;
+  string name = 2;
+  repeated KubernetesContainer containers = 3;
 }
 
 message KubernetesPod{
