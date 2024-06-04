@@ -38,17 +38,10 @@ func (j *ListPodsForDeploymentJob) Run() error {
 		return err
 	}
 
-	j.processor.lazyloadCounter.Increment()
-	if j.processor.lazyloadCounter.Get() > j.processor.configuration.KubernetesLazyLoad {
-		item.LazyLoadingEnabled = true
-		item.OptimizationLoading = false
-	}
+	item.LazyLoadingEnabled = false
 	j.processor.items.Set(j.itemId, item)
 	j.processor.publishOptimizationItem(item.ToOptimizationItem())
 
-	if item.LazyLoadingEnabled || !item.OptimizationLoading || item.Skipped {
-		return nil
-	}
 	j.processor.jobQueue.Push(NewGetDeploymentPodMetricsJob(j.ctx, j.processor, item.GetID()))
 	return nil
 }

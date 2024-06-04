@@ -345,6 +345,11 @@ func (i DeploymentItem) ToOptimizationItem() *golang.ChartOptimizationItem {
 		DevicesChartRows:   deviceRows,
 		DevicesProperties:  deviceProps,
 	}
+	if i.Pods == nil {
+		oi.OverviewChartRow.Values["pod_count"] = &golang.ChartRowItem{
+			Value: "N/A",
+		}
+	}
 	if i.SkipReason != "" {
 		oi.SkipReason = &wrapperspb.StringValue{Value: i.SkipReason}
 	}

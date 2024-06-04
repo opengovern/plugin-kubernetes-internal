@@ -38,7 +38,7 @@ func (j *OptimizeDeploymentJob) Run() error {
 		return errors.New("deployment not found in items list")
 	}
 	if item.LazyLoadingEnabled {
-		j.processor.jobQueue.Push(NewGetDeploymentPodMetricsJob(j.ctx, j.processor, item.GetID()))
+		j.processor.jobQueue.Push(NewListPodsForDeploymentJob(j.ctx, j.processor, item.GetID()))
 		return nil
 	}
 
