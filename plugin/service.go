@@ -18,6 +18,7 @@ import (
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials"
 	"google.golang.org/grpc/credentials/oauth"
+	"math"
 	"strings"
 )
 
@@ -131,12 +132,12 @@ func (p *KubernetesPlugin) GetConfig() golang.RegisterConfig {
 					Width: 40,
 				},
 				{
-					Id:    "status",
+					Id:    "x_kaytu_status",
 					Name:  "Status",
 					Width: 21,
 				},
 				{
-					Id:    "right_arrow",
+					Id:    "x_kaytu_right_arrow",
 					Name:  "",
 					Width: 1,
 				},
@@ -293,6 +294,12 @@ func (p *KubernetesPlugin) StartProcess(command string, flags map[string]string,
 
 	namespace := getFlagOrNil(flags, "namespace")
 
+	for key, value := range flags {
+		if key == "output" && value != "" && value != "interactive" {
+			configurations.KubernetesLazyLoad = math.MaxInt
+		}
+	}
+
 	switch command {
 	case "kubernetes-pods":
 		p.processor = pods.NewProcessor(ctx, identification, kubeClient, promClient, publishOptimizationItem, publishResultSummary, kaytuAccessToken, jobQueue, configurations, client, namespace)
@@ -328,12 +335,12 @@ func (p *KubernetesPlugin) StartProcess(command string, flags map[string]string,
 								Width: 40,
 							},
 							{
-								Id:    "status",
+								Id:    "x_kaytu_status",
 								Name:  "Status",
 								Width: 21,
 							},
 							{
-								Id:    "right_arrow",
+								Id:    "x_kaytu_right_arrow",
 								Name:  "",
 								Width: 1,
 							},
