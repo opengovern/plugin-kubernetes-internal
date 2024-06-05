@@ -356,5 +356,18 @@ func (p *KubernetesPlugin) StartProcess(command string, flags map[string]string,
 }
 
 func (p *KubernetesPlugin) ReEvaluate(evaluate *golang.ReEvaluate) {
+	if p == nil {
+		fmt.Println("p is null")
+		return
+	}
+	if p.processor == nil {
+		fmt.Println("p.processor is null")
+		return
+	}
+	if evaluate == nil {
+		fmt.Println("evaluate is null")
+		return
+	}
+
 	p.processor.ReEvaluate(evaluate.Id, evaluate.Preferences)
 }
