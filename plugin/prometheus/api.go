@@ -104,7 +104,7 @@ func (p *Prometheus) GetMemoryMetricsForPodContainer(ctx context.Context, namesp
 	p.cfg.reconnectWait.Unlock()
 
 	step := time.Minute
-	query := fmt.Sprintf(`sum(container_memory_usage_bytes{namespace="%s", pod="%s", container="%s"}) by (container)`, namespace, podName, containerName)
+	query := fmt.Sprintf(`sum(container_memory_working_set_bytes{namespace="%s", pod="%s", container="%s"}) by (container)`, namespace, podName, containerName)
 	value, _, err := p.api.QueryRange(ctx, query, prometheus.Range{
 		Start: time.Now().Add(-1 * 24 * time.Hour).Truncate(step),
 		End:   time.Now().Truncate(step),
