@@ -352,7 +352,7 @@ func (p *KubernetesPlugin) StartProcess(command string, flags map[string]string,
 		if err != nil {
 			return err
 		}
-		p.processor = deployments.NewProcessor(ctx, identification, kubeClient, promClient, publishOptimizationItem, publishResultSummary, kaytuAccessToken, jobQueue, configurations, client)
+		p.processor = deployments.NewProcessor(ctx, identification, kubeClient, promClient, publishOptimizationItem, publishResultSummary, kaytuAccessToken, jobQueue, configurations, client, namespace)
 	}
 
 	jobQueue.SetOnFinish(func() {
