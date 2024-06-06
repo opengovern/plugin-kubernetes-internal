@@ -135,6 +135,7 @@ func (m *Processor) UpdateSummary(itemId string) {
 		}
 
 		ds := DeploymentSummary{
+			ReplicaCount:        1,
 			CPURequestChange:    cpuRequestChange,
 			TotalCPURequest:     totalCpuRequest,
 			CPULimitChange:      cpuLimitChange,
