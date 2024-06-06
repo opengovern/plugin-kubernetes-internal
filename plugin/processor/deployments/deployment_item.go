@@ -67,6 +67,7 @@ func (i DeploymentItem) Devices() ([]*golang.ChartRow, map[string]*golang.Proper
 			row.Values["current_cpu_request"] = &golang.ChartRowItem{
 				Value: fmt.Sprintf("%.2f Core", *cpuRequest),
 			}
+			cpuRequestProperty.Current = fmt.Sprintf("%.2f", *cpuRequest)
 		}
 		properties.Properties = append(properties.Properties, &cpuRequestProperty)
 
@@ -77,6 +78,7 @@ func (i DeploymentItem) Devices() ([]*golang.ChartRow, map[string]*golang.Proper
 			row.Values["current_cpu_limit"] = &golang.ChartRowItem{
 				Value: fmt.Sprintf("%.2f Core", *cpuLimit),
 			}
+			cpuLimitProperty.Current = fmt.Sprintf("%.2f", *cpuLimit)
 		}
 		properties.Properties = append(properties.Properties, &cpuLimitProperty)
 
@@ -87,6 +89,7 @@ func (i DeploymentItem) Devices() ([]*golang.ChartRow, map[string]*golang.Proper
 			row.Values["current_memory_request"] = &golang.ChartRowItem{
 				Value: fmt.Sprintf("%.2f GB", *memoryRequest/(1024*1024*1024)),
 			}
+			memoryRequestProperty.Current = shared.SizeByte(*memoryRequest)
 		}
 		properties.Properties = append(properties.Properties, &memoryRequestProperty)
 
@@ -97,30 +100,27 @@ func (i DeploymentItem) Devices() ([]*golang.ChartRow, map[string]*golang.Proper
 			row.Values["current_memory_limit"] = &golang.ChartRowItem{
 				Value: fmt.Sprintf("%.2f GB", *memoryLimit/(1024*1024*1024)),
 			}
+			memoryLimitProperty.Current = shared.SizeByte(*memoryLimit)
 		}
 		properties.Properties = append(properties.Properties, &memoryLimitProperty)
 
 		if rightSizing != nil && rightSizing.Recommended != nil {
-			cpuRequestProperty.Current = fmt.Sprintf("%.2f", rightSizing.Current.CpuRequest)
 			cpuRequestProperty.Recommended = fmt.Sprintf("%.2f", rightSizing.Recommended.CpuRequest)
 			if rightSizing.CpuTrimmedMean != nil {
 				cpuRequestProperty.Average = fmt.Sprintf("%.2f", rightSizing.CpuTrimmedMean.Value)
 			}
-			cpuLimitProperty.Current = fmt.Sprintf("%.2f", rightSizing.Current.CpuLimit)
 			cpuLimitProperty.Recommended = fmt.Sprintf("%.2f", rightSizing.Recommended.CpuLimit)
 			if rightSizing.CpuMax != nil {
-				cpuLimitProperty.Max = fmt.Sprintf("%.2f", rightSizing.CpuMax.Value)
+				cpuLimitProperty.Average = fmt.Sprintf("%.2f", rightSizing.CpuMax.Value)
 			}
 
-			memoryRequestProperty.Current = shared.SizeByte(rightSizing.Current.MemoryRequest)
 			memoryRequestProperty.Recommended = shared.SizeByte(rightSizing.Recommended.MemoryRequest)
 			if rightSizing.MemoryTrimmedMean != nil {
 				memoryRequestProperty.Average = shared.SizeByte(rightSizing.MemoryTrimmedMean.Value)
 			}
-			memoryLimitProperty.Current = shared.SizeByte(rightSizing.Current.MemoryLimit)
 			memoryLimitProperty.Recommended = shared.SizeByte(rightSizing.Recommended.MemoryLimit)
 			if rightSizing.MemoryMax != nil {
-				memoryLimitProperty.Max = shared.SizeByte(rightSizing.MemoryMax.Value)
+				memoryLimitProperty.Average = shared.SizeByte(rightSizing.MemoryMax.Value)
 			}
 
 			row.Values["suggested_cpu_request"] = &golang.ChartRowItem{
@@ -184,6 +184,7 @@ func (i DeploymentItem) Devices() ([]*golang.ChartRow, map[string]*golang.Proper
 				row.Values["current_cpu_request"] = &golang.ChartRowItem{
 					Value: fmt.Sprintf("%.2f Core", *cpuRequest),
 				}
+				cpuRequestProperty.Current = fmt.Sprintf("%.2f", *cpuRequest)
 			}
 			properties.Properties = append(properties.Properties, &cpuRequestProperty)
 
@@ -194,6 +195,7 @@ func (i DeploymentItem) Devices() ([]*golang.ChartRow, map[string]*golang.Proper
 				row.Values["current_cpu_limit"] = &golang.ChartRowItem{
 					Value: fmt.Sprintf("%.2f Core", *cpuLimit),
 				}
+				cpuLimitProperty.Current = fmt.Sprintf("%.2f", *cpuLimit)
 			}
 			properties.Properties = append(properties.Properties, &cpuLimitProperty)
 
@@ -204,6 +206,7 @@ func (i DeploymentItem) Devices() ([]*golang.ChartRow, map[string]*golang.Proper
 				row.Values["current_memory_request"] = &golang.ChartRowItem{
 					Value: fmt.Sprintf("%.2f GB", *memoryRequest/(1024*1024*1024)),
 				}
+				memoryRequestProperty.Current = shared.SizeByte(*memoryRequest)
 			}
 			properties.Properties = append(properties.Properties, &memoryRequestProperty)
 
@@ -214,30 +217,27 @@ func (i DeploymentItem) Devices() ([]*golang.ChartRow, map[string]*golang.Proper
 				row.Values["current_memory_limit"] = &golang.ChartRowItem{
 					Value: fmt.Sprintf("%.2f GB", *memoryLimit/(1024*1024*1024)),
 				}
+				memoryLimitProperty.Current = shared.SizeByte(*memoryLimit)
 			}
 			properties.Properties = append(properties.Properties, &memoryLimitProperty)
 
 			if rightSizing != nil && rightSizing.Recommended != nil {
-				cpuRequestProperty.Current = fmt.Sprintf("%.2f", rightSizing.Current.CpuRequest)
 				cpuRequestProperty.Recommended = fmt.Sprintf("%.2f", rightSizing.Recommended.CpuRequest)
 				if rightSizing.CpuTrimmedMean != nil {
 					cpuRequestProperty.Average = fmt.Sprintf("%.2f", rightSizing.CpuTrimmedMean.Value)
 				}
-				cpuLimitProperty.Current = fmt.Sprintf("%.2f", rightSizing.Current.CpuLimit)
 				cpuLimitProperty.Recommended = fmt.Sprintf("%.2f", rightSizing.Recommended.CpuLimit)
 				if rightSizing.CpuMax != nil {
-					cpuLimitProperty.Max = fmt.Sprintf("%.2f", rightSizing.CpuMax.Value)
+					cpuLimitProperty.Average = fmt.Sprintf("%.2f", rightSizing.CpuMax.Value)
 				}
 
-				memoryRequestProperty.Current = shared.SizeByte(rightSizing.Current.MemoryRequest)
 				memoryRequestProperty.Recommended = shared.SizeByte(rightSizing.Recommended.MemoryRequest)
 				if rightSizing.MemoryTrimmedMean != nil {
 					memoryRequestProperty.Average = shared.SizeByte(rightSizing.MemoryTrimmedMean.Value)
 				}
-				memoryLimitProperty.Current = shared.SizeByte(rightSizing.Current.MemoryLimit)
 				memoryLimitProperty.Recommended = shared.SizeByte(rightSizing.Recommended.MemoryLimit)
 				if rightSizing.MemoryMax != nil {
-					memoryLimitProperty.Max = shared.SizeByte(rightSizing.MemoryMax.Value)
+					memoryLimitProperty.Average = shared.SizeByte(rightSizing.MemoryMax.Value)
 				}
 
 				row.Values["suggested_cpu_request"] = &golang.ChartRowItem{

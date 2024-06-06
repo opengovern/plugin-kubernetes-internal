@@ -123,7 +123,7 @@ func (i PodItem) Devices() ([]*golang.ChartRow, map[string]*golang.Properties) {
 			}
 			cpuLimitProperty.Recommended = fmt.Sprintf("%.2f", righSizing.Recommended.CpuLimit)
 			if righSizing.CpuMax != nil {
-				cpuLimitProperty.Max = fmt.Sprintf("%.2f", righSizing.CpuMax.Value)
+				cpuLimitProperty.Average = fmt.Sprintf("%.2f", righSizing.CpuMax.Value)
 			}
 
 			memoryRequestProperty.Current = shared.SizeByte(righSizing.Current.MemoryRequest)
@@ -140,7 +140,7 @@ func (i PodItem) Devices() ([]*golang.ChartRow, map[string]*golang.Properties) {
 			}
 			memoryLimitProperty.Recommended = shared.SizeByte(righSizing.Recommended.MemoryLimit)
 			if righSizing.MemoryMax != nil {
-				memoryLimitProperty.Max = shared.SizeByte(righSizing.MemoryMax.Value)
+				memoryLimitProperty.Average = shared.SizeByte(righSizing.MemoryMax.Value)
 			}
 
 			row.Values["suggested_cpu_request"] = &golang.ChartRowItem{
