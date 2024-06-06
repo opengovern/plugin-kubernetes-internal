@@ -316,7 +316,7 @@ func (i DeploymentItem) ToOptimizationItem() *golang.ChartOptimizationItem {
 		OverviewChartRow: &golang.ChartRow{
 			RowId: i.GetID(),
 			Values: map[string]*golang.ChartRowItem{
-				"right_arrow": {
+				"x_kaytu_right_arrow": {
 					Value: "→",
 				},
 				"namespace": {
@@ -325,10 +325,10 @@ func (i DeploymentItem) ToOptimizationItem() *golang.ChartOptimizationItem {
 				"name": {
 					Value: i.Deployment.Name,
 				},
-				"status": {
+				"x_kaytu_status": {
 					Value: status,
 				},
-				"loading": {
+				"x_kaytu_loading": {
 					Value: strconv.FormatBool(i.OptimizationLoading),
 				},
 				"pod_count": {
