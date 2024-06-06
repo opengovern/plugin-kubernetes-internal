@@ -35,12 +35,12 @@ func (j *GetDeploymentPodMetricsJob) Run() error {
 
 	for _, pod := range deployment.Pods {
 		for _, container := range pod.Spec.Containers {
-			cpuUsage, err := j.processor.prometheusProvider.GetCpuMetricsForPodContainer(j.ctx, pod.Namespace, pod.Name, container.Name)
+			cpuUsage, err := j.processor.prometheusProvider.GetCpuMetricsForPodContainer(j.ctx, pod.Namespace, pod.Name, container.Name, j.processor.observabilityDays)
 			if err != nil {
 				return err
 			}
 
-			memoryUsage, err := j.processor.prometheusProvider.GetMemoryMetricsForPodContainer(j.ctx, pod.Namespace, pod.Name, container.Name)
+			memoryUsage, err := j.processor.prometheusProvider.GetMemoryMetricsForPodContainer(j.ctx, pod.Namespace, pod.Name, container.Name, j.processor.observabilityDays)
 			if err != nil {
 				return err
 			}

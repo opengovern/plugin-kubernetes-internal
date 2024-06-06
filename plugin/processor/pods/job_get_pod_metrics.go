@@ -33,12 +33,12 @@ func (j *GetPodMetricsJob) Run() error {
 		return errors.New("pod not found in items list")
 	}
 	for _, container := range pod.Pod.Spec.Containers {
-		cpuUsage, err := j.processor.prometheusProvider.GetCpuMetricsForPodContainer(j.ctx, pod.Pod.Namespace, pod.Pod.Name, container.Name)
+		cpuUsage, err := j.processor.prometheusProvider.GetCpuMetricsForPodContainer(j.ctx, pod.Pod.Namespace, pod.Pod.Name, container.Name, j.processor.observabilityDays)
 		if err != nil {
 			return err
 		}
 
-		memoryUsage, err := j.processor.prometheusProvider.GetMemoryMetricsForPodContainer(j.ctx, pod.Pod.Namespace, pod.Pod.Name, container.Name)
+		memoryUsage, err := j.processor.prometheusProvider.GetMemoryMetricsForPodContainer(j.ctx, pod.Pod.Namespace, pod.Pod.Name, container.Name, j.processor.observabilityDays)
 		if err != nil {
 			return err
 		}

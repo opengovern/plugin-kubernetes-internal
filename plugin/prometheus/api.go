@@ -81,14 +81,14 @@ func parsePrometheusResponse(value model.Value) ([]PromDatapoint, error) {
 	return result, nil
 }
 
-func (p *Prometheus) GetCpuMetricsForPodContainer(ctx context.Context, namespace, podName, containerName string) ([]PromDatapoint, error) {
+func (p *Prometheus) GetCpuMetricsForPodContainer(ctx context.Context, namespace, podName, containerName string, observabilityDays int) ([]PromDatapoint, error) {
 	p.cfg.reconnectWait.Lock()
 	p.cfg.reconnectWait.Unlock()
 
 	step := time.Minute
 	query := fmt.Sprintf(`sum(rate(container_cpu_usage_seconds_total{namespace="%s", pod="%s", container="%s"}[1m])) by (container)`, namespace, podName, containerName)
 	value, _, err := p.api.QueryRange(ctx, query, prometheus.Range{
-		Start: time.Now().Add(-1 * 24 * time.Hour).Truncate(step),
+		Start: time.Now().Add(time.Duration(observabilityDays) * -24 * time.Hour).Truncate(step),
 		End:   time.Now().Truncate(step),
 		Step:  step,
 	})
@@ -99,14 +99,14 @@ func (p *Prometheus) GetCpuMetricsForPodContainer(ctx context.Context, namespace
 	return parsePrometheusResponse(value)
 }
 
-func (p *Prometheus) GetMemoryMetricsForPodContainer(ctx context.Context, namespace, podName, containerName string) ([]PromDatapoint, error) {
+func (p *Prometheus) GetMemoryMetricsForPodContainer(ctx context.Context, namespace, podName, containerName string, observabilityDays int) ([]PromDatapoint, error) {
 	p.cfg.reconnectWait.Lock()
 	p.cfg.reconnectWait.Unlock()
 
 	step := time.Minute
 	query := fmt.Sprintf(`max(container_memory_working_set_bytes{namespace="%s", pod="%s", container="%s"}) by (container)`, namespace, podName, containerName)
 	value, _, err := p.api.QueryRange(ctx, query, prometheus.Range{
-		Start: time.Now().Add(-1 * 24 * time.Hour).Truncate(step),
+		Start: time.Now().Add(time.Duration(observabilityDays) * -24 * time.Hour).Truncate(step),
 		End:   time.Now().Truncate(step),
 		Step:  step,
 	})
