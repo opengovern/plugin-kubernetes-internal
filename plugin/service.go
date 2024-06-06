@@ -19,6 +19,7 @@ import (
 	"google.golang.org/grpc/credentials"
 	"google.golang.org/grpc/credentials/oauth"
 	"math"
+	"strconv"
 	"strings"
 )
 
@@ -37,6 +38,12 @@ func (p *KubernetesPlugin) GetConfig() golang.RegisterConfig {
 			Name:        "context",
 			Default:     "",
 			Description: "Kubectl context name",
+			Required:    false,
+		},
+		{
+			Name:        "observabilityDays",
+			Default:     "1",
+			Description: "Observability Days",
 			Required:    false,
 		},
 		{
@@ -302,9 +309,17 @@ func (p *KubernetesPlugin) StartProcess(command string, flags map[string]string,
 		}
 	}
 
+	observabilityDays := 1
+	if flags["observabilityDays"] != "" {
+		days, _ := strconv.ParseInt(strings.TrimSpace(flags["observabilityDays"]), 10, 64)
+		if days > 0 {
+			observabilityDays = int(days)
+		}
+	}
+
 	switch command {
 	case "kubernetes-pods":
-		p.processor = pods.NewProcessor(ctx, identification, kubeClient, promClient, publishOptimizationItem, publishResultSummary, kaytuAccessToken, jobQueue, configurations, client, namespace)
+		p.processor = pods.NewProcessor(ctx, identification, kubeClient, promClient, publishOptimizationItem, publishResultSummary, kaytuAccessToken, jobQueue, configurations, client, namespace, observabilityDays)
 	case "kubernetes-deployments":
 		err = p.stream.Send(&golang.PluginMessage{
 			PluginMessage: &golang.PluginMessage_UpdateChart{
@@ -357,7 +372,7 @@ func (p *KubernetesPlugin) StartProcess(command string, flags map[string]string,
 		if err != nil {
 			return err
 		}
-		p.processor = deployments.NewProcessor(ctx, identification, kubeClient, promClient, publishOptimizationItem, publishResultSummary, kaytuAccessToken, jobQueue, configurations, client, namespace)
+		p.processor = deployments.NewProcessor(ctx, identification, kubeClient, promClient, publishOptimizationItem, publishResultSummary, kaytuAccessToken, jobQueue, configurations, client, namespace, observabilityDays)
 	}
 
 	jobQueue.SetOnFinish(func() {

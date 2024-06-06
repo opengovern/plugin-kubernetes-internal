@@ -28,12 +28,13 @@ type Processor struct {
 	configuration           *kaytu.Configuration
 	client                  golang2.OptimizationClient
 	namespace               *string
+	observabilityDays       int
 
 	summary      map[string]PodSummary
 	summaryMutex sync.RWMutex
 }
 
-func NewProcessor(ctx context.Context, identification map[string]string, kubernetesProvider *kaytuKubernetes.Kubernetes, prometheusProvider *kaytuPrometheus.Prometheus, publishOptimizationItem func(item *golang.ChartOptimizationItem), publishResultSummary func(summary *golang.ResultSummary), kaytuAcccessToken string, jobQueue *sdk.JobQueue, configuration *kaytu.Configuration, client golang2.OptimizationClient, namespace *string) *Processor {
+func NewProcessor(ctx context.Context, identification map[string]string, kubernetesProvider *kaytuKubernetes.Kubernetes, prometheusProvider *kaytuPrometheus.Prometheus, publishOptimizationItem func(item *golang.ChartOptimizationItem), publishResultSummary func(summary *golang.ResultSummary), kaytuAcccessToken string, jobQueue *sdk.JobQueue, configuration *kaytu.Configuration, client golang2.OptimizationClient, namespace *string, observabilityDays int) *Processor {
 	r := &Processor{
 		identification:          identification,
 		kubernetesProvider:      kubernetesProvider,
@@ -47,6 +48,7 @@ func NewProcessor(ctx context.Context, identification map[string]string, kuberne
 		configuration:           configuration,
 		client:                  client,
 		namespace:               namespace,
+		observabilityDays:       observabilityDays,
 
 		summary:      map[string]PodSummary{},
 		summaryMutex: sync.RWMutex{},
