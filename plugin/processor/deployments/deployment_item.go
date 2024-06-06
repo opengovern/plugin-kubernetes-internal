@@ -368,6 +368,12 @@ func (i DeploymentItem) ToOptimizationItem() *golang.ChartOptimizationItem {
 				memoryLimitChange += container.Recommended.MemoryLimit - container.Current.MemoryLimit
 			}
 		}
+		if i.Deployment.Spec.Replicas != nil {
+			cpuRequestChange = cpuRequestChange * float64(*i.Deployment.Spec.Replicas)
+			cpuLimitChange = cpuLimitChange * float64(*i.Deployment.Spec.Replicas)
+			memoryRequestChange = memoryRequestChange * float64(*i.Deployment.Spec.Replicas)
+			memoryLimitChange = memoryLimitChange * float64(*i.Deployment.Spec.Replicas)
+		}
 
 		cpuRequestReductionString := shared.SprintfWithStyle("request: %.2f core", cpuRequestChange, cpuRequestNotConfigured)
 		cpuLimitReductionString := shared.SprintfWithStyle("limit: %.2f core", cpuLimitChange, cpuLimitNotConfigured)
