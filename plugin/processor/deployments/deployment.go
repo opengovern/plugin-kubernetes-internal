@@ -27,12 +27,13 @@ type Processor struct {
 	lazyloadCounter         *sdk.SafeCounter
 	configuration           *kaytu.Configuration
 	client                  golang2.OptimizationClient
+	namespace               *string
 
 	summary      map[string]DeploymentSummary
 	summaryMutex sync.RWMutex
 }
 
-func NewProcessor(ctx context.Context, identification map[string]string, kubernetesProvider *kaytuKubernetes.Kubernetes, prometheusProvider *kaytuPrometheus.Prometheus, publishOptimizationItem func(item *golang.ChartOptimizationItem), publishResultSummary func(summary *golang.ResultSummary), kaytuAcccessToken string, jobQueue *sdk.JobQueue, configuration *kaytu.Configuration, client golang2.OptimizationClient) *Processor {
+func NewProcessor(ctx context.Context, identification map[string]string, kubernetesProvider *kaytuKubernetes.Kubernetes, prometheusProvider *kaytuPrometheus.Prometheus, publishOptimizationItem func(item *golang.ChartOptimizationItem), publishResultSummary func(summary *golang.ResultSummary), kaytuAcccessToken string, jobQueue *sdk.JobQueue, configuration *kaytu.Configuration, client golang2.OptimizationClient, namespace *string) *Processor {
 	r := &Processor{
 		identification:          identification,
 		kubernetesProvider:      kubernetesProvider,
@@ -45,6 +46,7 @@ func NewProcessor(ctx context.Context, identification map[string]string, kuberne
 		lazyloadCounter:         &sdk.SafeCounter{},
 		configuration:           configuration,
 		client:                  client,
+		namespace:               namespace,
 
 		summary:      map[string]DeploymentSummary{},
 		summaryMutex: sync.RWMutex{},
