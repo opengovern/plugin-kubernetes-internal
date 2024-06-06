@@ -332,7 +332,8 @@ func (i DeploymentItem) ToOptimizationItem() *golang.ChartOptimizationItem {
 					Value: strconv.FormatBool(i.OptimizationLoading),
 				},
 				"pod_count": {
-					Value: strconv.Itoa(len(i.Pods)),
+					Value:     strconv.Itoa(len(i.Pods)),
+					SortValue: float64(len(i.Pods)),
 				},
 			},
 		},
@@ -374,10 +375,12 @@ func (i DeploymentItem) ToOptimizationItem() *golang.ChartOptimizationItem {
 		memoryLimitReductionString := shared.SprintfWithStyle(fmt.Sprintf("limit: %s", shared.SizeByte(memoryLimitChange)), memoryLimitChange, memoryLimitNotConfigured)
 
 		oi.OverviewChartRow.Values["cpu_change"] = &golang.ChartRowItem{
-			Value: cpuRequestReductionString + ", " + cpuLimitReductionString,
+			Value:     cpuRequestReductionString + ", " + cpuLimitReductionString,
+			SortValue: cpuRequestChange,
 		}
 		oi.OverviewChartRow.Values["memory_change"] = &golang.ChartRowItem{
-			Value: memoryRequestReductionString + ", " + memoryLimitReductionString,
+			Value:     memoryRequestReductionString + ", " + memoryLimitReductionString,
+			SortValue: memoryRequestChange,
 		}
 	}
 

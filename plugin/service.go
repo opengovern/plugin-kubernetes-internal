@@ -122,14 +122,16 @@ func (p *KubernetesPlugin) GetConfig() golang.RegisterConfig {
 					Width: 15,
 				},
 				{
-					Id:    "cpu_change",
-					Name:  "CPU Change",
-					Width: 40,
+					Id:       "cpu_change",
+					Name:     "CPU Change",
+					Width:    40,
+					Sortable: true,
 				},
 				{
-					Id:    "memory_change",
-					Name:  "Memory Change",
-					Width: 40,
+					Id:       "memory_change",
+					Name:     "Memory Change",
+					Width:    40,
+					Sortable: true,
 				},
 				{
 					Id:    "x_kaytu_status",
@@ -320,19 +322,22 @@ func (p *KubernetesPlugin) StartProcess(command string, flags map[string]string,
 								Width: 15,
 							},
 							{
-								Id:    "pod_count",
-								Name:  "# Pods",
-								Width: 6,
+								Id:       "pod_count",
+								Name:     "# Pods",
+								Width:    6,
+								Sortable: true,
 							},
 							{
-								Id:    "cpu_change",
-								Name:  "CPU Change",
-								Width: 40,
+								Id:       "cpu_change",
+								Name:     "CPU Change",
+								Width:    40,
+								Sortable: true,
 							},
 							{
-								Id:    "memory_change",
-								Name:  "Memory Change",
-								Width: 40,
+								Id:       "memory_change",
+								Name:     "Memory Change",
+								Width:    40,
+								Sortable: true,
 							},
 							{
 								Id:    "x_kaytu_status",
@@ -363,18 +368,5 @@ func (p *KubernetesPlugin) StartProcess(command string, flags map[string]string,
 }
 
 func (p *KubernetesPlugin) ReEvaluate(evaluate *golang.ReEvaluate) {
-	if p == nil {
-		fmt.Println("p is null")
-		return
-	}
-	if p.processor == nil {
-		fmt.Println("p.processor is null")
-		return
-	}
-	if evaluate == nil {
-		fmt.Println("evaluate is null")
-		return
-	}
-
 	p.processor.ReEvaluate(evaluate.Id, evaluate.Preferences)
 }
