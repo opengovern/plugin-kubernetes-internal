@@ -11,6 +11,7 @@ import (
 	"github.com/kaytu-io/plugin-kubernetes-internal/plugin/processor"
 	"github.com/kaytu-io/plugin-kubernetes-internal/plugin/processor/deployments"
 	"github.com/kaytu-io/plugin-kubernetes-internal/plugin/processor/pods"
+	"github.com/kaytu-io/plugin-kubernetes-internal/plugin/processor/statefulsets"
 	kaytuPrometheus "github.com/kaytu-io/plugin-kubernetes-internal/plugin/prometheus"
 	golang2 "github.com/kaytu-io/plugin-kubernetes-internal/plugin/proto/src/golang"
 	"github.com/kaytu-io/plugin-kubernetes-internal/plugin/version"
@@ -112,6 +113,13 @@ func (p *KubernetesPlugin) GetConfig() golang.RegisterConfig {
 				Description:        "Get optimization suggestions for your Kubernetes Deployments",
 				Flags:              commonFlags,
 				DefaultPreferences: preferences.DefaultDeploymentsPreferences,
+				LoginRequired:      true,
+			},
+			{
+				Name:               "kubernetes-statefulsets",
+				Description:        "Get optimization suggestions for your Kubernetes Statefulsets",
+				Flags:              commonFlags,
+				DefaultPreferences: preferences.DefaultStatefulsetsPreferences,
 				LoginRequired:      true,
 			},
 		},
@@ -319,7 +327,7 @@ func (p *KubernetesPlugin) StartProcess(command string, flags map[string]string,
 
 	switch command {
 	case "kubernetes-pods":
-		p.processor = pods.NewProcessor(ctx, identification, kubeClient, promClient, publishOptimizationItem, publishResultSummary, kaytuAccessToken, jobQueue, configurations, client, namespace, observabilityDays)
+		p.processor = pods.NewProcessor(ctx, identification, kubeClient, promClient, publishOptimizationItem, publishResultSummary, jobQueue, configurations, client, namespace, observabilityDays)
 	case "kubernetes-deployments":
 		err = p.stream.Send(&golang.PluginMessage{
 			PluginMessage: &golang.PluginMessage_UpdateChart{
@@ -373,6 +381,59 @@ func (p *KubernetesPlugin) StartProcess(command string, flags map[string]string,
 			return err
 		}
 		p.processor = deployments.NewProcessor(ctx, identification, kubeClient, promClient, publishOptimizationItem, publishResultSummary, kaytuAccessToken, jobQueue, configurations, client, namespace, observabilityDays)
+	case "kubernetes-statefulsets":
+		err = p.stream.Send(&golang.PluginMessage{
+			PluginMessage: &golang.PluginMessage_UpdateChart{
+				UpdateChart: &golang.UpdateChartDefinition{
+					OverviewChart: &golang.ChartDefinition{
+						Columns: []*golang.ChartColumnItem{
+							{
+								Id:    "name",
+								Name:  "Name",
+								Width: 20,
+							},
+							{
+								Id:    "namespace",
+								Name:  "Namespace",
+								Width: 15,
+							},
+							{
+								Id:       "pod_count",
+								Name:     "# Pods",
+								Width:    6,
+								Sortable: true,
+							},
+							{
+								Id:       "cpu_change",
+								Name:     "CPU Change (x Replicas)",
+								Width:    40,
+								Sortable: true,
+							},
+							{
+								Id:       "memory_change",
+								Name:     "Memory Change (x Replicas)",
+								Width:    40,
+								Sortable: true,
+							},
+							{
+								Id:    "x_kaytu_status",
+								Name:  "Status",
+								Width: 21,
+							},
+							{
+								Id:    "x_kaytu_right_arrow",
+								Name:  "",
+								Width: 1,
+							},
+						},
+					},
+				},
+			},
+		})
+		if err != nil {
+			return err
+		}
+		p.processor = statefulsets.NewProcessor(ctx, identification, kubeClient, promClient, publishOptimizationItem, publishResultSummary, jobQueue, configurations, client, namespace, observabilityDays)
 	}
 
 	jobQueue.SetOnFinish(func() {

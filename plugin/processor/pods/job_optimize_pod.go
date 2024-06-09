@@ -94,7 +94,6 @@ func (j *OptimizePodJob) Run() error {
 	}
 
 	grpcCtx := metadata.NewOutgoingContext(j.ctx, metadata.Pairs("workspace-name", "kaytu"))
-	//grpcCtx = metadata.NewOutgoingContext(grpcCtx, metadata.Pairs("authorization", "bearer "+j.processor.kaytuAcccessToken))
 	resp, err := j.processor.client.KubernetesPodOptimization(grpcCtx, &golang.KubernetesPodOptimizationRequest{
 		RequestId:      wrapperspb.String(reqID),
 		CliVersion:     wrapperspb.String(version.VERSION),
