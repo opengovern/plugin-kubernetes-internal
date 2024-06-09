@@ -24,6 +24,7 @@ const _ = grpc.SupportPackageIsVersion7
 type OptimizationClient interface {
 	KubernetesPodOptimization(ctx context.Context, in *KubernetesPodOptimizationRequest, opts ...grpc.CallOption) (*KubernetesPodOptimizationResponse, error)
 	KubernetesDeploymentOptimization(ctx context.Context, in *KubernetesDeploymentOptimizationRequest, opts ...grpc.CallOption) (*KubernetesDeploymentOptimizationResponse, error)
+	KubernetesStatefulsetOptimization(ctx context.Context, in *KubernetesStatefulsetOptimizationRequest, opts ...grpc.CallOption) (*KubernetesStatefulsetOptimizationResponse, error)
 }
 
 type optimizationClient struct {
@@ -52,12 +53,22 @@ func (c *optimizationClient) KubernetesDeploymentOptimization(ctx context.Contex
 	return out, nil
 }
 
+func (c *optimizationClient) KubernetesStatefulsetOptimization(ctx context.Context, in *KubernetesStatefulsetOptimizationRequest, opts ...grpc.CallOption) (*KubernetesStatefulsetOptimizationResponse, error) {
+	out := new(KubernetesStatefulsetOptimizationResponse)
+	err := c.cc.Invoke(ctx, "/pluginkubernetes.optimization.v1.Optimization/KubernetesStatefulsetOptimization", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // OptimizationServer is the server API for Optimization service.
 // All implementations must embed UnimplementedOptimizationServer
 // for forward compatibility
 type OptimizationServer interface {
 	KubernetesPodOptimization(context.Context, *KubernetesPodOptimizationRequest) (*KubernetesPodOptimizationResponse, error)
 	KubernetesDeploymentOptimization(context.Context, *KubernetesDeploymentOptimizationRequest) (*KubernetesDeploymentOptimizationResponse, error)
+	KubernetesStatefulsetOptimization(context.Context, *KubernetesStatefulsetOptimizationRequest) (*KubernetesStatefulsetOptimizationResponse, error)
 	mustEmbedUnimplementedOptimizationServer()
 }
 
@@ -70,6 +81,9 @@ func (UnimplementedOptimizationServer) KubernetesPodOptimization(context.Context
 }
 func (UnimplementedOptimizationServer) KubernetesDeploymentOptimization(context.Context, *KubernetesDeploymentOptimizationRequest) (*KubernetesDeploymentOptimizationResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method KubernetesDeploymentOptimization not implemented")
+}
+func (UnimplementedOptimizationServer) KubernetesStatefulsetOptimization(context.Context, *KubernetesStatefulsetOptimizationRequest) (*KubernetesStatefulsetOptimizationResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method KubernetesStatefulsetOptimization not implemented")
 }
 func (UnimplementedOptimizationServer) mustEmbedUnimplementedOptimizationServer() {}
 
@@ -120,6 +134,24 @@ func _Optimization_KubernetesDeploymentOptimization_Handler(srv interface{}, ctx
 	return interceptor(ctx, in, info, handler)
 }
 
+func _Optimization_KubernetesStatefulsetOptimization_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(KubernetesStatefulsetOptimizationRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(OptimizationServer).KubernetesStatefulsetOptimization(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/pluginkubernetes.optimization.v1.Optimization/KubernetesStatefulsetOptimization",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(OptimizationServer).KubernetesStatefulsetOptimization(ctx, req.(*KubernetesStatefulsetOptimizationRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // Optimization_ServiceDesc is the grpc.ServiceDesc for Optimization service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -134,6 +166,10 @@ var Optimization_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "KubernetesDeploymentOptimization",
 			Handler:    _Optimization_KubernetesDeploymentOptimization_Handler,
+		},
+		{
+			MethodName: "KubernetesStatefulsetOptimization",
+			Handler:    _Optimization_KubernetesStatefulsetOptimization_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},

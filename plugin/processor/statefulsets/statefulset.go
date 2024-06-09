@@ -1,4 +1,4 @@
-package pods
+package statefulsets
 
 import (
 	"context"
@@ -19,7 +19,7 @@ type Processor struct {
 	identification          map[string]string
 	kubernetesProvider      *kaytuKubernetes.Kubernetes
 	prometheusProvider      *kaytuPrometheus.Prometheus
-	items                   util.ConcurrentMap[string, PodItem]
+	items                   util.ConcurrentMap[string, StatefulsetItem]
 	publishOptimizationItem func(item *golang.ChartOptimizationItem)
 	publishResultSummary    func(summary *golang.ResultSummary)
 	jobQueue                *sdk.JobQueue
@@ -29,7 +29,7 @@ type Processor struct {
 	namespace               *string
 	observabilityDays       int
 
-	summary      map[string]PodSummary
+	summary      map[string]StatefulsetSummary
 	summaryMutex sync.RWMutex
 }
 
@@ -38,7 +38,7 @@ func NewProcessor(ctx context.Context, identification map[string]string, kuberne
 		identification:          identification,
 		kubernetesProvider:      kubernetesProvider,
 		prometheusProvider:      prometheusProvider,
-		items:                   util.NewMap[string, PodItem](),
+		items:                   util.NewMap[string, StatefulsetItem](),
 		publishOptimizationItem: publishOptimizationItem,
 		publishResultSummary:    publishResultSummary,
 		jobQueue:                jobQueue,
@@ -48,7 +48,7 @@ func NewProcessor(ctx context.Context, identification map[string]string, kuberne
 		namespace:               namespace,
 		observabilityDays:       observabilityDays,
 
-		summary:      map[string]PodSummary{},
+		summary:      map[string]StatefulsetSummary{},
 		summaryMutex: sync.RWMutex{},
 	}
 	jobQueue.Push(NewListAllNamespacesJob(ctx, r))
@@ -60,10 +60,22 @@ func (m *Processor) ReEvaluate(id string, items []*golang.PreferenceItem) {
 	v.Preferences = items
 	v.OptimizationLoading = true
 	m.items.Set(id, v)
-	m.jobQueue.Push(NewOptimizePodJob(context.Background(), m, id))
+	m.jobQueue.Push(NewOptimizeStatefulsetJob(context.Background(), m, id))
 
 	v.LazyLoadingEnabled = false
 	m.publishOptimizationItem(v.ToOptimizationItem())
+}
+
+type StatefulsetSummary struct {
+	ReplicaCount        int32
+	CPURequestChange    float64
+	TotalCPURequest     float64
+	CPULimitChange      float64
+	TotalCPULimit       float64
+	MemoryRequestChange float64
+	TotalMemoryRequest  float64
+	MemoryLimitChange   float64
+	TotalMemoryLimit    float64
 }
 
 func (m *Processor) ResultsSummary() *golang.ResultSummary {
@@ -72,15 +84,15 @@ func (m *Processor) ResultsSummary() *golang.ResultSummary {
 	var totalCpuRequest, totalCpuLimit, totalMemoryRequest, totalMemoryLimit float64
 	m.summaryMutex.RLock()
 	for _, item := range m.summary {
-		cpuRequestChanges += item.CPURequestChange
-		cpuLimitChanges += item.CPULimitChange
-		memoryRequestChanges += item.MemoryRequestChange
-		memoryLimitChanges += item.MemoryLimitChange
+		cpuRequestChanges += item.CPURequestChange * float64(item.ReplicaCount)
+		cpuLimitChanges += item.CPULimitChange * float64(item.ReplicaCount)
+		memoryRequestChanges += item.MemoryRequestChange * float64(item.ReplicaCount)
+		memoryLimitChanges += item.MemoryLimitChange * float64(item.ReplicaCount)
 
-		totalCpuRequest += item.TotalCPURequest
-		totalCpuLimit += item.TotalCPULimit
-		totalMemoryRequest += item.TotalMemoryRequest
-		totalMemoryLimit += item.TotalMemoryLimit
+		totalCpuRequest += item.TotalCPURequest * float64(item.ReplicaCount)
+		totalCpuLimit += item.TotalCPULimit * float64(item.ReplicaCount)
+		totalMemoryRequest += item.TotalMemoryRequest * float64(item.ReplicaCount)
+		totalMemoryLimit += item.TotalMemoryLimit * float64(item.ReplicaCount)
 	}
 	m.summaryMutex.RUnlock()
 	summary.Message = fmt.Sprintf("Overall changes: CPU request: %.2f of %.2f core, CPU limit: %.2f of %.2f core, Memory request: %s of %s, Memory limit: %s of %s", cpuRequestChanges, totalCpuRequest, cpuLimitChanges, totalCpuLimit, shared.SizeByte64(memoryRequestChanges), shared.SizeByte64(totalMemoryRequest), shared.SizeByte64(memoryLimitChanges), shared.SizeByte64(totalMemoryLimit))
@@ -96,7 +108,7 @@ func (m *Processor) UpdateSummary(itemId string) {
 		memoryLimitChange, totalMemoryLimit := 0.0, 0.0
 		for _, container := range i.Wastage.Rightsizing.ContainerResizing {
 			var pContainer corev1.Container
-			for _, podContainer := range i.Pod.Spec.Containers {
+			for _, podContainer := range i.Statefulset.Spec.Template.Spec.Containers {
 				if podContainer.Name == container.Name {
 					pContainer = podContainer
 				}
@@ -122,8 +134,8 @@ func (m *Processor) UpdateSummary(itemId string) {
 			}
 		}
 
-		m.summaryMutex.Lock()
-		m.summary[i.GetID()] = PodSummary{
+		ds := StatefulsetSummary{
+			ReplicaCount:        1,
 			CPURequestChange:    cpuRequestChange,
 			TotalCPURequest:     totalCpuRequest,
 			CPULimitChange:      cpuLimitChange,
@@ -133,6 +145,12 @@ func (m *Processor) UpdateSummary(itemId string) {
 			MemoryLimitChange:   memoryLimitChange,
 			TotalMemoryLimit:    totalMemoryLimit,
 		}
+		if i.Statefulset.Spec.Replicas != nil {
+			ds.ReplicaCount = *i.Statefulset.Spec.Replicas
+		}
+
+		m.summaryMutex.Lock()
+		m.summary[i.GetID()] = ds
 		m.summaryMutex.Unlock()
 
 	}

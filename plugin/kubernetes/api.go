@@ -82,6 +82,15 @@ func (s *Kubernetes) ListDeploymentsInNamespace(ctx context.Context, namespace s
 	return deployments.Items, nil
 }
 
+func (s *Kubernetes) ListStatefulsetsInNamespace(ctx context.Context, namespace string) ([]appv1.StatefulSet, error) {
+	statefulsets, err := s.clientset.AppsV1().StatefulSets(namespace).List(ctx, metav1.ListOptions{})
+	if err != nil {
+		return nil, err
+	}
+
+	return statefulsets.Items, nil
+}
+
 func (s *Kubernetes) ListDeploymentPods(ctx context.Context, deployment appv1.Deployment) ([]corev1.Pod, error) {
 	probableReplicaSets, err := s.clientset.AppsV1().ReplicaSets(deployment.Namespace).List(ctx, metav1.ListOptions{
 		LabelSelector: labels.Set(deployment.Spec.Selector.MatchLabels).AsSelector().String(),
@@ -136,6 +145,32 @@ func (s *Kubernetes) ListDeploymentPods(ctx context.Context, deployment appv1.De
 			}
 		}
 		if !isOwnerByReplicaSet {
+			continue
+		}
+		pods = append(pods, pod)
+	}
+
+	return pods, nil
+}
+
+func (s *Kubernetes) ListStatefulsetPods(ctx context.Context, statefulset appv1.StatefulSet) ([]corev1.Pod, error) {
+	probablePods, err := s.clientset.CoreV1().Pods(statefulset.Namespace).List(ctx, metav1.ListOptions{
+		LabelSelector: labels.Set(statefulset.Spec.Selector.MatchLabels).AsSelector().String(),
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	pods := make([]corev1.Pod, 0, len(probablePods.Items))
+	for _, pod := range probablePods.Items {
+		isOwnerByStatefulset := false
+		for _, owner := range pod.ObjectMeta.OwnerReferences {
+			if owner.UID == statefulset.UID {
+				isOwnerByStatefulset = true
+				break
+			}
+		}
+		if !isOwnerByStatefulset {
 			continue
 		}
 		pods = append(pods, pod)

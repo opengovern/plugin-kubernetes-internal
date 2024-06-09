@@ -18,3 +18,10 @@ var DefaultDeploymentsPreferences = []*golang.PreferenceItem{
 	{Service: "KubernetesDeployment", Key: "CPULimitBreathingRoom", IsNumber: true, Value: wrapperspb.String("10"), PreventPinning: true, Unit: "%"},
 	{Service: "KubernetesDeployment", Key: "MemoryLimitBreathingRoom", IsNumber: true, Value: wrapperspb.String("10"), PreventPinning: true, Unit: "%"},
 }
+
+var DefaultStatefulsetsPreferences = []*golang.PreferenceItem{
+	{Service: "KubernetesDeployment", Key: "CPURequestBreathingRoom", IsNumber: true, Value: wrapperspb.String("10"), PreventPinning: true, Unit: "%"},
+	{Service: "KubernetesDeployment", Key: "MemoryRequestBreathingRoom", IsNumber: true, Value: wrapperspb.String("10"), PreventPinning: true, Unit: "%"},
+	{Service: "KubernetesDeployment", Key: "CPULimitBreathingRoom", IsNumber: true, Value: wrapperspb.String("10"), PreventPinning: true, Unit: "%"},
+	{Service: "KubernetesDeployment", Key: "MemoryLimitBreathingRoom", IsNumber: true, Value: wrapperspb.String("10"), PreventPinning: true, Unit: "%"},
+}
