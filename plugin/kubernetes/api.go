@@ -91,6 +91,15 @@ func (s *Kubernetes) ListStatefulsetsInNamespace(ctx context.Context, namespace 
 	return statefulsets.Items, nil
 }
 
+func (s *Kubernetes) ListDaemonsetsInNamespace(ctx context.Context, namespace string) ([]appv1.DaemonSet, error) {
+	daemonsets, err := s.clientset.AppsV1().DaemonSets(namespace).List(ctx, metav1.ListOptions{})
+	if err != nil {
+		return nil, err
+	}
+
+	return daemonsets.Items, nil
+}
+
 func (s *Kubernetes) ListDeploymentPods(ctx context.Context, deployment appv1.Deployment) ([]corev1.Pod, error) {
 	probableReplicaSets, err := s.clientset.AppsV1().ReplicaSets(deployment.Namespace).List(ctx, metav1.ListOptions{
 		LabelSelector: labels.Set(deployment.Spec.Selector.MatchLabels).AsSelector().String(),
@@ -144,7 +153,7 @@ func (s *Kubernetes) ListDeploymentPods(ctx context.Context, deployment appv1.De
 				break
 			}
 		}
-		if !isOwnerByReplicaSet {
+		if !isOwnerByReplicaSet || pod.Status.Phase != corev1.PodRunning {
 			continue
 		}
 		pods = append(pods, pod)
@@ -170,7 +179,33 @@ func (s *Kubernetes) ListStatefulsetPods(ctx context.Context, statefulset appv1.
 				break
 			}
 		}
-		if !isOwnerByStatefulset {
+		if !isOwnerByStatefulset || pod.Status.Phase != corev1.PodRunning {
+			continue
+		}
+		pods = append(pods, pod)
+	}
+
+	return pods, nil
+}
+
+func (s *Kubernetes) ListDaemonsetPods(ctx context.Context, daemonset appv1.DaemonSet) ([]corev1.Pod, error) {
+	probablePods, err := s.clientset.CoreV1().Pods(daemonset.Namespace).List(ctx, metav1.ListOptions{
+		LabelSelector: labels.Set(daemonset.Spec.Selector.MatchLabels).AsSelector().String(),
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	pods := make([]corev1.Pod, 0, len(probablePods.Items))
+	for _, pod := range probablePods.Items {
+		isOwnerByDaemonset := false
+		for _, owner := range pod.ObjectMeta.OwnerReferences {
+			if owner.UID == daemonset.UID {
+				isOwnerByDaemonset = true
+				break
+			}
+		}
+		if !isOwnerByDaemonset || pod.Status.Phase != corev1.PodRunning {
 			continue
 		}
 		pods = append(pods, pod)

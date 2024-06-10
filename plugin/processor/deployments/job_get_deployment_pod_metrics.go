@@ -22,7 +22,7 @@ func NewGetDeploymentPodMetricsJob(ctx context.Context, processor *Processor, it
 }
 
 func (j *GetDeploymentPodMetricsJob) Id() string {
-	return fmt.Sprintf("get_deployment_pod_metrics_for_%s_%s", j.itemId)
+	return fmt.Sprintf("get_deployment_pod_metrics_for_%s", j.itemId)
 }
 func (j *GetDeploymentPodMetricsJob) Description() string {
 	return fmt.Sprintf("Getting metrics for %s (Kubernetes Deployments)", j.itemId)
