@@ -109,14 +109,14 @@ func (s *Kubernetes) ListDeploymentPods(ctx context.Context, deployment appv1.De
 	}
 	var activeReplicaSets []appv1.ReplicaSet
 	for _, rs := range probableReplicaSets.Items {
-		isOwnerByDeployment := false
+		isOwnedByDeployment := false
 		for _, owner := range rs.ObjectMeta.OwnerReferences {
 			if owner.UID == deployment.UID {
-				isOwnerByDeployment = true
+				isOwnedByDeployment = true
 				break
 			}
 		}
-		if !isOwnerByDeployment {
+		if !isOwnedByDeployment {
 			continue
 		}
 		rs := rs
@@ -146,14 +146,14 @@ func (s *Kubernetes) ListDeploymentPods(ctx context.Context, deployment appv1.De
 
 	pods := make([]corev1.Pod, 0, len(probablePods.Items))
 	for _, pod := range probablePods.Items {
-		isOwnerByReplicaSet := false
+		isOwnedByReplicaSet := false
 		for _, owner := range pod.ObjectMeta.OwnerReferences {
 			if owner.UID == activeReplicaSet.UID {
-				isOwnerByReplicaSet = true
+				isOwnedByReplicaSet = true
 				break
 			}
 		}
-		if !isOwnerByReplicaSet || pod.Status.Phase != corev1.PodRunning {
+		if !isOwnedByReplicaSet || pod.Status.Phase != corev1.PodRunning {
 			continue
 		}
 		pods = append(pods, pod)
@@ -172,14 +172,14 @@ func (s *Kubernetes) ListStatefulsetPods(ctx context.Context, statefulset appv1.
 
 	pods := make([]corev1.Pod, 0, len(probablePods.Items))
 	for _, pod := range probablePods.Items {
-		isOwnerByStatefulset := false
+		isOwnedByStatefulset := false
 		for _, owner := range pod.ObjectMeta.OwnerReferences {
 			if owner.UID == statefulset.UID {
-				isOwnerByStatefulset = true
+				isOwnedByStatefulset = true
 				break
 			}
 		}
-		if !isOwnerByStatefulset || pod.Status.Phase != corev1.PodRunning {
+		if !isOwnedByStatefulset || pod.Status.Phase != corev1.PodRunning {
 			continue
 		}
 		pods = append(pods, pod)
@@ -198,14 +198,14 @@ func (s *Kubernetes) ListDaemonsetPods(ctx context.Context, daemonset appv1.Daem
 
 	pods := make([]corev1.Pod, 0, len(probablePods.Items))
 	for _, pod := range probablePods.Items {
-		isOwnerByDaemonset := false
+		isOwnedByDaemonset := false
 		for _, owner := range pod.ObjectMeta.OwnerReferences {
 			if owner.UID == daemonset.UID {
-				isOwnerByDaemonset = true
+				isOwnedByDaemonset = true
 				break
 			}
 		}
-		if !isOwnerByDaemonset || pod.Status.Phase != corev1.PodRunning {
+		if !isOwnedByDaemonset || pod.Status.Phase != corev1.PodRunning {
 			continue
 		}
 		pods = append(pods, pod)
