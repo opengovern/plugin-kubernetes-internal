@@ -9,6 +9,7 @@ import (
 	kaytuKubernetes "github.com/kaytu-io/plugin-kubernetes-internal/plugin/kubernetes"
 	"github.com/kaytu-io/plugin-kubernetes-internal/plugin/preferences"
 	"github.com/kaytu-io/plugin-kubernetes-internal/plugin/processor"
+	"github.com/kaytu-io/plugin-kubernetes-internal/plugin/processor/daemonsets"
 	"github.com/kaytu-io/plugin-kubernetes-internal/plugin/processor/deployments"
 	"github.com/kaytu-io/plugin-kubernetes-internal/plugin/processor/pods"
 	"github.com/kaytu-io/plugin-kubernetes-internal/plugin/processor/statefulsets"
@@ -117,6 +118,13 @@ func (p *KubernetesPlugin) GetConfig() golang.RegisterConfig {
 			},
 			{
 				Name:               "kubernetes-statefulsets",
+				Description:        "Get optimization suggestions for your Kubernetes Statefulsets",
+				Flags:              commonFlags,
+				DefaultPreferences: preferences.DefaultStatefulsetsPreferences,
+				LoginRequired:      true,
+			},
+			{
+				Name:               "kubernetes-daemonsets",
 				Description:        "Get optimization suggestions for your Kubernetes Statefulsets",
 				Flags:              commonFlags,
 				DefaultPreferences: preferences.DefaultStatefulsetsPreferences,
@@ -434,6 +442,59 @@ func (p *KubernetesPlugin) StartProcess(command string, flags map[string]string,
 			return err
 		}
 		p.processor = statefulsets.NewProcessor(ctx, identification, kubeClient, promClient, publishOptimizationItem, publishResultSummary, jobQueue, configurations, client, namespace, observabilityDays)
+	case "kubernetes-daemonsets":
+		err = p.stream.Send(&golang.PluginMessage{
+			PluginMessage: &golang.PluginMessage_UpdateChart{
+				UpdateChart: &golang.UpdateChartDefinition{
+					OverviewChart: &golang.ChartDefinition{
+						Columns: []*golang.ChartColumnItem{
+							{
+								Id:    "name",
+								Name:  "Name",
+								Width: 20,
+							},
+							{
+								Id:    "namespace",
+								Name:  "Namespace",
+								Width: 15,
+							},
+							{
+								Id:       "pod_count",
+								Name:     "# Pods",
+								Width:    6,
+								Sortable: true,
+							},
+							{
+								Id:       "cpu_change",
+								Name:     "CPU Change (x Replicas)",
+								Width:    40,
+								Sortable: true,
+							},
+							{
+								Id:       "memory_change",
+								Name:     "Memory Change (x Replicas)",
+								Width:    40,
+								Sortable: true,
+							},
+							{
+								Id:    "x_kaytu_status",
+								Name:  "Status",
+								Width: 21,
+							},
+							{
+								Id:    "x_kaytu_right_arrow",
+								Name:  "",
+								Width: 1,
+							},
+						},
+					},
+				},
+			},
+		})
+		if err != nil {
+			return err
+		}
+		p.processor = daemonsets.NewProcessor(ctx, identification, kubeClient, promClient, publishOptimizationItem, publishResultSummary, jobQueue, configurations, client, namespace, observabilityDays)
 	}
 
 	jobQueue.SetOnFinish(func() {
