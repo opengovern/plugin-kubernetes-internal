@@ -22,7 +22,7 @@ func NewGetStatefulsetPodMetricsJob(ctx context.Context, processor *Processor, i
 }
 
 func (j *GetStatefulsetPodMetricsJob) Id() string {
-	return fmt.Sprintf("get_statefulset_pod_metrics_for_%s_%s", j.itemId)
+	return fmt.Sprintf("get_statefulset_pod_metrics_for_%s", j.itemId)
 }
 func (j *GetStatefulsetPodMetricsJob) Description() string {
 	return fmt.Sprintf("Getting metrics for %s (Kubernetes Statefulsets)", j.itemId)
