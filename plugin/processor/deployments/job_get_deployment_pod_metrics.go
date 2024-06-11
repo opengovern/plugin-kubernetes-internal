@@ -40,6 +40,11 @@ func (j *GetDeploymentPodMetricsJob) Run() error {
 				return err
 			}
 
+			cpuThrottling, err := j.processor.prometheusProvider.GetCpuThrottlingMetricsForPodContainer(j.ctx, pod.Namespace, pod.Name, container.Name, j.processor.observabilityDays)
+			if err != nil {
+				return err
+			}
+
 			memoryUsage, err := j.processor.prometheusProvider.GetMemoryMetricsForPodContainer(j.ctx, pod.Namespace, pod.Name, container.Name, j.processor.observabilityDays)
 			if err != nil {
 				return err
@@ -56,6 +61,14 @@ func (j *GetDeploymentPodMetricsJob) Run() error {
 				deployment.Metrics["cpu_usage"][pod.Name] = make(map[string][]kaytuPrometheus.PromDatapoint)
 			}
 			deployment.Metrics["cpu_usage"][pod.Name][container.Name] = cpuUsage
+
+			if deployment.Metrics["cpu_throttling"] == nil {
+				deployment.Metrics["cpu_throttling"] = make(map[string]map[string][]kaytuPrometheus.PromDatapoint)
+			}
+			if deployment.Metrics["cpu_throttling"][pod.Name] == nil {
+				deployment.Metrics["cpu_throttling"][pod.Name] = make(map[string][]kaytuPrometheus.PromDatapoint)
+			}
+			deployment.Metrics["cpu_throttling"][pod.Name][container.Name] = cpuThrottling
 
 			if deployment.Metrics["memory_usage"] == nil {
 				deployment.Metrics["memory_usage"] = make(map[string]map[string][]kaytuPrometheus.PromDatapoint)

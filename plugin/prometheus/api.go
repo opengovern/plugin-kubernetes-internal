@@ -117,6 +117,24 @@ func (p *Prometheus) GetMemoryMetricsForPodContainer(ctx context.Context, namesp
 	return parsePrometheusResponse(value)
 }
 
+func (p *Prometheus) GetCpuThrottlingMetricsForPodContainer(ctx context.Context, namespace, podName, containerName string, observabilityDays int) ([]PromDatapoint, error) {
+	p.cfg.reconnectWait.Lock()
+	p.cfg.reconnectWait.Unlock()
+
+	step := time.Minute
+	query := fmt.Sprintf(`sum(increase(container_cpu_cfs_throttled_periods_total{namespace="%[1]s", pod="%[2]s", container="%[3]s"}[1m])) by (container) / sum(increase(container_cpu_cfs_periods_total{namespace="%[1]s", pod="%[2]s", container="%[3]s"}[1m])) by (container)`, namespace, podName, containerName)
+	value, _, err := p.api.QueryRange(ctx, query, prometheus.Range{
+		Start: time.Now().Add(time.Duration(observabilityDays) * -24 * time.Hour).Truncate(step),
+		End:   time.Now().Truncate(step),
+		Step:  step,
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	return parsePrometheusResponse(value)
+}
+
 func (p *Prometheus) Ping(ctx context.Context) error {
 	_, err := p.api.Config(ctx)
 	return err
