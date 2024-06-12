@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"github.com/kaytu-io/kaytu/pkg/utils"
 	appv1 "k8s.io/api/apps/v1"
+	batchv1 "k8s.io/api/batch/v1"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/labels"
@@ -98,6 +99,15 @@ func (s *Kubernetes) ListDaemonsetsInNamespace(ctx context.Context, namespace st
 	}
 
 	return daemonsets.Items, nil
+}
+
+func (s *Kubernetes) ListJobsInNamespace(ctx context.Context, namespace string) ([]batchv1.Job, error) {
+	jobs, err := s.clientset.BatchV1().Jobs(namespace).List(ctx, metav1.ListOptions{})
+	if err != nil {
+		return nil, err
+	}
+
+	return jobs.Items, nil
 }
 
 func (s *Kubernetes) ListDeploymentPods(ctx context.Context, deployment appv1.Deployment) ([]corev1.Pod, error) {
@@ -206,6 +216,32 @@ func (s *Kubernetes) ListDaemonsetPods(ctx context.Context, daemonset appv1.Daem
 			}
 		}
 		if !isOwnedByDaemonset || pod.Status.Phase != corev1.PodRunning {
+			continue
+		}
+		pods = append(pods, pod)
+	}
+
+	return pods, nil
+}
+
+func (s *Kubernetes) ListJobPods(ctx context.Context, job batchv1.Job) ([]corev1.Pod, error) {
+	probablePods, err := s.clientset.CoreV1().Pods(job.Namespace).List(ctx, metav1.ListOptions{
+		LabelSelector: labels.Set(job.Spec.Selector.MatchLabels).AsSelector().String(),
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	pods := make([]corev1.Pod, 0, len(probablePods.Items))
+	for _, pod := range probablePods.Items {
+		isOwnedByJob := false
+		for _, owner := range pod.ObjectMeta.OwnerReferences {
+			if owner.UID == job.UID {
+				isOwnedByJob = true
+				break
+			}
+		}
+		if !isOwnedByJob || pod.Status.Phase != corev1.PodRunning {
 			continue
 		}
 		pods = append(pods, pod)
