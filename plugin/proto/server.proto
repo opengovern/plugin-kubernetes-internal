@@ -23,28 +23,24 @@ message KubernetesDeployment {
   string id = 1;
   string name = 2;
   repeated KubernetesContainer containers = 3;
-  repeated string pod_names = 4;
 }
 
 message KubernetesStatefulset {
   string id = 1;
   string name = 2;
   repeated KubernetesContainer containers = 3;
-  repeated string pod_names = 4;
 }
 
 message KubernetesDaemonset {
   string id = 1;
   string name = 2;
   repeated KubernetesContainer containers = 3;
-  repeated string pod_names = 4;
 }
 
 message KubernetesJob {
   string id = 1;
   string name = 2;
   repeated KubernetesContainer containers = 3;
-  repeated string pod_names = 4;
 }
 
 message KubernetesPodMetrics {
