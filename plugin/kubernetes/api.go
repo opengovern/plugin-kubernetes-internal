@@ -21,6 +21,7 @@ import (
 	"sort"
 	"strings"
 	"sync"
+	"time"
 )
 
 type Kubernetes struct {
@@ -248,6 +249,37 @@ func (s *Kubernetes) ListJobPods(ctx context.Context, job batchv1.Job) ([]corev1
 	}
 
 	return pods, nil
+}
+
+func (s *Kubernetes) ListHistoricalReplicaSetNamesForDeployment(ctx context.Context, deployment appv1.Deployment, maxDays int) ([]string, error) {
+	timeCut := time.Now().AddDate(0, 0, -maxDays).Truncate(24 * time.Hour)
+	// get rollout history
+	probableReplicaSets, err := s.clientset.AppsV1().ReplicaSets(deployment.Namespace).List(ctx, metav1.ListOptions{
+		LabelSelector: labels.Set(deployment.Spec.Selector.MatchLabels).AsSelector().String(),
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	var replicaSetNames []string
+	for _, rs := range probableReplicaSets.Items {
+		if rs.CreationTimestamp.Before(&metav1.Time{Time: timeCut}) {
+			continue
+		}
+		isOwnedByDeployment := false
+		for _, owner := range rs.ObjectMeta.OwnerReferences {
+			if owner.UID == deployment.UID {
+				isOwnedByDeployment = true
+				break
+			}
+		}
+		if !isOwnedByDeployment {
+			continue
+		}
+		replicaSetNames = append(replicaSetNames, rs.Name)
+	}
+
+	return replicaSetNames, nil
 }
 
 func (s *Kubernetes) DiscoverPrometheus(ctx context.Context, reconnectMutex *sync.Mutex) (chan struct{}, error) {

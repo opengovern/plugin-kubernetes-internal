@@ -13,16 +13,17 @@ import (
 )
 
 type DeploymentItem struct {
-	Deployment          appv1.Deployment
-	Pods                []corev1.Pod
-	Namespace           string
-	OptimizationLoading bool
-	Preferences         []*golang.PreferenceItem
-	Skipped             bool
-	LazyLoadingEnabled  bool
-	SkipReason          string
-	Metrics             map[string]map[string]map[string][]kaytuPrometheus.PromDatapoint // Metric -> Pod -> Container -> Datapoints
-	Wastage             *golang2.KubernetesDeploymentOptimizationResponse
+	Deployment                appv1.Deployment
+	Pods                      []corev1.Pod
+	HistoricalReplicaSetNames []string
+	Namespace                 string
+	OptimizationLoading       bool
+	Preferences               []*golang.PreferenceItem
+	Skipped                   bool
+	LazyLoadingEnabled        bool
+	SkipReason                string
+	Metrics                   map[string]map[string]map[string][]kaytuPrometheus.PromDatapoint // Metric -> Pod -> Container -> Datapoints
+	Wastage                   *golang2.KubernetesDeploymentOptimizationResponse
 }
 
 func (i DeploymentItem) GetID() string {

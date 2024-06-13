@@ -79,6 +79,63 @@ func (j *GetDeploymentPodMetricsJob) Run() error {
 			deployment.Metrics["memory_usage"][pod.Name][container.Name] = memoryUsage
 		}
 	}
+
+	for _, replicaSetName := range deployment.HistoricalReplicaSetNames {
+		cpuHistoryUsage, err := j.processor.prometheusProvider.GetCpuMetricsForPodPrefix(j.ctx, deployment.Namespace, replicaSetName, j.processor.observabilityDays)
+		if err != nil {
+			return err
+		}
+		for podName, containerMetrics := range cpuHistoryUsage {
+			if deployment.Metrics == nil {
+				deployment.Metrics = make(map[string]map[string]map[string][]kaytuPrometheus.PromDatapoint)
+			}
+			if deployment.Metrics["cpu_usage"] == nil {
+				deployment.Metrics["cpu_usage"] = make(map[string]map[string][]kaytuPrometheus.PromDatapoint)
+			}
+			if _, ok := deployment.Metrics["cpu_usage"][podName]; ok {
+				continue
+			} else {
+				deployment.Metrics["cpu_usage"][podName] = containerMetrics
+			}
+		}
+
+		cpuThrottlingHistory, err := j.processor.prometheusProvider.GetCpuThrottlingMetricsForPodPrefix(j.ctx, deployment.Namespace, replicaSetName, j.processor.observabilityDays)
+		if err != nil {
+			return err
+		}
+		for podName, containerMetrics := range cpuThrottlingHistory {
+			if deployment.Metrics == nil {
+				deployment.Metrics = make(map[string]map[string]map[string][]kaytuPrometheus.PromDatapoint)
+			}
+			if deployment.Metrics["cpu_throttling"] == nil {
+				deployment.Metrics["cpu_throttling"] = make(map[string]map[string][]kaytuPrometheus.PromDatapoint)
+			}
+			if _, ok := deployment.Metrics["cpu_throttling"][podName]; ok {
+				continue
+			} else {
+				deployment.Metrics["cpu_throttling"][podName] = containerMetrics
+			}
+		}
+
+		memoryHistoryUsage, err := j.processor.prometheusProvider.GetMemoryMetricsForPodPrefix(j.ctx, deployment.Namespace, replicaSetName, j.processor.observabilityDays)
+		if err != nil {
+			return err
+		}
+		for podName, containerMetrics := range memoryHistoryUsage {
+			if deployment.Metrics == nil {
+				deployment.Metrics = make(map[string]map[string]map[string][]kaytuPrometheus.PromDatapoint)
+			}
+			if deployment.Metrics["memory_usage"] == nil {
+				deployment.Metrics["memory_usage"] = make(map[string]map[string][]kaytuPrometheus.PromDatapoint)
+			}
+			if _, ok := deployment.Metrics["memory_usage"][podName]; ok {
+				continue
+			} else {
+				deployment.Metrics["memory_usage"][podName] = containerMetrics
+			}
+		}
+	}
+
 	deployment.LazyLoadingEnabled = false
 	j.processor.items.Set(deployment.GetID(), deployment)
 	j.processor.publishOptimizationItem(deployment.ToOptimizationItem())
