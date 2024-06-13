@@ -34,49 +34,44 @@ func (j *GetJobPodMetricsJob) Run() error {
 	}
 
 	for _, pod := range job.Pods {
-		for _, container := range pod.Spec.Containers {
-			cpuUsage, err := j.processor.prometheusProvider.GetCpuMetricsForPodContainer(j.ctx, pod.Namespace, pod.Name, container.Name, j.processor.observabilityDays)
-			if err != nil {
-				return err
-			}
+		cpuUsage, err := j.processor.prometheusProvider.GetCpuMetricsForPod(j.ctx, pod.Namespace, pod.Name, j.processor.observabilityDays)
+		if err != nil {
+			return err
+		}
 
-			cpuThrottling, err := j.processor.prometheusProvider.GetCpuThrottlingMetricsForPodContainer(j.ctx, pod.Namespace, pod.Name, container.Name, j.processor.observabilityDays)
-			if err != nil {
-				return err
-			}
+		cpuThrottling, err := j.processor.prometheusProvider.GetCpuThrottlingMetricsForPod(j.ctx, pod.Namespace, pod.Name, j.processor.observabilityDays)
+		if err != nil {
+			return err
+		}
 
-			memoryUsage, err := j.processor.prometheusProvider.GetMemoryMetricsForPodContainer(j.ctx, pod.Namespace, pod.Name, container.Name, j.processor.observabilityDays)
-			if err != nil {
-				return err
-			}
+		memoryUsage, err := j.processor.prometheusProvider.GetMemoryMetricsForPod(j.ctx, pod.Namespace, pod.Name, j.processor.observabilityDays)
+		if err != nil {
+			return err
+		}
 
-			if job.Metrics == nil {
-				job.Metrics = make(map[string]map[string]map[string][]kaytuPrometheus.PromDatapoint)
-			}
+		if job.Metrics == nil {
+			job.Metrics = make(map[string]map[string]map[string][]kaytuPrometheus.PromDatapoint)
+		}
 
-			if job.Metrics["cpu_usage"] == nil {
-				job.Metrics["cpu_usage"] = make(map[string]map[string][]kaytuPrometheus.PromDatapoint)
-			}
-			if job.Metrics["cpu_usage"][pod.Name] == nil {
-				job.Metrics["cpu_usage"][pod.Name] = make(map[string][]kaytuPrometheus.PromDatapoint)
-			}
-			job.Metrics["cpu_usage"][pod.Name][container.Name] = cpuUsage
+		if job.Metrics["cpu_usage"] == nil {
+			job.Metrics["cpu_usage"] = make(map[string]map[string][]kaytuPrometheus.PromDatapoint)
+		}
+		if job.Metrics["cpu_usage"][pod.Name] == nil {
+			job.Metrics["cpu_usage"][pod.Name] = cpuUsage
+		}
 
-			if job.Metrics["cpu_throttling"] == nil {
-				job.Metrics["cpu_throttling"] = make(map[string]map[string][]kaytuPrometheus.PromDatapoint)
-			}
-			if job.Metrics["cpu_throttling"][pod.Name] == nil {
-				job.Metrics["cpu_throttling"][pod.Name] = make(map[string][]kaytuPrometheus.PromDatapoint)
-			}
-			job.Metrics["cpu_throttling"][pod.Name][container.Name] = cpuThrottling
+		if job.Metrics["cpu_throttling"] == nil {
+			job.Metrics["cpu_throttling"] = make(map[string]map[string][]kaytuPrometheus.PromDatapoint)
+		}
+		if job.Metrics["cpu_throttling"][pod.Name] == nil {
+			job.Metrics["cpu_throttling"][pod.Name] = cpuThrottling
+		}
 
-			if job.Metrics["memory_usage"] == nil {
-				job.Metrics["memory_usage"] = make(map[string]map[string][]kaytuPrometheus.PromDatapoint)
-			}
-			if job.Metrics["memory_usage"][pod.Name] == nil {
-				job.Metrics["memory_usage"][pod.Name] = make(map[string][]kaytuPrometheus.PromDatapoint)
-			}
-			job.Metrics["memory_usage"][pod.Name][container.Name] = memoryUsage
+		if job.Metrics["memory_usage"] == nil {
+			job.Metrics["memory_usage"] = make(map[string]map[string][]kaytuPrometheus.PromDatapoint)
+		}
+		if job.Metrics["memory_usage"][pod.Name] == nil {
+			job.Metrics["memory_usage"][pod.Name] = memoryUsage
 		}
 	}
 	job.LazyLoadingEnabled = false

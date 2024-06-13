@@ -153,12 +153,12 @@ func parseMultiDimensionalGroupedPrometheusResponse(value model.Value, groupBys 
 	return PromGroupedDimension{Values: result}, nil
 }
 
-func (p *Prometheus) GetCpuMetricsForPodContainer(ctx context.Context, namespace, podName, containerName string, observabilityDays int) ([]PromDatapoint, error) {
+func (p *Prometheus) GetCpuMetricsForPod(ctx context.Context, namespace, podName string, observabilityDays int) (map[string][]PromDatapoint, error) {
 	p.cfg.reconnectWait.Lock()
 	p.cfg.reconnectWait.Unlock()
 
 	step := time.Minute
-	query := fmt.Sprintf(`sum(rate(container_cpu_usage_seconds_total{namespace="%s", pod="%s", container="%s"}[1m])) by (container)`, namespace, podName, containerName)
+	query := fmt.Sprintf(`sum(rate(container_cpu_usage_seconds_total{namespace="%s", pod="%s", container!=""}[1m])) by (container)`, namespace, podName)
 	value, _, err := p.api.QueryRange(ctx, query, prometheus.Range{
 		Start: time.Now().Add(time.Duration(observabilityDays) * -24 * time.Hour).Truncate(step),
 		End:   time.Now().Truncate(step),
@@ -168,12 +168,22 @@ func (p *Prometheus) GetCpuMetricsForPodContainer(ctx context.Context, namespace
 		return nil, err
 	}
 
-	datapoints, err := parsePrometheusResponse(value)
+	datapoints, err := parseMultiDimensionalGroupedPrometheusResponse(value, "container")
 	if err != nil {
 		return nil, err
 	}
+	if datapoints.promDimensionType() != PromDimensionTypeGroupedDimension {
+		return nil, fmt.Errorf("unexpected dimension type: %d", datapoints.promDimensionType())
+	}
+	result := make(map[string][]PromDatapoint)
+	for containerName, promContainerDim := range datapoints.(PromGroupedDimension).Values {
+		if promContainerDim.promDimensionType() != PromDimensionTypeDatapoint {
+			return nil, fmt.Errorf("unexpected dimension type: %d", promContainerDim.promDimensionType())
+		}
+		result[containerName] = promContainerDim.(PromDatapoints).Values
+	}
 
-	return datapoints.Values, nil
+	return result, nil
 }
 
 func (p *Prometheus) GetCpuMetricsForPodPrefix(ctx context.Context, namespace, podPrefix string, observabilityDays int) (map[string]map[string][]PromDatapoint, error) {
@@ -214,12 +224,12 @@ func (p *Prometheus) GetCpuMetricsForPodPrefix(ctx context.Context, namespace, p
 	return result, nil
 }
 
-func (p *Prometheus) GetMemoryMetricsForPodContainer(ctx context.Context, namespace, podName, containerName string, observabilityDays int) ([]PromDatapoint, error) {
+func (p *Prometheus) GetMemoryMetricsForPod(ctx context.Context, namespace, podName string, observabilityDays int) (map[string][]PromDatapoint, error) {
 	p.cfg.reconnectWait.Lock()
 	p.cfg.reconnectWait.Unlock()
 
 	step := time.Minute
-	query := fmt.Sprintf(`max(container_memory_working_set_bytes{namespace="%s", pod="%s", container="%s"}) by (container)`, namespace, podName, containerName)
+	query := fmt.Sprintf(`max(container_memory_working_set_bytes{namespace="%s", pod="%s", container!=""}) by (container)`, namespace, podName)
 	value, _, err := p.api.QueryRange(ctx, query, prometheus.Range{
 		Start: time.Now().Add(time.Duration(observabilityDays) * -24 * time.Hour).Truncate(step),
 		End:   time.Now().Truncate(step),
@@ -229,12 +239,22 @@ func (p *Prometheus) GetMemoryMetricsForPodContainer(ctx context.Context, namesp
 		return nil, err
 	}
 
-	datapoints, err := parsePrometheusResponse(value)
+	datapoints, err := parseMultiDimensionalGroupedPrometheusResponse(value, "container")
 	if err != nil {
 		return nil, err
 	}
+	if datapoints.promDimensionType() != PromDimensionTypeGroupedDimension {
+		return nil, fmt.Errorf("unexpected dimension type: %d", datapoints.promDimensionType())
+	}
+	result := make(map[string][]PromDatapoint)
+	for containerName, promContainerDim := range datapoints.(PromGroupedDimension).Values {
+		if promContainerDim.promDimensionType() != PromDimensionTypeDatapoint {
+			return nil, fmt.Errorf("unexpected dimension type: %d", promContainerDim.promDimensionType())
+		}
+		result[containerName] = promContainerDim.(PromDatapoints).Values
+	}
 
-	return datapoints.Values, nil
+	return result, nil
 }
 
 func (p *Prometheus) GetMemoryMetricsForPodPrefix(ctx context.Context, namespace, podPrefix string, observabilityDays int) (map[string]map[string][]PromDatapoint, error) {
@@ -275,12 +295,12 @@ func (p *Prometheus) GetMemoryMetricsForPodPrefix(ctx context.Context, namespace
 	return result, nil
 }
 
-func (p *Prometheus) GetCpuThrottlingMetricsForPodContainer(ctx context.Context, namespace, podName, containerName string, observabilityDays int) ([]PromDatapoint, error) {
+func (p *Prometheus) GetCpuThrottlingMetricsForPod(ctx context.Context, namespace, podName string, observabilityDays int) (map[string][]PromDatapoint, error) {
 	p.cfg.reconnectWait.Lock()
 	p.cfg.reconnectWait.Unlock()
 
 	step := time.Minute
-	query := fmt.Sprintf(`sum(increase(container_cpu_cfs_throttled_periods_total{namespace="%[1]s", pod="%[2]s", container="%[3]s"}[1m])) by (container) / sum(increase(container_cpu_cfs_periods_total{namespace="%[1]s", pod="%[2]s", container="%[3]s"}[1m])) by (container)`, namespace, podName, containerName)
+	query := fmt.Sprintf(`sum(increase(container_cpu_cfs_throttled_periods_total{namespace="%[1]s", pod="%[2]s", container!=""}[1m])) by (container) / sum(increase(container_cpu_cfs_periods_total{namespace="%[1]s", pod="%[2]s", container!=""}[1m])) by (container)`, namespace, podName)
 	value, _, err := p.api.QueryRange(ctx, query, prometheus.Range{
 		Start: time.Now().Add(time.Duration(observabilityDays) * -24 * time.Hour).Truncate(step),
 		End:   time.Now().Truncate(step),
@@ -290,12 +310,22 @@ func (p *Prometheus) GetCpuThrottlingMetricsForPodContainer(ctx context.Context,
 		return nil, err
 	}
 
-	datapoints, err := parsePrometheusResponse(value)
+	datapoints, err := parseMultiDimensionalGroupedPrometheusResponse(value, "container")
 	if err != nil {
 		return nil, err
 	}
+	if datapoints.promDimensionType() != PromDimensionTypeGroupedDimension {
+		return nil, fmt.Errorf("unexpected dimension type: %d", datapoints.promDimensionType())
+	}
+	result := make(map[string][]PromDatapoint)
+	for containerName, promContainerDim := range datapoints.(PromGroupedDimension).Values {
+		if promContainerDim.promDimensionType() != PromDimensionTypeDatapoint {
+			return nil, fmt.Errorf("unexpected dimension type: %d", promContainerDim.promDimensionType())
+		}
+		result[containerName] = promContainerDim.(PromDatapoints).Values
+	}
 
-	return datapoints.Values, nil
+	return result, nil
 }
 
 func (p *Prometheus) GetCpuThrottlingMetricsForPodPrefix(ctx context.Context, namespace, podPrefix string, observabilityDays int) (map[string]map[string][]PromDatapoint, error) {
