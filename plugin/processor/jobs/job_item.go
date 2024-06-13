@@ -1,4 +1,4 @@
-package deployments
+package jobs
 
 import (
 	"fmt"
@@ -7,34 +7,33 @@ import (
 	kaytuPrometheus "github.com/kaytu-io/plugin-kubernetes-internal/plugin/prometheus"
 	golang2 "github.com/kaytu-io/plugin-kubernetes-internal/plugin/proto/src/golang"
 	"google.golang.org/protobuf/types/known/wrapperspb"
-	appv1 "k8s.io/api/apps/v1"
+	batchv1 "k8s.io/api/batch/v1"
 	corev1 "k8s.io/api/core/v1"
 	"strconv"
 )
 
-type DeploymentItem struct {
-	Deployment                appv1.Deployment
-	Pods                      []corev1.Pod
-	HistoricalReplicaSetNames []string
-	Namespace                 string
-	OptimizationLoading       bool
-	Preferences               []*golang.PreferenceItem
-	Skipped                   bool
-	LazyLoadingEnabled        bool
-	SkipReason                string
-	Metrics                   map[string]map[string]map[string][]kaytuPrometheus.PromDatapoint // Metric -> Pod -> Container -> Datapoints
-	Wastage                   *golang2.KubernetesDeploymentOptimizationResponse
+type JobItem struct {
+	Job                 batchv1.Job
+	Pods                []corev1.Pod
+	Namespace           string
+	OptimizationLoading bool
+	Preferences         []*golang.PreferenceItem
+	Skipped             bool
+	LazyLoadingEnabled  bool
+	SkipReason          string
+	Metrics             map[string]map[string]map[string][]kaytuPrometheus.PromDatapoint // Metric -> Pod -> Container -> Datapoints
+	Wastage             *golang2.KubernetesJobOptimizationResponse
 }
 
-func (i DeploymentItem) GetID() string {
-	return fmt.Sprintf("appv1.deployment/%s/%s", i.Deployment.Namespace, i.Deployment.Name)
+func (i JobItem) GetID() string {
+	return fmt.Sprintf("batchv1.job/%s/%s", i.Job.Namespace, i.Job.Name)
 }
 
-func (i DeploymentItem) Devices() ([]*golang.ChartRow, map[string]*golang.Properties) {
+func (i JobItem) Devices() ([]*golang.ChartRow, map[string]*golang.Properties) {
 	var rows []*golang.ChartRow
 	props := make(map[string]*golang.Properties)
 
-	for _, container := range i.Deployment.Spec.Template.Spec.Containers {
+	for _, container := range i.Job.Spec.Template.Spec.Containers {
 		var rightSizing *golang2.KubernetesContainerRightsizingRecommendation
 		if i.Wastage != nil && i.Wastage.Rightsizing != nil {
 			for _, c := range i.Wastage.Rightsizing.ContainerResizing {
@@ -45,7 +44,7 @@ func (i DeploymentItem) Devices() ([]*golang.ChartRow, map[string]*golang.Proper
 		}
 
 		row := golang.ChartRow{
-			RowId:  fmt.Sprintf("%s/%s/%s", i.Deployment.Namespace, i.Deployment.Name, container.Name),
+			RowId:  fmt.Sprintf("%s/%s/%s", i.Job.Namespace, i.Job.Name, container.Name),
 			Values: make(map[string]*golang.ChartRowItem),
 		}
 		properties := golang.Properties{}
@@ -159,7 +158,7 @@ func (i DeploymentItem) Devices() ([]*golang.ChartRow, map[string]*golang.Proper
 			}
 
 			row := golang.ChartRow{
-				RowId:  fmt.Sprintf("%s/%s/%s/%s", pod.Namespace, i.Deployment.Name, pod.Name, container.Name),
+				RowId:  fmt.Sprintf("%s/%s/%s/%s", pod.Namespace, i.Job.Name, pod.Name, container.Name),
 				Values: make(map[string]*golang.ChartRowItem),
 			}
 			properties := golang.Properties{}
@@ -263,10 +262,10 @@ func (i DeploymentItem) Devices() ([]*golang.ChartRow, map[string]*golang.Proper
 	return rows, props
 }
 
-func (i DeploymentItem) ToOptimizationItem() *golang.ChartOptimizationItem {
+func (i JobItem) ToOptimizationItem() *golang.ChartOptimizationItem {
 	var cpuRequest, cpuLimit, memoryRequest, memoryLimit *float64
 	cpuRequestNotConfigured, cpuLimitNotConfigured, memoryRequestNotConfigured, memoryLimitNotConfigured := false, false, false, false
-	for _, container := range i.Deployment.Spec.Template.Spec.Containers {
+	for _, container := range i.Job.Spec.Template.Spec.Containers {
 		cReq, cLim, mReq, mLim := shared.GetContainerRequestLimits(container)
 		if cReq != nil {
 			if cpuRequest != nil {
@@ -321,10 +320,10 @@ func (i DeploymentItem) ToOptimizationItem() *golang.ChartOptimizationItem {
 					Value: "→",
 				},
 				"namespace": {
-					Value: i.Deployment.Namespace,
+					Value: i.Job.Namespace,
 				},
 				"name": {
-					Value: i.Deployment.Name,
+					Value: i.Job.Name,
 				},
 				"x_kaytu_status": {
 					Value: status,
@@ -369,11 +368,11 @@ func (i DeploymentItem) ToOptimizationItem() *golang.ChartOptimizationItem {
 				memoryLimitChange += container.Recommended.MemoryLimit - container.Current.MemoryLimit
 			}
 		}
-		if i.Deployment.Spec.Replicas != nil {
-			cpuRequestChange = cpuRequestChange * float64(*i.Deployment.Spec.Replicas)
-			cpuLimitChange = cpuLimitChange * float64(*i.Deployment.Spec.Replicas)
-			memoryRequestChange = memoryRequestChange * float64(*i.Deployment.Spec.Replicas)
-			memoryLimitChange = memoryLimitChange * float64(*i.Deployment.Spec.Replicas)
+		if i.Job.Spec.Parallelism != nil {
+			cpuRequestChange = cpuRequestChange * float64(*i.Job.Spec.Parallelism)
+			cpuLimitChange = cpuLimitChange * float64(*i.Job.Spec.Parallelism)
+			memoryRequestChange = memoryRequestChange * float64(*i.Job.Spec.Parallelism)
+			memoryLimitChange = memoryLimitChange * float64(*i.Job.Spec.Parallelism)
 		}
 
 		cpuRequestReductionString := shared.SprintfWithStyle("request: %.2f core", cpuRequestChange, cpuRequestNotConfigured)

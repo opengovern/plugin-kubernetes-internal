@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"github.com/kaytu-io/kaytu/pkg/utils"
 	appv1 "k8s.io/api/apps/v1"
+	batchv1 "k8s.io/api/batch/v1"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/labels"
@@ -20,6 +21,7 @@ import (
 	"sort"
 	"strings"
 	"sync"
+	"time"
 )
 
 type Kubernetes struct {
@@ -98,6 +100,15 @@ func (s *Kubernetes) ListDaemonsetsInNamespace(ctx context.Context, namespace st
 	}
 
 	return daemonsets.Items, nil
+}
+
+func (s *Kubernetes) ListJobsInNamespace(ctx context.Context, namespace string) ([]batchv1.Job, error) {
+	jobs, err := s.clientset.BatchV1().Jobs(namespace).List(ctx, metav1.ListOptions{})
+	if err != nil {
+		return nil, err
+	}
+
+	return jobs.Items, nil
 }
 
 func (s *Kubernetes) ListDeploymentPods(ctx context.Context, deployment appv1.Deployment) ([]corev1.Pod, error) {
@@ -212,6 +223,63 @@ func (s *Kubernetes) ListDaemonsetPods(ctx context.Context, daemonset appv1.Daem
 	}
 
 	return pods, nil
+}
+
+func (s *Kubernetes) ListJobPods(ctx context.Context, job batchv1.Job) ([]corev1.Pod, error) {
+	probablePods, err := s.clientset.CoreV1().Pods(job.Namespace).List(ctx, metav1.ListOptions{
+		LabelSelector: labels.Set(job.Spec.Selector.MatchLabels).AsSelector().String(),
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	pods := make([]corev1.Pod, 0, len(probablePods.Items))
+	for _, pod := range probablePods.Items {
+		isOwnedByJob := false
+		for _, owner := range pod.ObjectMeta.OwnerReferences {
+			if owner.UID == job.UID {
+				isOwnedByJob = true
+				break
+			}
+		}
+		if !isOwnedByJob || pod.Status.Phase != corev1.PodRunning {
+			continue
+		}
+		pods = append(pods, pod)
+	}
+
+	return pods, nil
+}
+
+func (s *Kubernetes) ListHistoricalReplicaSetNamesForDeployment(ctx context.Context, deployment appv1.Deployment, maxDays int) ([]string, error) {
+	timeCut := time.Now().AddDate(0, 0, -maxDays).Truncate(24 * time.Hour)
+	// get rollout history
+	probableReplicaSets, err := s.clientset.AppsV1().ReplicaSets(deployment.Namespace).List(ctx, metav1.ListOptions{
+		LabelSelector: labels.Set(deployment.Spec.Selector.MatchLabels).AsSelector().String(),
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	var replicaSetNames []string
+	for _, rs := range probableReplicaSets.Items {
+		if rs.CreationTimestamp.Before(&metav1.Time{Time: timeCut}) {
+			continue
+		}
+		isOwnedByDeployment := false
+		for _, owner := range rs.ObjectMeta.OwnerReferences {
+			if owner.UID == deployment.UID {
+				isOwnedByDeployment = true
+				break
+			}
+		}
+		if !isOwnedByDeployment {
+			continue
+		}
+		replicaSetNames = append(replicaSetNames, rs.Name)
+	}
+
+	return replicaSetNames, nil
 }
 
 func (s *Kubernetes) DiscoverPrometheus(ctx context.Context, reconnectMutex *sync.Mutex) (chan struct{}, error) {
