@@ -32,30 +32,38 @@ func (j *GetPodMetricsJob) Run() error {
 	if !ok {
 		return errors.New("pod not found in items list")
 	}
-	for _, container := range pod.Pod.Spec.Containers {
-		cpuUsage, err := j.processor.prometheusProvider.GetCpuMetricsForPodContainer(j.ctx, pod.Pod.Namespace, pod.Pod.Name, container.Name)
-		if err != nil {
-			return err
-		}
 
-		memoryUsage, err := j.processor.prometheusProvider.GetMemoryMetricsForPodContainer(j.ctx, pod.Pod.Namespace, pod.Pod.Name, container.Name)
-		if err != nil {
-			return err
-		}
-
-		if pod.Metrics == nil {
-			pod.Metrics = make(map[string]map[string][]kaytuPrometheus.PromDatapoint)
-		}
-		if pod.Metrics["cpu_usage"] == nil {
-			pod.Metrics["cpu_usage"] = make(map[string][]kaytuPrometheus.PromDatapoint)
-		}
-		pod.Metrics["cpu_usage"][container.Name] = cpuUsage
-
-		if pod.Metrics["memory_usage"] == nil {
-			pod.Metrics["memory_usage"] = make(map[string][]kaytuPrometheus.PromDatapoint)
-		}
-		pod.Metrics["memory_usage"][container.Name] = memoryUsage
+	cpuUsage, err := j.processor.prometheusProvider.GetCpuMetricsForPod(j.ctx, pod.Pod.Namespace, pod.Pod.Name, j.processor.observabilityDays)
+	if err != nil {
+		return err
 	}
+
+	cpuThrottling, err := j.processor.prometheusProvider.GetCpuThrottlingMetricsForPod(j.ctx, pod.Pod.Namespace, pod.Pod.Name, j.processor.observabilityDays)
+	if err != nil {
+		return err
+	}
+
+	memoryUsage, err := j.processor.prometheusProvider.GetMemoryMetricsForPod(j.ctx, pod.Pod.Namespace, pod.Pod.Name, j.processor.observabilityDays)
+	if err != nil {
+		return err
+	}
+
+	if pod.Metrics == nil {
+		pod.Metrics = make(map[string]map[string][]kaytuPrometheus.PromDatapoint)
+	}
+
+	if pod.Metrics["cpu_usage"] == nil {
+		pod.Metrics["cpu_usage"] = cpuUsage
+	}
+
+	if pod.Metrics["cpu_throttling"] == nil {
+		pod.Metrics["cpu_throttling"] = cpuThrottling
+	}
+
+	if pod.Metrics["memory_usage"] == nil {
+		pod.Metrics["memory_usage"] = memoryUsage
+	}
+
 	pod.LazyLoadingEnabled = false
 	j.processor.items.Set(pod.GetID(), pod)
 	j.processor.publishOptimizationItem(pod.ToOptimizationItem())

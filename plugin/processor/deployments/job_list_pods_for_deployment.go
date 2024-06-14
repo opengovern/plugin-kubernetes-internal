@@ -38,6 +38,11 @@ func (j *ListPodsForDeploymentJob) Run() error {
 		return err
 	}
 
+	item.HistoricalReplicaSetNames, err = j.processor.kubernetesProvider.ListHistoricalReplicaSetNamesForDeployment(j.ctx, item.Deployment, j.processor.observabilityDays)
+	if err != nil {
+		return err
+	}
+
 	item.LazyLoadingEnabled = false
 	j.processor.items.Set(j.itemId, item)
 	j.processor.publishOptimizationItem(item.ToOptimizationItem())

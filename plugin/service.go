@@ -9,8 +9,11 @@ import (
 	kaytuKubernetes "github.com/kaytu-io/plugin-kubernetes-internal/plugin/kubernetes"
 	"github.com/kaytu-io/plugin-kubernetes-internal/plugin/preferences"
 	"github.com/kaytu-io/plugin-kubernetes-internal/plugin/processor"
+	"github.com/kaytu-io/plugin-kubernetes-internal/plugin/processor/daemonsets"
 	"github.com/kaytu-io/plugin-kubernetes-internal/plugin/processor/deployments"
+	"github.com/kaytu-io/plugin-kubernetes-internal/plugin/processor/jobs"
 	"github.com/kaytu-io/plugin-kubernetes-internal/plugin/processor/pods"
+	"github.com/kaytu-io/plugin-kubernetes-internal/plugin/processor/statefulsets"
 	kaytuPrometheus "github.com/kaytu-io/plugin-kubernetes-internal/plugin/prometheus"
 	golang2 "github.com/kaytu-io/plugin-kubernetes-internal/plugin/proto/src/golang"
 	"github.com/kaytu-io/plugin-kubernetes-internal/plugin/version"
@@ -19,6 +22,7 @@ import (
 	"google.golang.org/grpc/credentials"
 	"google.golang.org/grpc/credentials/oauth"
 	"math"
+	"strconv"
 	"strings"
 )
 
@@ -37,6 +41,12 @@ func (p *KubernetesPlugin) GetConfig() golang.RegisterConfig {
 			Name:        "context",
 			Default:     "",
 			Description: "Kubectl context name",
+			Required:    false,
+		},
+		{
+			Name:        "observabilityDays",
+			Default:     "1",
+			Description: "Observability Days",
 			Required:    false,
 		},
 		{
@@ -107,6 +117,27 @@ func (p *KubernetesPlugin) GetConfig() golang.RegisterConfig {
 				DefaultPreferences: preferences.DefaultDeploymentsPreferences,
 				LoginRequired:      true,
 			},
+			{
+				Name:               "kubernetes-statefulsets",
+				Description:        "Get optimization suggestions for your Kubernetes Statefulsets",
+				Flags:              commonFlags,
+				DefaultPreferences: preferences.DefaultStatefulsetsPreferences,
+				LoginRequired:      true,
+			},
+			{
+				Name:               "kubernetes-daemonsets",
+				Description:        "Get optimization suggestions for your Kubernetes Daemonsets",
+				Flags:              commonFlags,
+				DefaultPreferences: preferences.DefaultStatefulsetsPreferences,
+				LoginRequired:      true,
+			},
+			{
+				Name:               "kubernetes-jobs",
+				Description:        "Get optimization suggestions for your Kubernetes Jobs",
+				Flags:              commonFlags,
+				DefaultPreferences: preferences.DefaultStatefulsetsPreferences,
+				LoginRequired:      true,
+			},
 		},
 		MinKaytuVersion: "v0.9.0",
 		OverviewChart: &golang.ChartDefinition{
@@ -122,14 +153,16 @@ func (p *KubernetesPlugin) GetConfig() golang.RegisterConfig {
 					Width: 15,
 				},
 				{
-					Id:    "cpu_change",
-					Name:  "CPU Change",
-					Width: 40,
+					Id:       "cpu_change",
+					Name:     "CPU Change",
+					Width:    40,
+					Sortable: true,
 				},
 				{
-					Id:    "memory_change",
-					Name:  "Memory Change",
-					Width: 40,
+					Id:       "memory_change",
+					Name:     "Memory Change",
+					Width:    40,
+					Sortable: true,
 				},
 				{
 					Id:    "x_kaytu_status",
@@ -300,9 +333,17 @@ func (p *KubernetesPlugin) StartProcess(command string, flags map[string]string,
 		}
 	}
 
+	observabilityDays := 1
+	if flags["observabilityDays"] != "" {
+		days, _ := strconv.ParseInt(strings.TrimSpace(flags["observabilityDays"]), 10, 64)
+		if days > 0 {
+			observabilityDays = int(days)
+		}
+	}
+
 	switch command {
 	case "kubernetes-pods":
-		p.processor = pods.NewProcessor(ctx, identification, kubeClient, promClient, publishOptimizationItem, publishResultSummary, kaytuAccessToken, jobQueue, configurations, client, namespace)
+		p.processor = pods.NewProcessor(ctx, identification, kubeClient, promClient, publishOptimizationItem, publishResultSummary, jobQueue, configurations, client, namespace, observabilityDays)
 	case "kubernetes-deployments":
 		err = p.stream.Send(&golang.PluginMessage{
 			PluginMessage: &golang.PluginMessage_UpdateChart{
@@ -320,19 +361,22 @@ func (p *KubernetesPlugin) StartProcess(command string, flags map[string]string,
 								Width: 15,
 							},
 							{
-								Id:    "pod_count",
-								Name:  "# Pods",
-								Width: 6,
+								Id:       "pod_count",
+								Name:     "# Pods",
+								Width:    6,
+								Sortable: true,
 							},
 							{
-								Id:    "cpu_change",
-								Name:  "CPU Change",
-								Width: 40,
+								Id:       "cpu_change",
+								Name:     "CPU Change (x Replicas)",
+								Width:    40,
+								Sortable: true,
 							},
 							{
-								Id:    "memory_change",
-								Name:  "Memory Change",
-								Width: 40,
+								Id:       "memory_change",
+								Name:     "Memory Change (x Replicas)",
+								Width:    40,
+								Sortable: true,
 							},
 							{
 								Id:    "x_kaytu_status",
@@ -352,7 +396,166 @@ func (p *KubernetesPlugin) StartProcess(command string, flags map[string]string,
 		if err != nil {
 			return err
 		}
-		p.processor = deployments.NewProcessor(ctx, identification, kubeClient, promClient, publishOptimizationItem, publishResultSummary, kaytuAccessToken, jobQueue, configurations, client, namespace)
+		p.processor = deployments.NewProcessor(ctx, identification, kubeClient, promClient, publishOptimizationItem, publishResultSummary, kaytuAccessToken, jobQueue, configurations, client, namespace, observabilityDays)
+	case "kubernetes-statefulsets":
+		err = p.stream.Send(&golang.PluginMessage{
+			PluginMessage: &golang.PluginMessage_UpdateChart{
+				UpdateChart: &golang.UpdateChartDefinition{
+					OverviewChart: &golang.ChartDefinition{
+						Columns: []*golang.ChartColumnItem{
+							{
+								Id:    "name",
+								Name:  "Name",
+								Width: 20,
+							},
+							{
+								Id:    "namespace",
+								Name:  "Namespace",
+								Width: 15,
+							},
+							{
+								Id:       "pod_count",
+								Name:     "# Pods",
+								Width:    6,
+								Sortable: true,
+							},
+							{
+								Id:       "cpu_change",
+								Name:     "CPU Change (x Replicas)",
+								Width:    40,
+								Sortable: true,
+							},
+							{
+								Id:       "memory_change",
+								Name:     "Memory Change (x Replicas)",
+								Width:    40,
+								Sortable: true,
+							},
+							{
+								Id:    "x_kaytu_status",
+								Name:  "Status",
+								Width: 21,
+							},
+							{
+								Id:    "x_kaytu_right_arrow",
+								Name:  "",
+								Width: 1,
+							},
+						},
+					},
+				},
+			},
+		})
+		if err != nil {
+			return err
+		}
+		p.processor = statefulsets.NewProcessor(ctx, identification, kubeClient, promClient, publishOptimizationItem, publishResultSummary, jobQueue, configurations, client, namespace, observabilityDays)
+	case "kubernetes-daemonsets":
+		err = p.stream.Send(&golang.PluginMessage{
+			PluginMessage: &golang.PluginMessage_UpdateChart{
+				UpdateChart: &golang.UpdateChartDefinition{
+					OverviewChart: &golang.ChartDefinition{
+						Columns: []*golang.ChartColumnItem{
+							{
+								Id:    "name",
+								Name:  "Name",
+								Width: 20,
+							},
+							{
+								Id:    "namespace",
+								Name:  "Namespace",
+								Width: 15,
+							},
+							{
+								Id:       "pod_count",
+								Name:     "# Pods",
+								Width:    6,
+								Sortable: true,
+							},
+							{
+								Id:       "cpu_change",
+								Name:     "CPU Change (x Replicas)",
+								Width:    40,
+								Sortable: true,
+							},
+							{
+								Id:       "memory_change",
+								Name:     "Memory Change (x Replicas)",
+								Width:    40,
+								Sortable: true,
+							},
+							{
+								Id:    "x_kaytu_status",
+								Name:  "Status",
+								Width: 21,
+							},
+							{
+								Id:    "x_kaytu_right_arrow",
+								Name:  "",
+								Width: 1,
+							},
+						},
+					},
+				},
+			},
+		})
+		if err != nil {
+			return err
+		}
+		p.processor = daemonsets.NewProcessor(ctx, identification, kubeClient, promClient, publishOptimizationItem, publishResultSummary, jobQueue, configurations, client, namespace, observabilityDays)
+	case "kubernetes-jobs":
+		err = p.stream.Send(&golang.PluginMessage{
+			PluginMessage: &golang.PluginMessage_UpdateChart{
+				UpdateChart: &golang.UpdateChartDefinition{
+					OverviewChart: &golang.ChartDefinition{
+						Columns: []*golang.ChartColumnItem{
+							{
+								Id:    "name",
+								Name:  "Name",
+								Width: 20,
+							},
+							{
+								Id:    "namespace",
+								Name:  "Namespace",
+								Width: 15,
+							},
+							{
+								Id:       "pod_count",
+								Name:     "# Pods",
+								Width:    6,
+								Sortable: true,
+							},
+							{
+								Id:       "cpu_change",
+								Name:     "CPU Change (x Replicas)",
+								Width:    40,
+								Sortable: true,
+							},
+							{
+								Id:       "memory_change",
+								Name:     "Memory Change (x Replicas)",
+								Width:    40,
+								Sortable: true,
+							},
+							{
+								Id:    "x_kaytu_status",
+								Name:  "Status",
+								Width: 21,
+							},
+							{
+								Id:    "x_kaytu_right_arrow",
+								Name:  "",
+								Width: 1,
+							},
+						},
+					},
+				},
+			},
+		})
+		if err != nil {
+			return err
+		}
+		p.processor = jobs.NewProcessor(ctx, identification, kubeClient, promClient, publishOptimizationItem, publishResultSummary, jobQueue, configurations, client, namespace, observabilityDays)
 	}
 
 	jobQueue.SetOnFinish(func() {
@@ -371,18 +574,5 @@ func (p *KubernetesPlugin) StartProcess(command string, flags map[string]string,
 }
 
 func (p *KubernetesPlugin) ReEvaluate(evaluate *golang.ReEvaluate) {
-	if p == nil {
-		fmt.Println("p is null")
-		return
-	}
-	if p.processor == nil {
-		fmt.Println("p.processor is null")
-		return
-	}
-	if evaluate == nil {
-		fmt.Println("evaluate is null")
-		return
-	}
-
 	p.processor.ReEvaluate(evaluate.Id, evaluate.Preferences)
 }

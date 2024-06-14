@@ -1,4 +1,4 @@
-package pods
+package statefulsets
 
 import (
 	"context"
@@ -20,7 +20,7 @@ type Processor struct {
 	identification          map[string]string
 	kubernetesProvider      *kaytuKubernetes.Kubernetes
 	prometheusProvider      *kaytuPrometheus.Prometheus
-	items                   util.ConcurrentMap[string, PodItem]
+	items                   util.ConcurrentMap[string, StatefulsetItem]
 	publishOptimizationItem func(item *golang.ChartOptimizationItem)
 	publishResultSummary    func(summary *golang.ResultSummary)
 	jobQueue                *sdk.JobQueue
@@ -30,7 +30,7 @@ type Processor struct {
 	namespace               *string
 	observabilityDays       int
 
-	summary      map[string]PodSummary
+	summary      map[string]StatefulsetSummary
 	summaryMutex sync.RWMutex
 }
 
@@ -39,7 +39,7 @@ func NewProcessor(ctx context.Context, identification map[string]string, kuberne
 		identification:          identification,
 		kubernetesProvider:      kubernetesProvider,
 		prometheusProvider:      prometheusProvider,
-		items:                   util.NewMap[string, PodItem](),
+		items:                   util.NewMap[string, StatefulsetItem](),
 		publishOptimizationItem: publishOptimizationItem,
 		publishResultSummary:    publishResultSummary,
 		jobQueue:                jobQueue,
@@ -49,7 +49,7 @@ func NewProcessor(ctx context.Context, identification map[string]string, kuberne
 		namespace:               namespace,
 		observabilityDays:       observabilityDays,
 
-		summary:      map[string]PodSummary{},
+		summary:      map[string]StatefulsetSummary{},
 		summaryMutex: sync.RWMutex{},
 	}
 	jobQueue.Push(NewListAllNamespacesJob(ctx, r))
@@ -61,7 +61,7 @@ func (m *Processor) ReEvaluate(id string, items []*golang.PreferenceItem) {
 	v.Preferences = items
 	v.OptimizationLoading = true
 	m.items.Set(id, v)
-	m.jobQueue.Push(NewOptimizePodJob(context.Background(), m, id))
+	m.jobQueue.Push(NewOptimizeStatefulsetJob(context.Background(), m, id))
 
 	v.LazyLoadingEnabled = false
 	m.publishOptimizationItem(v.ToOptimizationItem())
@@ -75,8 +75,8 @@ func (m *Processor) ExportNonInteractive() *golang.NonInteractiveExport {
 
 func (m *Processor) exportCsv() []*golang.CSVRow {
 	headers := []string{
-		"Namespace", "Pod Name", "Container Name", "Current CPU Request", "Current CPU Limit", "Current Memory Request",
-		"Current Memory Limit",
+		"Namespace", "Statefulset Name", "Pod Name", "Container Name",
+		"Current CPU Request", "Current CPU Limit", "Current Memory Request", "Current Memory Limit",
 		"Suggested CPU Request", "Suggested CPU Limit", "Suggested Memory Request", "Suggested Memory Limit",
 		"CPU Request Change", "CPU Limit Change", "Memory Request Change", "Memory Limit Change",
 		"Justification", "Additional Details",
@@ -85,92 +85,105 @@ func (m *Processor) exportCsv() []*golang.CSVRow {
 	rows = append(rows, &golang.CSVRow{Row: headers})
 
 	for name, _ := range m.summary {
-		pod, ok := m.items.Get(name)
+		statefulset, ok := m.items.Get(name)
 		if !ok {
 			continue
 		}
-		for _, container := range pod.Pod.Spec.Containers {
-			var row []string
+		for _, pod := range statefulset.Pods {
+			for _, container := range pod.Spec.Containers {
+				var row []string
 
-			row = append(row, pod.Pod.Namespace, pod.Pod.Name, container.Name)
+				row = append(row, statefulset.Statefulset.Namespace, statefulset.Statefulset.Name, pod.Name, container.Name)
 
-			var righSizing *golang2.KubernetesContainerRightsizingRecommendation
-			if pod.Wastage != nil {
-				for _, c := range pod.Wastage.Rightsizing.ContainerResizing {
-					if c.Name == container.Name {
-						righSizing = c
+				var righSizing *golang2.KubernetesContainerRightsizingRecommendation
+				if statefulset.Wastage != nil {
+					for _, c := range statefulset.Wastage.Rightsizing.ContainerResizing {
+						if c.Name == container.Name {
+							righSizing = c
+						}
 					}
 				}
-			}
-			cpuRequest, cpuLimit, memoryRequest, memoryLimit := shared.GetContainerRequestLimits(container)
-
-			if cpuRequest != nil {
-				row = append(row, fmt.Sprintf("%.2f Core", *cpuRequest))
-			} else {
-				row = append(row, "Not configured")
-			}
-			if cpuLimit != nil {
-				row = append(row, fmt.Sprintf("%.2f Core", *cpuLimit))
-			} else {
-				row = append(row, "Not configured")
-			}
-			if memoryRequest != nil {
-				row = append(row, fmt.Sprintf("%.2f GB", *memoryRequest/(1024*1024*1024)))
-			} else {
-				row = append(row, "Not configured")
-			}
-			if memoryLimit != nil {
-				row = append(row, fmt.Sprintf("%.2f GB", *memoryLimit/(1024*1024*1024)))
-			} else {
-				row = append(row, "Not configured")
-			}
-
-			var additionalDetails []string
-			if righSizing != nil && righSizing.Recommended != nil {
-				row = append(row, fmt.Sprintf("%.2f Core", righSizing.Recommended.CpuRequest),
-					fmt.Sprintf("%.2f Core", righSizing.Recommended.CpuLimit),
-					fmt.Sprintf("%.2f GB", righSizing.Recommended.MemoryRequest/(1024*1024*1024)),
-					fmt.Sprintf("%.2f GB", righSizing.Recommended.MemoryLimit/(1024*1024*1024)))
+				cpuRequest, cpuLimit, memoryRequest, memoryLimit := shared.GetContainerRequestLimits(container)
 
 				if cpuRequest != nil {
-					row = append(row, fmt.Sprintf("%.2f Core", righSizing.Recommended.CpuRequest-*cpuRequest))
+					row = append(row, fmt.Sprintf("%.2f Core", *cpuRequest))
 				} else {
 					row = append(row, "Not configured")
 				}
 				if cpuLimit != nil {
-					row = append(row, fmt.Sprintf("%.2f Core", righSizing.Recommended.CpuLimit-*cpuLimit))
+					row = append(row, fmt.Sprintf("%.2f Core", *cpuLimit))
 				} else {
 					row = append(row, "Not configured")
 				}
 				if memoryRequest != nil {
-					row = append(row, fmt.Sprintf("%s", shared.SizeByte(righSizing.Recommended.MemoryRequest-*memoryRequest)))
+					row = append(row, fmt.Sprintf("%.2f GB", *memoryRequest/(1024*1024*1024)))
 				} else {
 					row = append(row, "Not configured")
 				}
 				if memoryLimit != nil {
-					row = append(row, fmt.Sprintf("%s", shared.SizeByte(righSizing.Recommended.MemoryLimit-*memoryLimit)))
+					row = append(row, fmt.Sprintf("%.2f GB", *memoryLimit/(1024*1024*1024)))
 				} else {
 					row = append(row, "Not configured")
 				}
 
-				row = append(row, righSizing.Description)
+				var additionalDetails []string
+				if righSizing != nil && righSizing.Recommended != nil {
+					row = append(row, fmt.Sprintf("%.2f Core", righSizing.Recommended.CpuRequest),
+						fmt.Sprintf("%.2f Core", righSizing.Recommended.CpuLimit),
+						fmt.Sprintf("%.2f GB", righSizing.Recommended.MemoryRequest/(1024*1024*1024)),
+						fmt.Sprintf("%.2f GB", righSizing.Recommended.MemoryLimit/(1024*1024*1024)))
 
-				additionalDetails = append(additionalDetails,
-					fmt.Sprintf("CPU Usage:: Avg: %s - Max: %s",
-						fmt.Sprintf("%.2f", righSizing.CpuTrimmedMean.Value),
-						fmt.Sprintf("%.2f", righSizing.CpuMax.Value)))
-				additionalDetails = append(additionalDetails,
-					fmt.Sprintf("Memory Usage:: Avg: %s - Max: %s",
-						fmt.Sprintf("%.2f", righSizing.MemoryTrimmedMean.Value/(1024*1024*1024)),
-						fmt.Sprintf("%.2f", righSizing.MemoryMax.Value/(1024*1024*1024))))
-				row = append(row, strings.Join(additionalDetails, "---"))
+					if cpuRequest != nil {
+						row = append(row, fmt.Sprintf("%.2f Core", righSizing.Recommended.CpuRequest-*cpuRequest))
+					} else {
+						row = append(row, "Not configured")
+					}
+					if cpuLimit != nil {
+						row = append(row, fmt.Sprintf("%.2f Core", righSizing.Recommended.CpuLimit-*cpuLimit))
+					} else {
+						row = append(row, "Not configured")
+					}
+					if memoryRequest != nil {
+						row = append(row, fmt.Sprintf("%s", shared.SizeByte(righSizing.Recommended.MemoryRequest-*memoryRequest)))
+					} else {
+						row = append(row, "Not configured")
+					}
+					if memoryLimit != nil {
+						row = append(row, fmt.Sprintf("%s", shared.SizeByte(righSizing.Recommended.MemoryLimit-*memoryLimit)))
+					} else {
+						row = append(row, "Not configured")
+					}
+
+					row = append(row, righSizing.Description)
+
+					additionalDetails = append(additionalDetails,
+						fmt.Sprintf("CPU Usage:: Avg: %s - Max: %s",
+							fmt.Sprintf("%.2f", righSizing.CpuTrimmedMean.Value),
+							fmt.Sprintf("%.2f", righSizing.CpuMax.Value)))
+					additionalDetails = append(additionalDetails,
+						fmt.Sprintf("Memory Usage:: Avg: %s - Max: %s",
+							fmt.Sprintf("%.2f", righSizing.MemoryTrimmedMean.Value/(1024*1024*1024)),
+							fmt.Sprintf("%.2f", righSizing.MemoryMax.Value/(1024*1024*1024))))
+					row = append(row, strings.Join(additionalDetails, "---"))
+				}
+				rows = append(rows, &golang.CSVRow{Row: row})
 			}
-			rows = append(rows, &golang.CSVRow{Row: row})
 		}
-
 	}
 
 	return rows
+}
+
+type StatefulsetSummary struct {
+	ReplicaCount        int32
+	CPURequestChange    float64
+	TotalCPURequest     float64
+	CPULimitChange      float64
+	TotalCPULimit       float64
+	MemoryRequestChange float64
+	TotalMemoryRequest  float64
+	MemoryLimitChange   float64
+	TotalMemoryLimit    float64
 }
 
 func (m *Processor) ResultsSummary() *golang.ResultSummary {
@@ -179,15 +192,15 @@ func (m *Processor) ResultsSummary() *golang.ResultSummary {
 	var totalCpuRequest, totalCpuLimit, totalMemoryRequest, totalMemoryLimit float64
 	m.summaryMutex.RLock()
 	for _, item := range m.summary {
-		cpuRequestChanges += item.CPURequestChange
-		cpuLimitChanges += item.CPULimitChange
-		memoryRequestChanges += item.MemoryRequestChange
-		memoryLimitChanges += item.MemoryLimitChange
+		cpuRequestChanges += item.CPURequestChange * float64(item.ReplicaCount)
+		cpuLimitChanges += item.CPULimitChange * float64(item.ReplicaCount)
+		memoryRequestChanges += item.MemoryRequestChange * float64(item.ReplicaCount)
+		memoryLimitChanges += item.MemoryLimitChange * float64(item.ReplicaCount)
 
-		totalCpuRequest += item.TotalCPURequest
-		totalCpuLimit += item.TotalCPULimit
-		totalMemoryRequest += item.TotalMemoryRequest
-		totalMemoryLimit += item.TotalMemoryLimit
+		totalCpuRequest += item.TotalCPURequest * float64(item.ReplicaCount)
+		totalCpuLimit += item.TotalCPULimit * float64(item.ReplicaCount)
+		totalMemoryRequest += item.TotalMemoryRequest * float64(item.ReplicaCount)
+		totalMemoryLimit += item.TotalMemoryLimit * float64(item.ReplicaCount)
 	}
 	m.summaryMutex.RUnlock()
 	summary.Message = fmt.Sprintf("Overall changes: CPU request: %.2f of %.2f core, CPU limit: %.2f of %.2f core, Memory request: %s of %s, Memory limit: %s of %s", cpuRequestChanges, totalCpuRequest, cpuLimitChanges, totalCpuLimit, shared.SizeByte64(memoryRequestChanges), shared.SizeByte64(totalMemoryRequest), shared.SizeByte64(memoryLimitChanges), shared.SizeByte64(totalMemoryLimit))
@@ -203,7 +216,7 @@ func (m *Processor) UpdateSummary(itemId string) {
 		memoryLimitChange, totalMemoryLimit := 0.0, 0.0
 		for _, container := range i.Wastage.Rightsizing.ContainerResizing {
 			var pContainer corev1.Container
-			for _, podContainer := range i.Pod.Spec.Containers {
+			for _, podContainer := range i.Statefulset.Spec.Template.Spec.Containers {
 				if podContainer.Name == container.Name {
 					pContainer = podContainer
 				}
@@ -229,8 +242,8 @@ func (m *Processor) UpdateSummary(itemId string) {
 			}
 		}
 
-		m.summaryMutex.Lock()
-		m.summary[i.GetID()] = PodSummary{
+		ds := StatefulsetSummary{
+			ReplicaCount:        1,
 			CPURequestChange:    cpuRequestChange,
 			TotalCPURequest:     totalCpuRequest,
 			CPULimitChange:      cpuLimitChange,
@@ -240,6 +253,12 @@ func (m *Processor) UpdateSummary(itemId string) {
 			MemoryLimitChange:   memoryLimitChange,
 			TotalMemoryLimit:    totalMemoryLimit,
 		}
+		if i.Statefulset.Spec.Replicas != nil {
+			ds.ReplicaCount = *i.Statefulset.Spec.Replicas
+		}
+
+		m.summaryMutex.Lock()
+		m.summary[i.GetID()] = ds
 		m.summaryMutex.Unlock()
 
 	}

@@ -13,13 +13,31 @@ message KubernetesContainer{
   double cpu_limit = 5;
 }
 
-message KubernetesDeployment{
+message KubernetesPod {
   string id = 1;
   string name = 2;
   repeated KubernetesContainer containers = 3;
 }
 
-message KubernetesPod{
+message KubernetesDeployment {
+  string id = 1;
+  string name = 2;
+  repeated KubernetesContainer containers = 3;
+}
+
+message KubernetesStatefulset {
+  string id = 1;
+  string name = 2;
+  repeated KubernetesContainer containers = 3;
+}
+
+message KubernetesDaemonset {
+  string id = 1;
+  string name = 2;
+  repeated KubernetesContainer containers = 3;
+}
+
+message KubernetesJob {
   string id = 1;
   string name = 2;
   repeated KubernetesContainer containers = 3;
@@ -50,6 +68,39 @@ message KubernetesDeploymentOptimizationRequest {
   google.protobuf.StringValue cli_version = 2;
   map<string,string> identification = 3;
   KubernetesDeployment deployment = 4;
+  string namespace = 5;
+  map<string,google.protobuf.StringValue> preferences = 6;
+  map<string,KubernetesPodMetrics> metrics = 7;
+  bool loading = 8;
+}
+
+message KubernetesStatefulsetOptimizationRequest {
+  google.protobuf.StringValue request_id = 1;
+  google.protobuf.StringValue cli_version = 2;
+  map<string,string> identification = 3;
+  KubernetesStatefulset statefulset = 4;
+  string namespace = 5;
+  map<string,google.protobuf.StringValue> preferences = 6;
+  map<string,KubernetesPodMetrics> metrics = 7;
+  bool loading = 8;
+}
+
+message KubernetesDaemonsetOptimizationRequest {
+  google.protobuf.StringValue request_id = 1;
+  google.protobuf.StringValue cli_version = 2;
+  map<string,string> identification = 3;
+  KubernetesDaemonset daemonset = 4;
+  string namespace = 5;
+  map<string,google.protobuf.StringValue> preferences = 6;
+  map<string,KubernetesPodMetrics> metrics = 7;
+  bool loading = 8;
+}
+
+message KubernetesJobOptimizationRequest {
+  google.protobuf.StringValue request_id = 1;
+  google.protobuf.StringValue cli_version = 2;
+  map<string,string> identification = 3;
+  KubernetesJob job = 4;
   string namespace = 5;
   map<string,google.protobuf.StringValue> preferences = 6;
   map<string,KubernetesPodMetrics> metrics = 7;
@@ -87,6 +138,24 @@ message KubernetesDeploymentRightsizingRecommendation {
   map<string, KubernetesPodRightsizingRecommendation> pod_container_resizing = 3;
 }
 
+message KubernetesStatefulsetRightsizingRecommendation {
+  string name = 1;
+  repeated KubernetesContainerRightsizingRecommendation container_resizing = 2;
+  map<string, KubernetesPodRightsizingRecommendation> pod_container_resizing = 3;
+}
+
+message KubernetesDaemonsetRightsizingRecommendation {
+  string name = 1;
+  repeated KubernetesContainerRightsizingRecommendation container_resizing = 2;
+  map<string, KubernetesPodRightsizingRecommendation> pod_container_resizing = 3;
+}
+
+message KubernetesJobRightsizingRecommendation {
+  string name = 1;
+  repeated KubernetesContainerRightsizingRecommendation container_resizing = 2;
+  map<string, KubernetesPodRightsizingRecommendation> pod_container_resizing = 3;
+}
+
 message KubernetesPodOptimizationResponse {
     KubernetesPodRightsizingRecommendation rightsizing = 1;
 }
@@ -95,7 +164,22 @@ message KubernetesDeploymentOptimizationResponse {
     KubernetesDeploymentRightsizingRecommendation rightsizing = 1;
 }
 
+message KubernetesStatefulsetOptimizationResponse {
+  KubernetesStatefulsetRightsizingRecommendation rightsizing = 1;
+}
+
+message KubernetesDaemonsetOptimizationResponse {
+  KubernetesDaemonsetRightsizingRecommendation rightsizing = 1;
+}
+
+message KubernetesJobOptimizationResponse {
+  KubernetesJobRightsizingRecommendation rightsizing = 1;
+}
+
 service Optimization {
   rpc KubernetesPodOptimization(KubernetesPodOptimizationRequest) returns (KubernetesPodOptimizationResponse);
   rpc KubernetesDeploymentOptimization(KubernetesDeploymentOptimizationRequest) returns (KubernetesDeploymentOptimizationResponse);
+  rpc KubernetesStatefulsetOptimization(KubernetesStatefulsetOptimizationRequest) returns (KubernetesStatefulsetOptimizationResponse);
+  rpc KubernetesDaemonsetOptimization(KubernetesDaemonsetOptimizationRequest) returns (KubernetesDaemonsetOptimizationResponse);
+  rpc KubernetesJobOptimization(KubernetesJobOptimizationRequest) returns (KubernetesJobOptimizationResponse);
 }

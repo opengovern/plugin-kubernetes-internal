@@ -29,12 +29,13 @@ type Processor struct {
 	configuration           *kaytu.Configuration
 	client                  golang2.OptimizationClient
 	namespace               *string
+	observabilityDays       int
 
 	summary      map[string]DeploymentSummary
 	summaryMutex sync.RWMutex
 }
 
-func NewProcessor(ctx context.Context, identification map[string]string, kubernetesProvider *kaytuKubernetes.Kubernetes, prometheusProvider *kaytuPrometheus.Prometheus, publishOptimizationItem func(item *golang.ChartOptimizationItem), publishResultSummary func(summary *golang.ResultSummary), kaytuAcccessToken string, jobQueue *sdk.JobQueue, configuration *kaytu.Configuration, client golang2.OptimizationClient, namespace *string) *Processor {
+func NewProcessor(ctx context.Context, identification map[string]string, kubernetesProvider *kaytuKubernetes.Kubernetes, prometheusProvider *kaytuPrometheus.Prometheus, publishOptimizationItem func(item *golang.ChartOptimizationItem), publishResultSummary func(summary *golang.ResultSummary), kaytuAcccessToken string, jobQueue *sdk.JobQueue, configuration *kaytu.Configuration, client golang2.OptimizationClient, namespace *string, observabilityDays int) *Processor {
 	r := &Processor{
 		identification:          identification,
 		kubernetesProvider:      kubernetesProvider,
@@ -48,6 +49,7 @@ func NewProcessor(ctx context.Context, identification map[string]string, kuberne
 		configuration:           configuration,
 		client:                  client,
 		namespace:               namespace,
+		observabilityDays:       observabilityDays,
 
 		summary:      map[string]DeploymentSummary{},
 		summaryMutex: sync.RWMutex{},
@@ -68,9 +70,7 @@ func (m *Processor) ReEvaluate(id string, items []*golang.PreferenceItem) {
 }
 
 func (m *Processor) ExportNonInteractive() *golang.NonInteractiveExport {
-	return &golang.NonInteractiveExport{
-		Csv: m.exportCsv(),
-	}
+	return nil
 }
 
 func (m *Processor) exportCsv() []*golang.CSVRow {
@@ -175,6 +175,7 @@ func (m *Processor) exportCsv() []*golang.CSVRow {
 }
 
 type DeploymentSummary struct {
+	ReplicaCount        int32
 	CPURequestChange    float64
 	TotalCPURequest     float64
 	CPULimitChange      float64
@@ -191,15 +192,15 @@ func (m *Processor) ResultsSummary() *golang.ResultSummary {
 	var totalCpuRequest, totalCpuLimit, totalMemoryRequest, totalMemoryLimit float64
 	m.summaryMutex.RLock()
 	for _, item := range m.summary {
-		cpuRequestChanges += item.CPURequestChange
-		cpuLimitChanges += item.CPULimitChange
-		memoryRequestChanges += item.MemoryRequestChange
-		memoryLimitChanges += item.MemoryLimitChange
+		cpuRequestChanges += item.CPURequestChange * float64(item.ReplicaCount)
+		cpuLimitChanges += item.CPULimitChange * float64(item.ReplicaCount)
+		memoryRequestChanges += item.MemoryRequestChange * float64(item.ReplicaCount)
+		memoryLimitChanges += item.MemoryLimitChange * float64(item.ReplicaCount)
 
-		totalCpuRequest += item.TotalCPURequest
-		totalCpuLimit += item.TotalCPULimit
-		totalMemoryRequest += item.TotalMemoryRequest
-		totalMemoryLimit += item.TotalMemoryLimit
+		totalCpuRequest += item.TotalCPURequest * float64(item.ReplicaCount)
+		totalCpuLimit += item.TotalCPULimit * float64(item.ReplicaCount)
+		totalMemoryRequest += item.TotalMemoryRequest * float64(item.ReplicaCount)
+		totalMemoryLimit += item.TotalMemoryLimit * float64(item.ReplicaCount)
 	}
 	m.summaryMutex.RUnlock()
 	summary.Message = fmt.Sprintf("Overall changes: CPU request: %.2f of %.2f core, CPU limit: %.2f of %.2f core, Memory request: %s of %s, Memory limit: %s of %s", cpuRequestChanges, totalCpuRequest, cpuLimitChanges, totalCpuLimit, shared.SizeByte64(memoryRequestChanges), shared.SizeByte64(totalMemoryRequest), shared.SizeByte64(memoryLimitChanges), shared.SizeByte64(totalMemoryLimit))
@@ -241,8 +242,8 @@ func (m *Processor) UpdateSummary(itemId string) {
 			}
 		}
 
-		m.summaryMutex.Lock()
-		m.summary[i.GetID()] = DeploymentSummary{
+		ds := DeploymentSummary{
+			ReplicaCount:        1,
 			CPURequestChange:    cpuRequestChange,
 			TotalCPURequest:     totalCpuRequest,
 			CPULimitChange:      cpuLimitChange,
@@ -252,6 +253,12 @@ func (m *Processor) UpdateSummary(itemId string) {
 			MemoryLimitChange:   memoryLimitChange,
 			TotalMemoryLimit:    totalMemoryLimit,
 		}
+		if i.Deployment.Spec.Replicas != nil {
+			ds.ReplicaCount = *i.Deployment.Spec.Replicas
+		}
+
+		m.summaryMutex.Lock()
+		m.summary[i.GetID()] = ds
 		m.summaryMutex.Unlock()
 
 	}
