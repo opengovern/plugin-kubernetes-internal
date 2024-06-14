@@ -111,13 +111,16 @@ func (s *Kubernetes) ListJobsInNamespace(ctx context.Context, namespace string) 
 	return jobs.Items, nil
 }
 
-func (s *Kubernetes) ListDeploymentPods(ctx context.Context, deployment appv1.Deployment) ([]corev1.Pod, error) {
+func (s *Kubernetes) ListDeploymentPodsAndHistoricalReplicaSets(ctx context.Context, deployment appv1.Deployment, maxDays int) ([]corev1.Pod, []string, error) {
+	timeCut := time.Now().AddDate(0, 0, -maxDays).Truncate(24 * time.Hour)
+
 	probableReplicaSets, err := s.clientset.AppsV1().ReplicaSets(deployment.Namespace).List(ctx, metav1.ListOptions{
 		LabelSelector: labels.Set(deployment.Spec.Selector.MatchLabels).AsSelector().String(),
 	})
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
+	var historicalReplicaSets []appv1.ReplicaSet
 	var activeReplicaSets []appv1.ReplicaSet
 	for _, rs := range probableReplicaSets.Items {
 		isOwnedByDeployment := false
@@ -133,7 +136,8 @@ func (s *Kubernetes) ListDeploymentPods(ctx context.Context, deployment appv1.De
 		rs := rs
 		if rs.Status.Replicas == deployment.Status.Replicas {
 			activeReplicaSets = append(activeReplicaSets, rs)
-			break
+		} else {
+			historicalReplicaSets = append(historicalReplicaSets, rs)
 		}
 	}
 	sort.Slice(activeReplicaSets, func(i, j int) bool {
@@ -143,16 +147,39 @@ func (s *Kubernetes) ListDeploymentPods(ctx context.Context, deployment appv1.De
 	if len(activeReplicaSets) > 0 {
 		activeReplicaSet = &activeReplicaSets[0]
 	}
-
 	if activeReplicaSet == nil {
-		return nil, errors.New("no active replica set found for deployment")
+		return nil, nil, errors.New("no active replica set found for deployment")
+	}
+
+	if len(activeReplicaSets) > 1 {
+		historicalReplicaSets = append(historicalReplicaSets, activeReplicaSets[1:]...)
+	}
+	sort.Slice(historicalReplicaSets, func(i, j int) bool {
+		return historicalReplicaSets[j].CreationTimestamp.Before(&historicalReplicaSets[i].CreationTimestamp)
+	})
+	historicalReplicaSetNames := make([]string, 0, len(historicalReplicaSets))
+	for i, rs := range historicalReplicaSets {
+		// ignore the replica sets that are older than the time cut
+		if rs.CreationTimestamp.Before(&metav1.Time{Time: timeCut}) {
+			continue
+		}
+
+		// add the last replicaset before the time cut to the list to make sure we have the within the time cut
+		//                ↓ time cut
+		// time ----------|---------------------
+		// rs   <---><-------><------><-------->
+		//             ↑ last rs before time cut
+		if len(historicalReplicaSets) == 0 && i > 0 {
+			historicalReplicaSetNames = append(historicalReplicaSetNames, activeReplicaSets[i-1].Name)
+		}
+		historicalReplicaSetNames = append(historicalReplicaSetNames, rs.Name)
 	}
 
 	probablePods, err := s.clientset.CoreV1().Pods(deployment.Namespace).List(ctx, metav1.ListOptions{
 		LabelSelector: labels.Set(deployment.Spec.Selector.MatchLabels).AsSelector().String(),
 	})
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 
 	pods := make([]corev1.Pod, 0, len(probablePods.Items))
@@ -170,7 +197,7 @@ func (s *Kubernetes) ListDeploymentPods(ctx context.Context, deployment appv1.De
 		pods = append(pods, pod)
 	}
 
-	return pods, nil
+	return pods, historicalReplicaSetNames, nil
 }
 
 func (s *Kubernetes) ListStatefulsetPods(ctx context.Context, statefulset appv1.StatefulSet) ([]corev1.Pod, error) {
@@ -249,37 +276,6 @@ func (s *Kubernetes) ListJobPods(ctx context.Context, job batchv1.Job) ([]corev1
 	}
 
 	return pods, nil
-}
-
-func (s *Kubernetes) ListHistoricalReplicaSetNamesForDeployment(ctx context.Context, deployment appv1.Deployment, maxDays int) ([]string, error) {
-	timeCut := time.Now().AddDate(0, 0, -maxDays).Truncate(24 * time.Hour)
-	// get rollout history
-	probableReplicaSets, err := s.clientset.AppsV1().ReplicaSets(deployment.Namespace).List(ctx, metav1.ListOptions{
-		LabelSelector: labels.Set(deployment.Spec.Selector.MatchLabels).AsSelector().String(),
-	})
-	if err != nil {
-		return nil, err
-	}
-
-	var replicaSetNames []string
-	for _, rs := range probableReplicaSets.Items {
-		if rs.CreationTimestamp.Before(&metav1.Time{Time: timeCut}) {
-			continue
-		}
-		isOwnedByDeployment := false
-		for _, owner := range rs.ObjectMeta.OwnerReferences {
-			if owner.UID == deployment.UID {
-				isOwnedByDeployment = true
-				break
-			}
-		}
-		if !isOwnedByDeployment {
-			continue
-		}
-		replicaSetNames = append(replicaSetNames, rs.Name)
-	}
-
-	return replicaSetNames, nil
 }
 
 func (s *Kubernetes) DiscoverPrometheus(ctx context.Context, reconnectMutex *sync.Mutex) (chan struct{}, error) {

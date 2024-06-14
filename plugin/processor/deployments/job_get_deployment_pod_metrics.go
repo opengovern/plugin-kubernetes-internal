@@ -76,7 +76,7 @@ func (j *GetDeploymentPodMetricsJob) Run() error {
 	}
 
 	for _, replicaSetName := range deployment.HistoricalReplicaSetNames {
-		cpuHistoryUsage, err := j.processor.prometheusProvider.GetCpuMetricsForPodPrefix(j.ctx, deployment.Namespace, replicaSetName, j.processor.observabilityDays)
+		cpuHistoryUsage, err := j.processor.prometheusProvider.GetCpuMetricsForPodOwnerPrefix(j.ctx, deployment.Namespace, replicaSetName, j.processor.observabilityDays, kaytuPrometheus.PodSuffixModeRandom)
 		if err != nil {
 			return err
 		}
@@ -94,7 +94,7 @@ func (j *GetDeploymentPodMetricsJob) Run() error {
 			}
 		}
 
-		cpuThrottlingHistory, err := j.processor.prometheusProvider.GetCpuThrottlingMetricsForPodPrefix(j.ctx, deployment.Namespace, replicaSetName, j.processor.observabilityDays)
+		cpuThrottlingHistory, err := j.processor.prometheusProvider.GetCpuThrottlingMetricsForPodOwnerPrefix(j.ctx, deployment.Namespace, replicaSetName, j.processor.observabilityDays, kaytuPrometheus.PodSuffixModeRandom)
 		if err != nil {
 			return err
 		}
@@ -112,7 +112,7 @@ func (j *GetDeploymentPodMetricsJob) Run() error {
 			}
 		}
 
-		memoryHistoryUsage, err := j.processor.prometheusProvider.GetMemoryMetricsForPodPrefix(j.ctx, deployment.Namespace, replicaSetName, j.processor.observabilityDays)
+		memoryHistoryUsage, err := j.processor.prometheusProvider.GetMemoryMetricsForPodOwnerPrefix(j.ctx, deployment.Namespace, replicaSetName, j.processor.observabilityDays, kaytuPrometheus.PodSuffixModeRandom)
 		if err != nil {
 			return err
 		}
