@@ -12,7 +12,6 @@ import (
 	golang2 "github.com/kaytu-io/plugin-kubernetes-internal/plugin/proto/src/golang"
 	util "github.com/kaytu-io/plugin-kubernetes-internal/utils"
 	corev1 "k8s.io/api/core/v1"
-	"strings"
 	"sync"
 )
 
@@ -68,110 +67,7 @@ func (m *Processor) ReEvaluate(id string, items []*golang.PreferenceItem) {
 }
 
 func (m *Processor) ExportNonInteractive() *golang.NonInteractiveExport {
-	return &golang.NonInteractiveExport{
-		Csv: m.exportCsv(),
-	}
-}
-
-func (m *Processor) exportCsv() []*golang.CSVRow {
-	headers := []string{
-		"Namespace", "Job Name", "Pod Name", "Container Name",
-		"Current CPU Request", "Current CPU Limit", "Current Memory Request", "Current Memory Limit",
-		"Suggested CPU Request", "Suggested CPU Limit", "Suggested Memory Request", "Suggested Memory Limit",
-		"CPU Request Change", "CPU Limit Change", "Memory Request Change", "Memory Limit Change",
-		"Justification", "Additional Details",
-	}
-	var rows []*golang.CSVRow
-	rows = append(rows, &golang.CSVRow{Row: headers})
-
-	for name, _ := range m.summary {
-		job, ok := m.items.Get(name)
-		if !ok {
-			continue
-		}
-		for _, pod := range job.Pods {
-			for _, container := range pod.Spec.Containers {
-				var row []string
-
-				row = append(row, job.Job.Namespace, job.Job.Name, pod.Name, container.Name)
-
-				var righSizing *golang2.KubernetesContainerRightsizingRecommendation
-				if job.Wastage != nil {
-					for _, c := range job.Wastage.Rightsizing.ContainerResizing {
-						if c.Name == container.Name {
-							righSizing = c
-						}
-					}
-				}
-				cpuRequest, cpuLimit, memoryRequest, memoryLimit := shared.GetContainerRequestLimits(container)
-
-				if cpuRequest != nil {
-					row = append(row, fmt.Sprintf("%.2f Core", *cpuRequest))
-				} else {
-					row = append(row, "Not configured")
-				}
-				if cpuLimit != nil {
-					row = append(row, fmt.Sprintf("%.2f Core", *cpuLimit))
-				} else {
-					row = append(row, "Not configured")
-				}
-				if memoryRequest != nil {
-					row = append(row, fmt.Sprintf("%.2f GB", *memoryRequest/(1024*1024*1024)))
-				} else {
-					row = append(row, "Not configured")
-				}
-				if memoryLimit != nil {
-					row = append(row, fmt.Sprintf("%.2f GB", *memoryLimit/(1024*1024*1024)))
-				} else {
-					row = append(row, "Not configured")
-				}
-
-				var additionalDetails []string
-				if righSizing != nil && righSizing.Recommended != nil {
-					row = append(row, fmt.Sprintf("%.2f Core", righSizing.Recommended.CpuRequest),
-						fmt.Sprintf("%.2f Core", righSizing.Recommended.CpuLimit),
-						fmt.Sprintf("%.2f GB", righSizing.Recommended.MemoryRequest/(1024*1024*1024)),
-						fmt.Sprintf("%.2f GB", righSizing.Recommended.MemoryLimit/(1024*1024*1024)))
-
-					if cpuRequest != nil {
-						row = append(row, fmt.Sprintf("%.2f Core", righSizing.Recommended.CpuRequest-*cpuRequest))
-					} else {
-						row = append(row, "Not configured")
-					}
-					if cpuLimit != nil {
-						row = append(row, fmt.Sprintf("%.2f Core", righSizing.Recommended.CpuLimit-*cpuLimit))
-					} else {
-						row = append(row, "Not configured")
-					}
-					if memoryRequest != nil {
-						row = append(row, fmt.Sprintf("%s", shared.SizeByte(righSizing.Recommended.MemoryRequest-*memoryRequest)))
-					} else {
-						row = append(row, "Not configured")
-					}
-					if memoryLimit != nil {
-						row = append(row, fmt.Sprintf("%s", shared.SizeByte(righSizing.Recommended.MemoryLimit-*memoryLimit)))
-					} else {
-						row = append(row, "Not configured")
-					}
-
-					row = append(row, righSizing.Description)
-
-					additionalDetails = append(additionalDetails,
-						fmt.Sprintf("CPU Usage:: Avg: %s - Max: %s",
-							fmt.Sprintf("%.2f", righSizing.CpuTrimmedMean.Value),
-							fmt.Sprintf("%.2f", righSizing.CpuMax.Value)))
-					additionalDetails = append(additionalDetails,
-						fmt.Sprintf("Memory Usage:: Avg: %s - Max: %s",
-							fmt.Sprintf("%.2f", righSizing.MemoryTrimmedMean.Value/(1024*1024*1024)),
-							fmt.Sprintf("%.2f", righSizing.MemoryMax.Value/(1024*1024*1024))))
-					row = append(row, strings.Join(additionalDetails, "---"))
-				}
-				rows = append(rows, &golang.CSVRow{Row: row})
-			}
-		}
-	}
-
-	return rows
+	return nil
 }
 
 type JobSummary struct {
