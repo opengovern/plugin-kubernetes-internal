@@ -155,14 +155,31 @@ func (m *Processor) exportCsv() []*golang.CSVRow {
 
 				row = append(row, righSizing.Description)
 
+				cpuTrimmedMean := 0.0
+				cpuMax := 0.0
+				memoryTrimmedMean := 0.0
+				memoryMax := 0.0
+				if righSizing.CpuTrimmedMean != nil {
+					cpuTrimmedMean = righSizing.CpuTrimmedMean.Value
+				}
+				if righSizing.CpuMax != nil {
+					cpuMax = righSizing.CpuMax.Value
+				}
+				if righSizing.MemoryTrimmedMean != nil {
+					memoryTrimmedMean = righSizing.MemoryTrimmedMean.Value
+				}
+				if righSizing.MemoryMax != nil {
+					memoryMax = righSizing.MemoryMax.Value
+				}
+
 				additionalDetails = append(additionalDetails,
 					fmt.Sprintf("CPU Usage:: Avg: %s - Max: %s",
-						fmt.Sprintf("%.2f", righSizing.CpuTrimmedMean.Value),
-						fmt.Sprintf("%.2f", righSizing.CpuMax.Value)))
+						fmt.Sprintf("%.2f", cpuTrimmedMean),
+						fmt.Sprintf("%.2f", cpuMax)))
 				additionalDetails = append(additionalDetails,
 					fmt.Sprintf("Memory Usage:: Avg: %s - Max: %s",
-						fmt.Sprintf("%.2f", righSizing.MemoryTrimmedMean.Value/(1024*1024*1024)),
-						fmt.Sprintf("%.2f", righSizing.MemoryMax.Value/(1024*1024*1024))))
+						fmt.Sprintf("%.2f", memoryTrimmedMean/(1024*1024*1024)),
+						fmt.Sprintf("%.2f", memoryMax/(1024*1024*1024))))
 				row = append(row, strings.Join(additionalDetails, "---"))
 			}
 			rows = append(rows, &golang.CSVRow{Row: row})
