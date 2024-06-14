@@ -7,7 +7,7 @@ toolchain go1.22.3
 require (
 	github.com/charmbracelet/lipgloss v0.11.0
 	github.com/google/uuid v1.6.0
-	github.com/kaytu-io/kaytu v0.12.1-rc.1.0.20240606123725-2a2055a918f2
+	github.com/kaytu-io/kaytu v0.12.4-rc.1.0.20240613114105-5aadd970e854
 	github.com/prometheus/client_golang v1.19.1
 	github.com/prometheus/common v0.48.0
 	golang.org/x/oauth2 v0.20.0

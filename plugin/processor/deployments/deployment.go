@@ -68,6 +68,10 @@ func (m *Processor) ReEvaluate(id string, items []*golang.PreferenceItem) {
 	m.publishOptimizationItem(v.ToOptimizationItem())
 }
 
+func (m *Processor) ExportNonInteractive() *golang.NonInteractiveExport {
+	return nil
+}
+
 type DeploymentSummary struct {
 	ReplicaCount        int32
 	CPURequestChange    float64

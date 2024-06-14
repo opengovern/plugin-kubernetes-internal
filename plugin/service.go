@@ -559,6 +559,14 @@ func (p *KubernetesPlugin) StartProcess(command string, flags map[string]string,
 	}
 
 	jobQueue.SetOnFinish(func() {
+		publishNonInteractiveExport := func(ex *golang.NonInteractiveExport) {
+			p.stream.Send(&golang.PluginMessage{
+				PluginMessage: &golang.PluginMessage_NonInteractive{
+					NonInteractive: ex,
+				},
+			})
+		}
+		publishNonInteractiveExport(p.processor.ExportNonInteractive())
 		publishResultsReady(true)
 	})
 
