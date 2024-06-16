@@ -385,6 +385,6 @@ func (p *Prometheus) GetCpuThrottlingMetricsForPodOwnerPrefix(ctx context.Contex
 }
 
 func (p *Prometheus) Ping(ctx context.Context) error {
-	_, err := p.api.Config(ctx)
+	_, _, err := p.api.Query(ctx, "up", time.Now())
 	return err
 }
