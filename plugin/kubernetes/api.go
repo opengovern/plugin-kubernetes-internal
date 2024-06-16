@@ -13,6 +13,8 @@ import (
 	restclient "k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/clientcmd/api"
 	"sort"
+	"strings"
+	"sync"
 	"time"
 )
 
@@ -268,4 +270,46 @@ func (s *Kubernetes) ListJobPods(ctx context.Context, job batchv1.Job) ([]corev1
 	}
 
 	return pods, nil
+}
+
+func (s *Kubernetes) DiscoverKaytuAgent(ctx context.Context, reconnectMutex *sync.Mutex) (chan struct{}, error) {
+	svc, err := s.findKaytuService(ctx)
+	if err != nil {
+		return nil, err
+	}
+	if svc == nil {
+		return nil, errors.New("kaytu not found")
+	}
+
+	err = s.portForward(ctx, svc.Namespace, svc.Name, []string{"8001:8001"}, reconnectMutex)
+	if err != nil {
+		return nil, err
+	}
+
+	return s.stopChan, nil
+}
+
+func (s *Kubernetes) findKaytuService(ctx context.Context) (*corev1.Service, error) {
+	namespaces, err := s.clientset.CoreV1().Namespaces().List(ctx, metav1.ListOptions{})
+	if err != nil {
+		return nil, err
+	}
+
+	for _, namespace := range namespaces.Items {
+		svcs, err := s.clientset.CoreV1().Services(namespace.Name).List(ctx, metav1.ListOptions{})
+		if err != nil {
+			return nil, err
+		}
+
+		for _, svc := range svcs.Items {
+			if strings.Contains(svc.Name, "kaytu-agent") {
+				for _, port := range svc.Spec.Ports {
+					if port.Port == 8001 {
+						return &svc, nil
+					}
+				}
+			}
+		}
+	}
+	return nil, nil
 }
