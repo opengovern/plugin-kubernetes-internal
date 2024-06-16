@@ -44,12 +44,12 @@ func GetConfig(address, basicUsername, basicPassword, oAuth2ClientID, oAuth2Clie
 	}
 
 	if cfg.Address == "" {
-		_, err := client.DiscoverPrometheus(context.Background(), &cfg.reconnectWait)
+		_, addr, err := client.DiscoverAndPortForwardPrometheusCompatible(context.Background(), &cfg.reconnectWait)
 		if err != nil {
 			return nil, err
 		}
 		time.Sleep(1 * time.Second)
-		cfg.Address = "http://localhost:9090"
+		cfg.Address = addr
 	}
 
 	if basicUsername != nil && basicPassword != nil {

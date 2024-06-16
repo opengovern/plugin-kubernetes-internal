@@ -1,10 +1,8 @@
 package kubernetes
 
 import (
-	"bytes"
 	"context"
 	"errors"
-	"fmt"
 	"github.com/kaytu-io/kaytu/pkg/utils"
 	appv1 "k8s.io/api/apps/v1"
 	batchv1 "k8s.io/api/batch/v1"
@@ -14,13 +12,7 @@ import (
 	"k8s.io/client-go/kubernetes"
 	restclient "k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/clientcmd/api"
-	"k8s.io/client-go/tools/portforward"
-	"k8s.io/client-go/transport/spdy"
-	"net/http"
-	"net/url"
 	"sort"
-	"strings"
-	"sync"
 	"time"
 )
 
@@ -276,119 +268,4 @@ func (s *Kubernetes) ListJobPods(ctx context.Context, job batchv1.Job) ([]corev1
 	}
 
 	return pods, nil
-}
-
-func (s *Kubernetes) DiscoverPrometheus(ctx context.Context, reconnectMutex *sync.Mutex) (chan struct{}, error) {
-	svc, err := s.findPrometheusService(ctx)
-	if err != nil {
-		return nil, err
-	}
-	if svc == nil {
-		return nil, errors.New("prometheus not found")
-	}
-
-	err = s.portForward(ctx, svc.Namespace, svc.Name, []string{"9090:9090"}, reconnectMutex)
-	if err != nil {
-		return nil, err
-	}
-
-	return s.stopChan, nil
-}
-
-func (s *Kubernetes) findPrometheusService(ctx context.Context) (*corev1.Service, error) {
-	namespaces, err := s.clientset.CoreV1().Namespaces().List(ctx, metav1.ListOptions{})
-	if err != nil {
-		return nil, err
-	}
-
-	for _, namespace := range namespaces.Items {
-		svcs, err := s.clientset.CoreV1().Services(namespace.Name).List(ctx, metav1.ListOptions{})
-		if err != nil {
-			return nil, err
-		}
-
-		for _, svc := range svcs.Items {
-			if strings.Contains(svc.Name, "prometheus") {
-				for _, port := range svc.Spec.Ports {
-					if port.Port == 9090 {
-						return &svc, nil
-					}
-				}
-			}
-		}
-	}
-	return nil, nil
-}
-
-func (s *Kubernetes) portForward(ctx context.Context, namespace, serviceName string, ports []string, mutex *sync.Mutex) error {
-	service, err := s.clientset.CoreV1().Services(namespace).Get(ctx, serviceName, metav1.GetOptions{})
-	if err != nil {
-		return err
-	}
-
-	pods, err := s.clientset.CoreV1().Pods(namespace).List(ctx, metav1.ListOptions{
-		LabelSelector: labels.Set(service.Spec.Selector).AsSelector().String(),
-	})
-	if err != nil {
-		return err
-	}
-
-	if len(pods.Items) == 0 {
-		return errors.New("no pods found for service selector")
-	}
-	podName := pods.Items[0].Name
-
-	roundTripper, upgrader, err := spdy.RoundTripperFor(s.restClientCfg)
-	if err != nil {
-		return err
-	}
-
-	path := fmt.Sprintf("/api/v1/namespaces/%s/pods/%s/portforward", namespace, podName)
-	hostIP, err := url.Parse(s.restClientCfg.Host)
-	if err != nil {
-		return err
-	}
-
-	serverURL := url.URL{Scheme: "https", Path: path, Host: hostIP.Host}
-	fmt.Println("prometheus - connecting")
-	s.reconnect(upgrader, ports, roundTripper, serverURL, mutex)
-
-	return nil
-}
-
-func (s *Kubernetes) reconnect(upgrader spdy.Upgrader, ports []string, roundTripper http.RoundTripper, serverURL url.URL, mutex *sync.Mutex) {
-	fmt.Println("prometheus - reconnect")
-	readyChan := make(chan struct{}, 1)
-	s.stopChan = make(chan struct{}, 1)
-
-	mutex.Lock()
-
-	go func() {
-		defer func() {
-			if r := recover(); r != nil {
-				fmt.Println("prometheus - ", r)
-			}
-
-			s.reconnect(upgrader, ports, roundTripper, serverURL, mutex)
-			return
-		}()
-
-		out, errOut := new(bytes.Buffer), new(bytes.Buffer)
-
-		dialer := spdy.NewDialer(upgrader, &http.Client{Transport: roundTripper}, "POST", &serverURL)
-
-		forwarder, err := portforward.New(dialer, ports, s.stopChan, readyChan, out, errOut)
-		if err != nil {
-			fmt.Println("prometheus - ", err)
-			return
-		}
-
-		err = forwarder.ForwardPorts()
-		if err != nil {
-			fmt.Println("prometheus - ", err)
-			return
-		}
-	}()
-	<-readyChan // This line will block until the port forwarding is ready to get traffic.
-	mutex.Unlock()
 }
