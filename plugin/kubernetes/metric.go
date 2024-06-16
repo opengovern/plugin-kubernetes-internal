@@ -56,7 +56,7 @@ func (s *Kubernetes) DiscoverAndPortForwardPrometheusCompatible(ctx context.Cont
 		return s.stopChan, "http://localhost:8429", nil
 	}
 
-	return nil, "", errors.New("no prometheus compatible service found - try passing the prometheus compatible endpoint with the --prom-address flag")
+	return nil, "", errors.New("no prometheus compatible service found - try passing the prometheus compatible endpoint with the --prom-address flag e.g. --prom-address 'http://localhost:9090'")
 }
 
 func (s *Kubernetes) findPrometheusService(ctx context.Context) (*corev1.Service, error) {
