@@ -6,6 +6,7 @@ import (
 	"github.com/kaytu-io/kaytu/pkg/plugin/proto/src/golang"
 	"github.com/kaytu-io/kaytu/pkg/plugin/sdk"
 	"github.com/kaytu-io/plugin-kubernetes-internal/plugin/kaytu"
+	kaytuAgent "github.com/kaytu-io/plugin-kubernetes-internal/plugin/kaytu-agent"
 	kaytuKubernetes "github.com/kaytu-io/plugin-kubernetes-internal/plugin/kubernetes"
 	"github.com/kaytu-io/plugin-kubernetes-internal/plugin/processor/shared"
 	kaytuPrometheus "github.com/kaytu-io/plugin-kubernetes-internal/plugin/prometheus"
@@ -29,12 +30,13 @@ type Processor struct {
 	client                  golang2.OptimizationClient
 	namespace               *string
 	observabilityDays       int
+	kaytuClient             *kaytuAgent.KaytuAgent
 
 	summary      map[string]PodSummary
 	summaryMutex sync.RWMutex
 }
 
-func NewProcessor(ctx context.Context, identification map[string]string, kubernetesProvider *kaytuKubernetes.Kubernetes, prometheusProvider *kaytuPrometheus.Prometheus, publishOptimizationItem func(item *golang.ChartOptimizationItem), publishResultSummary func(summary *golang.ResultSummary), jobQueue *sdk.JobQueue, configuration *kaytu.Configuration, client golang2.OptimizationClient, namespace *string, observabilityDays int) *Processor {
+func NewProcessor(ctx context.Context, identification map[string]string, kubernetesProvider *kaytuKubernetes.Kubernetes, prometheusProvider *kaytuPrometheus.Prometheus, kaytuClient *kaytuAgent.KaytuAgent, publishOptimizationItem func(item *golang.ChartOptimizationItem), publishResultSummary func(summary *golang.ResultSummary), jobQueue *sdk.JobQueue, configuration *kaytu.Configuration, client golang2.OptimizationClient, namespace *string, observabilityDays int) *Processor {
 	r := &Processor{
 		identification:          identification,
 		kubernetesProvider:      kubernetesProvider,
@@ -48,11 +50,17 @@ func NewProcessor(ctx context.Context, identification map[string]string, kuberne
 		client:                  client,
 		namespace:               namespace,
 		observabilityDays:       observabilityDays,
+		kaytuClient:             kaytuClient,
 
 		summary:      map[string]PodSummary{},
 		summaryMutex: sync.RWMutex{},
 	}
-	jobQueue.Push(NewListAllNamespacesJob(ctx, r))
+
+	if kaytuClient.IsDiscovered() {
+		jobQueue.Push(NewDownloadKaytuAgentReportJob(ctx, r))
+	} else {
+		jobQueue.Push(NewListAllNamespacesJob(ctx, r))
+	}
 	return r
 }
 
