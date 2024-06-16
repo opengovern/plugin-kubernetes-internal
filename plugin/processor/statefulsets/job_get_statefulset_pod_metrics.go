@@ -33,47 +33,60 @@ func (j *GetStatefulsetPodMetricsJob) Run() error {
 		return errors.New("statefulset not found in the items list")
 	}
 
-	for _, pod := range statefulset.Pods {
-		cpuUsage, err := j.processor.prometheusProvider.GetCpuMetricsForPod(j.ctx, pod.Namespace, pod.Name, j.processor.observabilityDays)
-		if err != nil {
-			return err
-		}
-
-		cpuThrottling, err := j.processor.prometheusProvider.GetCpuThrottlingMetricsForPod(j.ctx, pod.Namespace, pod.Name, j.processor.observabilityDays)
-		if err != nil {
-			return err
-		}
-
-		memoryUsage, err := j.processor.prometheusProvider.GetMemoryMetricsForPod(j.ctx, pod.Namespace, pod.Name, j.processor.observabilityDays)
-		if err != nil {
-			return err
-		}
-
+	cpuUsageWithHistory, err := j.processor.prometheusProvider.GetCpuMetricsForPodOwnerPrefix(j.ctx, statefulset.Namespace, statefulset.Statefulset.Name, j.processor.observabilityDays, kaytuPrometheus.PodSuffixModeIncremental)
+	if err != nil {
+		return err
+	}
+	for podName, containerMetrics := range cpuUsageWithHistory {
 		if statefulset.Metrics == nil {
 			statefulset.Metrics = make(map[string]map[string]map[string][]kaytuPrometheus.PromDatapoint)
 		}
-
 		if statefulset.Metrics["cpu_usage"] == nil {
 			statefulset.Metrics["cpu_usage"] = make(map[string]map[string][]kaytuPrometheus.PromDatapoint)
 		}
-		if statefulset.Metrics["cpu_usage"][pod.Name] == nil {
-			statefulset.Metrics["cpu_usage"][pod.Name] = cpuUsage
+		if _, ok := statefulset.Metrics["cpu_usage"][podName]; ok {
+			continue
+		} else {
+			statefulset.Metrics["cpu_usage"][podName] = containerMetrics
 		}
+	}
 
+	cpuThrottlingWithHistory, err := j.processor.prometheusProvider.GetCpuThrottlingMetricsForPodOwnerPrefix(j.ctx, statefulset.Namespace, statefulset.Statefulset.Name, j.processor.observabilityDays, kaytuPrometheus.PodSuffixModeIncremental)
+	if err != nil {
+		return err
+	}
+	for podName, containerMetrics := range cpuThrottlingWithHistory {
+		if statefulset.Metrics == nil {
+			statefulset.Metrics = make(map[string]map[string]map[string][]kaytuPrometheus.PromDatapoint)
+		}
 		if statefulset.Metrics["cpu_throttling"] == nil {
 			statefulset.Metrics["cpu_throttling"] = make(map[string]map[string][]kaytuPrometheus.PromDatapoint)
 		}
-		if statefulset.Metrics["cpu_throttling"][pod.Name] == nil {
-			statefulset.Metrics["cpu_throttling"][pod.Name] = cpuThrottling
+		if _, ok := statefulset.Metrics["cpu_throttling"][podName]; ok {
+			continue
+		} else {
+			statefulset.Metrics["cpu_throttling"][podName] = containerMetrics
 		}
+	}
 
+	memoryUsageWithHistory, err := j.processor.prometheusProvider.GetMemoryMetricsForPodOwnerPrefix(j.ctx, statefulset.Namespace, statefulset.Statefulset.Name, j.processor.observabilityDays, kaytuPrometheus.PodSuffixModeIncremental)
+	if err != nil {
+		return err
+	}
+	for podName, containerMetrics := range memoryUsageWithHistory {
+		if statefulset.Metrics == nil {
+			statefulset.Metrics = make(map[string]map[string]map[string][]kaytuPrometheus.PromDatapoint)
+		}
 		if statefulset.Metrics["memory_usage"] == nil {
 			statefulset.Metrics["memory_usage"] = make(map[string]map[string][]kaytuPrometheus.PromDatapoint)
 		}
-		if statefulset.Metrics["memory_usage"][pod.Name] == nil {
-			statefulset.Metrics["memory_usage"][pod.Name] = memoryUsage
+		if _, ok := statefulset.Metrics["memory_usage"][podName]; ok {
+			continue
+		} else {
+			statefulset.Metrics["memory_usage"][podName] = containerMetrics
 		}
 	}
+
 	statefulset.LazyLoadingEnabled = false
 	j.processor.items.Set(statefulset.GetID(), statefulset)
 	j.processor.publishOptimizationItem(statefulset.ToOptimizationItem())

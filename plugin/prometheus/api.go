@@ -52,6 +52,24 @@ func (PromGroupedDimension) promDimensionType() PromDimensionType {
 	return PromDimensionTypeGroupedDimension
 }
 
+type PodSuffixMode int
+
+const (
+	PodSuffixModeRandom PodSuffixMode = iota
+	PodSuffixModeIncremental
+)
+
+func (p PodSuffixMode) Regex() string {
+	switch p {
+	case PodSuffixModeRandom:
+		return "[a-zA-Z0-9]{5}"
+	case PodSuffixModeIncremental:
+		return "[0-9]+"
+	default:
+		return ""
+	}
+}
+
 func NewPrometheus(cfg *Config) (*Prometheus, error) {
 	promCfg := promapi.Config{
 		Address:      cfg.Address,
@@ -186,12 +204,12 @@ func (p *Prometheus) GetCpuMetricsForPod(ctx context.Context, namespace, podName
 	return result, nil
 }
 
-func (p *Prometheus) GetCpuMetricsForPodPrefix(ctx context.Context, namespace, podPrefix string, observabilityDays int) (map[string]map[string][]PromDatapoint, error) {
+func (p *Prometheus) GetCpuMetricsForPodOwnerPrefix(ctx context.Context, namespace, podOwnerPrefix string, observabilityDays int, suffixMode PodSuffixMode) (map[string]map[string][]PromDatapoint, error) {
 	p.cfg.reconnectWait.Lock()
 	p.cfg.reconnectWait.Unlock()
 
 	step := time.Minute
-	query := fmt.Sprintf(`sum(rate(container_cpu_usage_seconds_total{namespace="%s", pod=~"%s.*", container!=""}[1m])) by (pod, container)`, namespace, podPrefix)
+	query := fmt.Sprintf(`sum(rate(container_cpu_usage_seconds_total{namespace="%s", pod=~"%s-%s$", container!=""}[1m])) by (pod, container)`, namespace, podOwnerPrefix, suffixMode.Regex())
 	value, _, err := p.api.QueryRange(ctx, query, prometheus.Range{
 		Start: time.Now().Add(time.Duration(observabilityDays) * -24 * time.Hour).Truncate(step),
 		End:   time.Now().Truncate(step),
@@ -257,12 +275,12 @@ func (p *Prometheus) GetMemoryMetricsForPod(ctx context.Context, namespace, podN
 	return result, nil
 }
 
-func (p *Prometheus) GetMemoryMetricsForPodPrefix(ctx context.Context, namespace, podPrefix string, observabilityDays int) (map[string]map[string][]PromDatapoint, error) {
+func (p *Prometheus) GetMemoryMetricsForPodOwnerPrefix(ctx context.Context, namespace, podPrefix string, observabilityDays int, suffixMode PodSuffixMode) (map[string]map[string][]PromDatapoint, error) {
 	p.cfg.reconnectWait.Lock()
 	p.cfg.reconnectWait.Unlock()
 
 	step := time.Minute
-	query := fmt.Sprintf(`max(container_memory_working_set_bytes{namespace="%s", pod=~"%s.*", container!=""}) by (pod, container)`, namespace, podPrefix)
+	query := fmt.Sprintf(`max(container_memory_working_set_bytes{namespace="%s", pod=~"%s-%s$", container!=""}) by (pod, container)`, namespace, podPrefix, suffixMode.Regex())
 	value, _, err := p.api.QueryRange(ctx, query, prometheus.Range{
 		Start: time.Now().Add(time.Duration(observabilityDays) * -24 * time.Hour).Truncate(step),
 		End:   time.Now().Truncate(step),
@@ -328,12 +346,12 @@ func (p *Prometheus) GetCpuThrottlingMetricsForPod(ctx context.Context, namespac
 	return result, nil
 }
 
-func (p *Prometheus) GetCpuThrottlingMetricsForPodPrefix(ctx context.Context, namespace, podPrefix string, observabilityDays int) (map[string]map[string][]PromDatapoint, error) {
+func (p *Prometheus) GetCpuThrottlingMetricsForPodOwnerPrefix(ctx context.Context, namespace, podPrefix string, observabilityDays int, suffixMode PodSuffixMode) (map[string]map[string][]PromDatapoint, error) {
 	p.cfg.reconnectWait.Lock()
 	p.cfg.reconnectWait.Unlock()
 
 	step := time.Minute
-	query := fmt.Sprintf(`sum(increase(container_cpu_cfs_throttled_periods_total{namespace="%s", pod=~"%s.*", container!=""}[1m])) by (pod, container) / sum(increase(container_cpu_cfs_periods_total{namespace="%s", pod=~"%s.*", container!=""}[1m])) by (pod, container)`, namespace, podPrefix, namespace, podPrefix)
+	query := fmt.Sprintf(`sum(increase(container_cpu_cfs_throttled_periods_total{namespace="%[1]s", pod=~"%[2]s-%[3]s$", container!=""}[1m])) by (pod, container) / sum(increase(container_cpu_cfs_periods_total{namespace="%[1]s", pod=~"%[2]s-%[3]s", container!=""}[1m])) by (pod, container)`, namespace, podPrefix, suffixMode.Regex())
 	value, _, err := p.api.QueryRange(ctx, query, prometheus.Range{
 		Start: time.Now().Add(time.Duration(observabilityDays) * -24 * time.Hour).Truncate(step),
 		End:   time.Now().Truncate(step),
@@ -367,6 +385,6 @@ func (p *Prometheus) GetCpuThrottlingMetricsForPodPrefix(ctx context.Context, na
 }
 
 func (p *Prometheus) Ping(ctx context.Context) error {
-	_, err := p.api.Config(ctx)
+	_, _, err := p.api.Query(ctx, "up", time.Now())
 	return err
 }
