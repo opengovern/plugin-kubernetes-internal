@@ -19,7 +19,7 @@ func NewDownloadKaytuAgentReportJob(ctx context.Context, processor *Processor) *
 }
 
 func (j *DownloadKaytuAgentReportJob) Id() string {
-	return "download_kaytu_agent_report_job"
+	return "download_kaytu_agent_report_job_deployments"
 }
 func (j *DownloadKaytuAgentReportJob) Description() string {
 	return "Downloading Kaytu Agent report (Kubernetes Deployments)"
