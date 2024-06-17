@@ -1,6 +1,7 @@
 package pods
 
 import (
+	"encoding/json"
 	"fmt"
 	"github.com/kaytu-io/kaytu/pkg/plugin/proto/src/golang"
 	"github.com/kaytu-io/plugin-kubernetes-internal/plugin/processor/shared"
@@ -213,6 +214,7 @@ func (i PodItem) ToOptimizationItem() *golang.ChartOptimizationItem {
 		status = "loading"
 	}
 
+	kaytuJson, _ := json.Marshal(i)
 	oi := &golang.ChartOptimizationItem{
 		OverviewChartRow: &golang.ChartRow{
 			RowId: i.GetID(),
@@ -225,6 +227,9 @@ func (i PodItem) ToOptimizationItem() *golang.ChartOptimizationItem {
 				},
 				"name": {
 					Value: i.Pod.Name,
+				},
+				"x_kaytu_raw_json": {
+					Value: string(kaytuJson),
 				},
 				"x_kaytu_status": {
 					Value: status,

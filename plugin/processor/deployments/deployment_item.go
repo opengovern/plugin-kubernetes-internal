@@ -1,6 +1,7 @@
 package deployments
 
 import (
+	"encoding/json"
 	"fmt"
 	"github.com/kaytu-io/kaytu/pkg/plugin/proto/src/golang"
 	"github.com/kaytu-io/plugin-kubernetes-internal/plugin/processor/shared"
@@ -313,6 +314,7 @@ func (i DeploymentItem) ToOptimizationItem() *golang.ChartOptimizationItem {
 		status = "loading"
 	}
 
+	kaytuJson, _ := json.Marshal(i)
 	oi := &golang.ChartOptimizationItem{
 		OverviewChartRow: &golang.ChartRow{
 			RowId: i.GetID(),
@@ -331,6 +333,9 @@ func (i DeploymentItem) ToOptimizationItem() *golang.ChartOptimizationItem {
 				},
 				"x_kaytu_loading": {
 					Value: strconv.FormatBool(i.OptimizationLoading),
+				},
+				"x_kaytu_raw_json": {
+					Value: string(kaytuJson),
 				},
 				"pod_count": {
 					Value:     strconv.Itoa(len(i.Pods)),

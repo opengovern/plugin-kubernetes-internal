@@ -27,6 +27,7 @@ type Processor struct {
 	lazyloadCounter         *sdk.SafeCounter
 	configuration           *kaytu.Configuration
 	client                  golang2.OptimizationClient
+	kaytuClient             *kaytuAgent.KaytuAgent
 	namespace               *string
 	observabilityDays       int
 
@@ -46,13 +47,18 @@ func NewProcessor(ctx context.Context, identification map[string]string, kuberne
 		lazyloadCounter:         &sdk.SafeCounter{},
 		configuration:           configuration,
 		client:                  client,
+		kaytuClient:             kaytuClient,
 		namespace:               namespace,
 		observabilityDays:       observabilityDays,
 
 		summary:      map[string]DaemonsetSummary{},
 		summaryMutex: sync.RWMutex{},
 	}
-	jobQueue.Push(NewListAllNamespacesJob(ctx, r))
+	if kaytuClient.IsEnabled() {
+		jobQueue.Push(NewDownloadKaytuAgentReportJob(ctx, r))
+	} else {
+		jobQueue.Push(NewListAllNamespacesJob(ctx, r))
+	}
 	return r
 }
 
