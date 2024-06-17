@@ -314,7 +314,7 @@ func (p *KubernetesPlugin) StartProcess(command string, flags map[string]string,
 			return err
 		}
 	}
-	kaytuAgentCfg, err := kaytuAgent.GetConfig(agentAddress, kubeClient)
+	kaytuAgentCfg, err := kaytuAgent.GetConfig(agentAddress, agentDisabled, kubeClient)
 	if err != nil {
 		return err
 	}
