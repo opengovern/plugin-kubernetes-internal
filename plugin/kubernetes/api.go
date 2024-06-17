@@ -22,7 +22,6 @@ type Kubernetes struct {
 	restClientCfg *restclient.Config
 	kubeCfg       *api.Config
 	clientset     *kubernetes.Clientset
-	stopChan      chan struct{}
 }
 
 func NewKubernetes(cfg *restclient.Config, kubeCfg *api.Config) (*Kubernetes, error) {
@@ -35,6 +34,15 @@ func NewKubernetes(cfg *restclient.Config, kubeCfg *api.Config) (*Kubernetes, er
 
 func (s *Kubernetes) Identify() map[string]string {
 	result := make(map[string]string)
+
+	if s.restClientCfg != nil {
+		result["cluster_server"] = utils.HashString(s.restClientCfg.Host)
+	}
+
+	if s.kubeCfg == nil {
+		return result
+	}
+
 	currentContext := s.kubeCfg.Contexts[s.kubeCfg.CurrentContext]
 	if currentContext == nil {
 		return result
@@ -272,7 +280,9 @@ func (s *Kubernetes) ListJobPods(ctx context.Context, job batchv1.Job) ([]corev1
 	return pods, nil
 }
 
-func (s *Kubernetes) DiscoverKaytuAgent(ctx context.Context, reconnectMutex *sync.Mutex) (chan struct{}, error) {
+func (s *Kubernetes) DiscoverAndPortForwardKaytuAgent(ctx context.Context, reconnectMutex *sync.Mutex) (chan struct{}, error) {
+	stopChan := make(chan struct{}, 1)
+
 	svc, err := s.findKaytuService(ctx)
 	if err != nil {
 		return nil, err
@@ -281,12 +291,12 @@ func (s *Kubernetes) DiscoverKaytuAgent(ctx context.Context, reconnectMutex *syn
 		return nil, errors.New("kaytu not found")
 	}
 
-	err = s.portForward(ctx, svc.Namespace, svc.Name, []string{"8001:8001"}, reconnectMutex)
+	err = s.portForward(ctx, svc.Namespace, svc.Name, []string{"8001:8001"}, reconnectMutex, stopChan)
 	if err != nil {
 		return nil, err
 	}
 
-	return s.stopChan, nil
+	return stopChan, nil
 }
 
 func (s *Kubernetes) findKaytuService(ctx context.Context) (*corev1.Service, error) {

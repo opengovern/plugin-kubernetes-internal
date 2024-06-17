@@ -23,12 +23,12 @@ func GetConfig(address *string, client *kaytuKubernetes.Kubernetes) (*Config, er
 	}
 
 	if cfg.Address == "" {
-		_, err := client.DiscoverKaytuAgent(context.Background(), &cfg.reconnectWait)
+		_, err := client.DiscoverAndPortForwardKaytuAgent(context.Background(), &cfg.reconnectWait)
 		if err != nil {
 			return nil, err
 		}
 		time.Sleep(1 * time.Second)
-		cfg.Address = "http://localhost:8001"
+		cfg.Address = "localhost:8001"
 	}
 
 	return &cfg, nil
