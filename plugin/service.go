@@ -104,6 +104,12 @@ func (p *KubernetesPlugin) GetConfig() golang.RegisterConfig {
 			Description: "Agent address",
 			Required:    false,
 		},
+		{
+			Name:        "agent-disabled",
+			Default:     "false",
+			Description: "Disable agent",
+			Required:    false,
+		},
 	}
 	return golang.RegisterConfig{
 		Name:     "kaytu-io/plugin-kubernetes",
@@ -300,17 +306,25 @@ func (p *KubernetesPlugin) StartProcess(command string, flags map[string]string,
 	}
 
 	agentAddress := getFlagOrNil(flags, "agent-address")
+	agentDisabledStr := getFlagOrNil(flags, "agent-disabled")
+	agentDisabled := false
+	if agentDisabledStr != nil {
+		agentDisabled, err = strconv.ParseBool(*agentDisabledStr)
+		if err != nil {
+			return err
+		}
+	}
 	kaytuAgentCfg, err := kaytuAgent.GetConfig(agentAddress, kubeClient)
 	if err != nil {
 		return err
 	}
 
-	kaytuClient, err := kaytuAgent.NewKaytuAgent(kaytuAgentCfg)
+	kaytuClient, err := kaytuAgent.NewKaytuAgent(kaytuAgentCfg, agentDisabled)
 	if err != nil {
 		return err
 	}
 
-	if kaytuClient.IsDiscovered() {
+	if kaytuClient.IsEnabled() {
 		err = kaytuClient.Ping(ctx)
 		if err != nil {
 			return fmt.Errorf("failed to connect to kaytu agent on %s due to %v", kaytuAgentCfg.Address, err)

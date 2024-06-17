@@ -13,10 +13,10 @@ type KaytuAgent struct {
 	client     kaytuAgent.AgentClient
 }
 
-func NewKaytuAgent(cfg *Config) (*KaytuAgent, error) {
+func NewKaytuAgent(cfg *Config, agentDisabled bool) (*KaytuAgent, error) {
 	agent := KaytuAgent{
 		cfg:        cfg,
-		discovered: cfg.Address != "",
+		discovered: cfg.Address != "" && !agentDisabled,
 	}
 	if agent.discovered {
 		conn, err := grpc.NewClient(cfg.Address, grpc.WithTransportCredentials(insecure.NewCredentials()))
@@ -44,6 +44,6 @@ func (a KaytuAgent) DownloadReport(cmd string) ([]byte, error) {
 	return resp.Report, nil
 }
 
-func (a KaytuAgent) IsDiscovered() bool {
+func (a KaytuAgent) IsEnabled() bool {
 	return a.discovered
 }
