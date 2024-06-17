@@ -56,7 +56,7 @@ func NewProcessor(ctx context.Context, identification map[string]string, kuberne
 		summaryMutex: sync.RWMutex{},
 	}
 
-	if kaytuClient.IsDiscovered() {
+	if kaytuClient.IsEnabled() {
 		jobQueue.Push(NewDownloadKaytuAgentReportJob(ctx, r))
 	} else {
 		jobQueue.Push(NewListAllNamespacesJob(ctx, r))
