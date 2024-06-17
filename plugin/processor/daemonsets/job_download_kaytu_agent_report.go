@@ -1,4 +1,4 @@
-package pods
+package daemonsets
 
 import (
 	"context"
@@ -22,10 +22,10 @@ func (j *DownloadKaytuAgentReportJob) Id() string {
 	return "download_kaytu_agent_report_job"
 }
 func (j *DownloadKaytuAgentReportJob) Description() string {
-	return "Downloading Kaytu Agent report (Kubernetes Pods)"
+	return "Downloading Kaytu Agent report (Kubernetes DaemonSets)"
 }
 func (j *DownloadKaytuAgentReportJob) Run() error {
-	report, err := j.processor.kaytuClient.DownloadReport("kubernetes-pods")
+	report, err := j.processor.kaytuClient.DownloadReport("kubernetes-daemonsets")
 	if err != nil {
 		return err
 	}
@@ -36,7 +36,7 @@ func (j *DownloadKaytuAgentReportJob) Run() error {
 	}
 
 	for _, i := range items {
-		var item PodItem
+		var item DaemonsetItem
 		err = json.Unmarshal([]byte(i.Properties["x_kaytu_raw_json"]), &item)
 		if err != nil {
 			return err
