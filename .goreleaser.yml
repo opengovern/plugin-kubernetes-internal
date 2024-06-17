@@ -20,6 +20,7 @@ builds:
       - arm64
     env:
       - CGO_ENABLED=0
+      - GOPRIVATE="github.com/kaytu-io"
     main: ./main.go
   - id: darwin
     binary: plugin
@@ -32,6 +33,7 @@ builds:
       - arm64
     env:
       - CGO_ENABLED=0
+      - GOPRIVATE="github.com/kaytu-io"
     main: ./main.go
   - id: windows
     binary: plugin
@@ -43,6 +45,7 @@ builds:
       - amd64
     env:
       - CGO_ENABLED=0
+      - GOPRIVATE="github.com/kaytu-io"
     main: ./main.go
 archives:
   - id: binary
