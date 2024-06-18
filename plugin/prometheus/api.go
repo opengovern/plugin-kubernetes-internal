@@ -287,6 +287,9 @@ func (p *Prometheus) GetCpuMetricsForPod(ctx context.Context, namespace, podName
 	p.cfg.reconnectWait.Lock()
 	p.cfg.reconnectWait.Unlock()
 
+	ctx, cancel := context.WithTimeout(ctx, time.Minute)
+	defer cancel()
+
 	step := time.Minute
 	query := fmt.Sprintf(`sum(rate(container_cpu_usage_seconds_total{namespace="%s", pod="%s", container!=""}[1m])) by (container)`, namespace, podName)
 	datapoints, err := p.parseMultiDimensionalQueryRange(ctx, query,
@@ -313,6 +316,9 @@ func (p *Prometheus) GetCpuMetricsForPod(ctx context.Context, namespace, podName
 func (p *Prometheus) GetCpuMetricsForPodOwnerPrefix(ctx context.Context, namespace, podOwnerPrefix string, observabilityDays int, suffixMode PodSuffixMode) (map[string]map[string][]PromDatapoint, error) {
 	p.cfg.reconnectWait.Lock()
 	p.cfg.reconnectWait.Unlock()
+
+	ctx, cancel := context.WithTimeout(ctx, time.Minute)
+	defer cancel()
 
 	step := time.Minute
 	query := fmt.Sprintf(`sum(rate(container_cpu_usage_seconds_total{namespace="%s", pod=~"%s-%s$", container!=""}[1m])) by (pod, container)`, namespace, podOwnerPrefix, suffixMode.Regex())
@@ -346,6 +352,9 @@ func (p *Prometheus) GetMemoryMetricsForPod(ctx context.Context, namespace, podN
 	p.cfg.reconnectWait.Lock()
 	p.cfg.reconnectWait.Unlock()
 
+	ctx, cancel := context.WithTimeout(ctx, time.Minute)
+	defer cancel()
+
 	step := time.Minute
 	query := fmt.Sprintf(`max(container_memory_working_set_bytes{namespace="%s", pod="%s", container!=""}) by (container)`, namespace, podName)
 	datapoints, err := p.parseMultiDimensionalQueryRange(ctx, query,
@@ -372,6 +381,9 @@ func (p *Prometheus) GetMemoryMetricsForPod(ctx context.Context, namespace, podN
 func (p *Prometheus) GetMemoryMetricsForPodOwnerPrefix(ctx context.Context, namespace, podPrefix string, observabilityDays int, suffixMode PodSuffixMode) (map[string]map[string][]PromDatapoint, error) {
 	p.cfg.reconnectWait.Lock()
 	p.cfg.reconnectWait.Unlock()
+
+	ctx, cancel := context.WithTimeout(ctx, time.Minute)
+	defer cancel()
 
 	step := time.Minute
 	query := fmt.Sprintf(`max(container_memory_working_set_bytes{namespace="%s", pod=~"%s-%s$", container!=""}) by (pod, container)`, namespace, podPrefix, suffixMode.Regex())
@@ -405,6 +417,9 @@ func (p *Prometheus) GetCpuThrottlingMetricsForPod(ctx context.Context, namespac
 	p.cfg.reconnectWait.Lock()
 	p.cfg.reconnectWait.Unlock()
 
+	ctx, cancel := context.WithTimeout(ctx, time.Minute)
+	defer cancel()
+
 	step := time.Minute
 	query := fmt.Sprintf(`sum(increase(container_cpu_cfs_throttled_periods_total{namespace="%[1]s", pod="%[2]s", container!=""}[1m])) by (container) / sum(increase(container_cpu_cfs_periods_total{namespace="%[1]s", pod="%[2]s", container!=""}[1m])) by (container)`, namespace, podName)
 	datapoints, err := p.parseMultiDimensionalQueryRange(ctx, query,
@@ -431,6 +446,9 @@ func (p *Prometheus) GetCpuThrottlingMetricsForPod(ctx context.Context, namespac
 func (p *Prometheus) GetCpuThrottlingMetricsForPodOwnerPrefix(ctx context.Context, namespace, podPrefix string, observabilityDays int, suffixMode PodSuffixMode) (map[string]map[string][]PromDatapoint, error) {
 	p.cfg.reconnectWait.Lock()
 	p.cfg.reconnectWait.Unlock()
+
+	ctx, cancel := context.WithTimeout(ctx, time.Minute)
+	defer cancel()
 
 	step := time.Minute
 	query := fmt.Sprintf(`sum(increase(container_cpu_cfs_throttled_periods_total{namespace="%[1]s", pod=~"%[2]s-%[3]s$", container!=""}[1m])) by (pod, container) / sum(increase(container_cpu_cfs_periods_total{namespace="%[1]s", pod=~"%[2]s-%[3]s", container!=""}[1m])) by (pod, container)`, namespace, podPrefix, suffixMode.Regex())
