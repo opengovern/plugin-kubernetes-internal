@@ -10,6 +10,7 @@ import (
 	"github.com/kaytu-io/plugin-kubernetes-internal/plugin/version"
 	"google.golang.org/grpc/metadata"
 	"google.golang.org/protobuf/types/known/wrapperspb"
+	"time"
 )
 
 type OptimizeDeploymentJob struct {
@@ -103,6 +104,8 @@ func (j *OptimizeDeploymentJob) Run() error {
 	}
 
 	grpcCtx := metadata.NewOutgoingContext(j.ctx, metadata.Pairs("workspace-name", "kaytu"))
+	grpcCtx, cancel := context.WithTimeout(grpcCtx, time.Minute)
+	defer cancel()
 	resp, err := j.processor.client.KubernetesDeploymentOptimization(grpcCtx, &golang.KubernetesDeploymentOptimizationRequest{
 		RequestId:      wrapperspb.String(reqID),
 		CliVersion:     wrapperspb.String(version.VERSION),
