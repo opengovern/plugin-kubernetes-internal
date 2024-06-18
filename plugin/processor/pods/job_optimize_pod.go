@@ -10,7 +10,6 @@ import (
 	"github.com/kaytu-io/plugin-kubernetes-internal/plugin/version"
 	"google.golang.org/grpc/metadata"
 	"google.golang.org/protobuf/types/known/wrapperspb"
-	"log"
 	"time"
 )
 
@@ -35,7 +34,6 @@ func (j *OptimizePodJob) Description() string {
 	return fmt.Sprintf("Optimizing pod %s", j.itemId)
 }
 func (j *OptimizePodJob) Run() error {
-	log.Printf("-------- job %s - starting", j.Id())
 	item, ok := j.processor.items.Get(j.itemId)
 	if !ok {
 		return errors.New("pod not found in items list")
@@ -51,7 +49,6 @@ func (j *OptimizePodJob) Run() error {
 		Name: item.Pod.Name,
 	}
 
-	log.Printf("-------- job %s - populating containers", j.Id())
 	for _, container := range item.Pod.Spec.Containers {
 		pod.Containers = append(pod.Containers, &golang.KubernetesContainer{
 			Name:          container.Name,
@@ -62,7 +59,6 @@ func (j *OptimizePodJob) Run() error {
 		})
 	}
 
-	log.Printf("-------- job %s - populating preferences", j.Id())
 	preferencesMap := map[string]*wrapperspb.StringValue{}
 	for k, v := range preferences.Export(item.Preferences) {
 		preferencesMap[k] = nil
@@ -99,7 +95,6 @@ func (j *OptimizePodJob) Run() error {
 		}
 	}
 
-	log.Printf("-------- job %s - sending request", j.Id())
 	grpcCtx := metadata.NewOutgoingContext(j.ctx, metadata.Pairs("workspace-name", "kaytu"))
 	grpcCtx, cancel := context.WithTimeout(grpcCtx, time.Minute)
 	defer cancel()
@@ -113,11 +108,9 @@ func (j *OptimizePodJob) Run() error {
 		Metrics:        metrics,
 		Loading:        false,
 	})
-	log.Printf("-------- job %s - request done", j.Id())
 	if err != nil {
 		return err
 	}
-	log.Printf("-------- job %s - response received with no error", j.Id())
 
 	item = PodItem{
 		Pod:                 item.Pod,
@@ -130,15 +123,9 @@ func (j *OptimizePodJob) Run() error {
 		Wastage:             resp,
 	}
 
-	log.Printf("-------- job %s - updating item", j.Id())
 	j.processor.items.Set(item.GetID(), item)
-
-	log.Printf("-------- job %s - publishing optimization item", j.Id())
 	j.processor.publishOptimizationItem(item.ToOptimizationItem())
-
-	log.Printf("-------- job %s - updating summary", j.Id())
 	j.processor.UpdateSummary(item.GetID())
 
-	log.Printf("-------- job %s - done", j.Id())
 	return nil
 }
