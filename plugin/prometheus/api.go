@@ -2,6 +2,7 @@ package prometheus
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	promapi "github.com/prometheus/client_golang/api"
 	prometheus "github.com/prometheus/client_golang/api/prometheus/v1"
@@ -28,6 +29,17 @@ const (
 	PromDimensionTypeDatapoint PromDimensionType = iota
 	PromDimensionTypeGroupedDimension
 )
+
+func (p PromDimensionType) String() string {
+	switch p {
+	case PromDimensionTypeDatapoint:
+		return "datapoint"
+	case PromDimensionTypeGroupedDimension:
+		return "grouped_dimension"
+	default:
+		return fmt.Sprintf("unknown dimension type: %d", p)
+	}
+}
 
 type PromDatapoint struct {
 	Timestamp time.Time
@@ -171,22 +183,116 @@ func parseMultiDimensionalGroupedPrometheusResponse(value model.Value, groupBys 
 	return PromGroupedDimension{Values: result}, nil
 }
 
+func (p *Prometheus) mergeMultiDimensionalGroupedPrometheusResponse(dim1, dim2 PromDimension, groupBys ...model.LabelName) (PromDimension, error) {
+	var err error
+	if len(groupBys) == 0 {
+		if dim1.promDimensionType() != PromDimensionTypeDatapoint || dim2.promDimensionType() != PromDimensionTypeDatapoint {
+			return nil, fmt.Errorf("unexpected dimension type: %d", dim1.promDimensionType())
+		}
+		datapoints1 := dim1.(PromDatapoints)
+		datapoints2 := dim2.(PromDatapoints)
+		merged := make([]PromDatapoint, 0, len(datapoints1.Values)+len(datapoints2.Values))
+		merged = append(merged, datapoints1.Values...)
+		merged = append(merged, datapoints2.Values...)
+		sort.Slice(merged, func(i, j int) bool {
+			return merged[i].Timestamp.Before(merged[j].Timestamp)
+		})
+		return PromDatapoints{Values: merged}, nil
+	}
+
+	if dim1.promDimensionType() != PromDimensionTypeGroupedDimension || dim2.promDimensionType() != PromDimensionTypeGroupedDimension {
+		return nil, fmt.Errorf("unexpected dimension type: d1: %s, d2: %s, expected: %s", dim1.promDimensionType(), dim2.promDimensionType(), PromDimensionTypeGroupedDimension)
+	}
+
+	groupedDim1 := dim1.(PromGroupedDimension)
+	groupedDim2 := dim2.(PromGroupedDimension)
+
+	merged := PromGroupedDimension{Values: make(map[string]PromDimension)}
+
+	for key, dim1Value := range groupedDim1.Values {
+		if dim2Value, ok := groupedDim2.Values[key]; ok {
+			merged.Values[key], err = p.mergeMultiDimensionalGroupedPrometheusResponse(dim1Value, dim2Value, groupBys[1:]...)
+			if err != nil {
+				return nil, err
+			}
+		} else {
+			merged.Values[key] = dim1Value
+		}
+	}
+
+	for key, dim2Value := range groupedDim2.Values {
+		if _, ok := groupedDim1.Values[key]; !ok {
+			merged.Values[key] = dim2Value
+		}
+	}
+
+	return merged, nil
+}
+
+func (p *Prometheus) parseMultiDimensionalQueryRange(ctx context.Context, query string, rangeStart, rangeEnd time.Time, step time.Duration, groupBys ...model.LabelName) (PromDimension, error) {
+	p.cfg.reconnectWait.Lock()
+	p.cfg.reconnectWait.Unlock()
+
+	if rangeEnd.Sub(rangeStart) < time.Hour*24 {
+		value, _, err := p.api.QueryRange(ctx, query, prometheus.Range{
+			Start: rangeStart,
+			End:   rangeEnd,
+			Step:  step,
+		})
+		if err != nil {
+			return nil, err
+		}
+		return parseMultiDimensionalGroupedPrometheusResponse(value, groupBys...)
+	}
+
+	var result *PromDimension
+	for rangeStart.Before(rangeEnd) {
+		rangeEndStep := rangeStart.Add(time.Hour * 24)
+		if rangeEndStep.After(rangeEnd) {
+			rangeEndStep = rangeEnd
+		}
+		value, _, err := p.api.QueryRange(ctx, query, prometheus.Range{
+			Start: rangeStart,
+			End:   rangeEndStep,
+			Step:  step,
+		})
+		if err != nil {
+			return nil, err
+		}
+
+		dim, err := parseMultiDimensionalGroupedPrometheusResponse(value, groupBys...)
+		if err != nil {
+			return nil, err
+		}
+
+		if result == nil {
+			result = &dim
+		} else {
+			*result, err = p.mergeMultiDimensionalGroupedPrometheusResponse(*result, dim, groupBys...)
+			if err != nil {
+				return nil, err
+			}
+		}
+
+		rangeStart = rangeEndStep
+	}
+
+	if result == nil {
+		return nil, errors.New("no data found")
+	}
+	return *result, nil
+}
+
 func (p *Prometheus) GetCpuMetricsForPod(ctx context.Context, namespace, podName string, observabilityDays int) (map[string][]PromDatapoint, error) {
 	p.cfg.reconnectWait.Lock()
 	p.cfg.reconnectWait.Unlock()
 
 	step := time.Minute
 	query := fmt.Sprintf(`sum(rate(container_cpu_usage_seconds_total{namespace="%s", pod="%s", container!=""}[1m])) by (container)`, namespace, podName)
-	value, _, err := p.api.QueryRange(ctx, query, prometheus.Range{
-		Start: time.Now().Add(time.Duration(observabilityDays) * -24 * time.Hour).Truncate(step),
-		End:   time.Now().Truncate(step),
-		Step:  step,
-	})
-	if err != nil {
-		return nil, err
-	}
-
-	datapoints, err := parseMultiDimensionalGroupedPrometheusResponse(value, "container")
+	datapoints, err := p.parseMultiDimensionalQueryRange(ctx, query,
+		time.Now().Add(time.Duration(observabilityDays)*-24*time.Hour).Truncate(step),
+		time.Now().Truncate(step),
+		step, "container")
 	if err != nil {
 		return nil, err
 	}
@@ -210,16 +316,10 @@ func (p *Prometheus) GetCpuMetricsForPodOwnerPrefix(ctx context.Context, namespa
 
 	step := time.Minute
 	query := fmt.Sprintf(`sum(rate(container_cpu_usage_seconds_total{namespace="%s", pod=~"%s-%s$", container!=""}[1m])) by (pod, container)`, namespace, podOwnerPrefix, suffixMode.Regex())
-	value, _, err := p.api.QueryRange(ctx, query, prometheus.Range{
-		Start: time.Now().Add(time.Duration(observabilityDays) * -24 * time.Hour).Truncate(step),
-		End:   time.Now().Truncate(step),
-		Step:  step,
-	})
-	if err != nil {
-		return nil, err
-	}
-
-	promDims, err := parseMultiDimensionalGroupedPrometheusResponse(value, "pod", "container")
+	promDims, err := p.parseMultiDimensionalQueryRange(ctx, query,
+		time.Now().Add(time.Duration(observabilityDays)*-24*time.Hour).Truncate(step),
+		time.Now().Truncate(step),
+		step, "pod", "container")
 	if err != nil {
 		return nil, err
 	}
@@ -248,16 +348,10 @@ func (p *Prometheus) GetMemoryMetricsForPod(ctx context.Context, namespace, podN
 
 	step := time.Minute
 	query := fmt.Sprintf(`max(container_memory_working_set_bytes{namespace="%s", pod="%s", container!=""}) by (container)`, namespace, podName)
-	value, _, err := p.api.QueryRange(ctx, query, prometheus.Range{
-		Start: time.Now().Add(time.Duration(observabilityDays) * -24 * time.Hour).Truncate(step),
-		End:   time.Now().Truncate(step),
-		Step:  step,
-	})
-	if err != nil {
-		return nil, err
-	}
-
-	datapoints, err := parseMultiDimensionalGroupedPrometheusResponse(value, "container")
+	datapoints, err := p.parseMultiDimensionalQueryRange(ctx, query,
+		time.Now().Add(time.Duration(observabilityDays)*-24*time.Hour).Truncate(step),
+		time.Now().Truncate(step),
+		step, "container")
 	if err != nil {
 		return nil, err
 	}
@@ -281,16 +375,10 @@ func (p *Prometheus) GetMemoryMetricsForPodOwnerPrefix(ctx context.Context, name
 
 	step := time.Minute
 	query := fmt.Sprintf(`max(container_memory_working_set_bytes{namespace="%s", pod=~"%s-%s$", container!=""}) by (pod, container)`, namespace, podPrefix, suffixMode.Regex())
-	value, _, err := p.api.QueryRange(ctx, query, prometheus.Range{
-		Start: time.Now().Add(time.Duration(observabilityDays) * -24 * time.Hour).Truncate(step),
-		End:   time.Now().Truncate(step),
-		Step:  step,
-	})
-	if err != nil {
-		return nil, err
-	}
-
-	promDims, err := parseMultiDimensionalGroupedPrometheusResponse(value, "pod", "container")
+	promDims, err := p.parseMultiDimensionalQueryRange(ctx, query,
+		time.Now().Add(time.Duration(observabilityDays)*-24*time.Hour).Truncate(step),
+		time.Now().Truncate(step),
+		step, "pod", "container")
 	if err != nil {
 		return nil, err
 	}
@@ -319,16 +407,10 @@ func (p *Prometheus) GetCpuThrottlingMetricsForPod(ctx context.Context, namespac
 
 	step := time.Minute
 	query := fmt.Sprintf(`sum(increase(container_cpu_cfs_throttled_periods_total{namespace="%[1]s", pod="%[2]s", container!=""}[1m])) by (container) / sum(increase(container_cpu_cfs_periods_total{namespace="%[1]s", pod="%[2]s", container!=""}[1m])) by (container)`, namespace, podName)
-	value, _, err := p.api.QueryRange(ctx, query, prometheus.Range{
-		Start: time.Now().Add(time.Duration(observabilityDays) * -24 * time.Hour).Truncate(step),
-		End:   time.Now().Truncate(step),
-		Step:  step,
-	})
-	if err != nil {
-		return nil, err
-	}
-
-	datapoints, err := parseMultiDimensionalGroupedPrometheusResponse(value, "container")
+	datapoints, err := p.parseMultiDimensionalQueryRange(ctx, query,
+		time.Now().Add(time.Duration(observabilityDays)*-24*time.Hour).Truncate(step),
+		time.Now().Truncate(step),
+		step, "container")
 	if err != nil {
 		return nil, err
 	}
@@ -352,16 +434,10 @@ func (p *Prometheus) GetCpuThrottlingMetricsForPodOwnerPrefix(ctx context.Contex
 
 	step := time.Minute
 	query := fmt.Sprintf(`sum(increase(container_cpu_cfs_throttled_periods_total{namespace="%[1]s", pod=~"%[2]s-%[3]s$", container!=""}[1m])) by (pod, container) / sum(increase(container_cpu_cfs_periods_total{namespace="%[1]s", pod=~"%[2]s-%[3]s", container!=""}[1m])) by (pod, container)`, namespace, podPrefix, suffixMode.Regex())
-	value, _, err := p.api.QueryRange(ctx, query, prometheus.Range{
-		Start: time.Now().Add(time.Duration(observabilityDays) * -24 * time.Hour).Truncate(step),
-		End:   time.Now().Truncate(step),
-		Step:  step,
-	})
-	if err != nil {
-		return nil, err
-	}
-
-	promDims, err := parseMultiDimensionalGroupedPrometheusResponse(value, "pod", "container")
+	promDims, err := p.parseMultiDimensionalQueryRange(ctx, query,
+		time.Now().Add(time.Duration(observabilityDays)*-24*time.Hour).Truncate(step),
+		time.Now().Truncate(step),
+		step, "pod", "container")
 	if err != nil {
 		return nil, err
 	}
