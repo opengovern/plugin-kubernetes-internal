@@ -14,6 +14,7 @@ import (
 	util "github.com/kaytu-io/plugin-kubernetes-internal/utils"
 	corev1 "k8s.io/api/core/v1"
 	"sync"
+	"sync/atomic"
 )
 
 type Processor struct {
@@ -24,7 +25,7 @@ type Processor struct {
 	publishOptimizationItem func(item *golang.ChartOptimizationItem)
 	publishResultSummary    func(summary *golang.ResultSummary)
 	jobQueue                *sdk.JobQueue
-	lazyloadCounter         *sdk.SafeCounter
+	lazyloadCounter         atomic.Uint32
 	configuration           *kaytu.Configuration
 	client                  golang2.OptimizationClient
 	kaytuClient             *kaytuAgent.KaytuAgent
@@ -44,7 +45,7 @@ func NewProcessor(ctx context.Context, identification map[string]string, kuberne
 		publishOptimizationItem: publishOptimizationItem,
 		publishResultSummary:    publishResultSummary,
 		jobQueue:                jobQueue,
-		lazyloadCounter:         &sdk.SafeCounter{},
+		lazyloadCounter:         atomic.Uint32{},
 		configuration:           configuration,
 		client:                  client,
 		kaytuClient:             kaytuClient,

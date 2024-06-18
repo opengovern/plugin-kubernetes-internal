@@ -48,8 +48,8 @@ func (j *ListPodsForNamespaceJob) Run() error {
 			item.SkipReason = "Pod is not running"
 		}
 
-		j.processor.lazyloadCounter.Increment()
-		if j.processor.lazyloadCounter.Get() > j.processor.configuration.KubernetesLazyLoad {
+		j.processor.lazyloadCounter.Add(1)
+		if j.processor.lazyloadCounter.Load() > uint32(j.processor.configuration.KubernetesLazyLoad) {
 			item.LazyLoadingEnabled = true
 			item.OptimizationLoading = false
 		}
