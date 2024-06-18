@@ -22,6 +22,7 @@ import (
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials"
 	"google.golang.org/grpc/credentials/oauth"
+	"log"
 	"math"
 	"strconv"
 	"strings"
@@ -332,29 +333,49 @@ func (p *KubernetesPlugin) StartProcess(command string, flags map[string]string,
 	}
 
 	publishOptimizationItem := func(item *golang.ChartOptimizationItem) {
-		p.stream.Send(&golang.PluginMessage{
+		err := p.stream.Send(&golang.PluginMessage{
 			PluginMessage: &golang.PluginMessage_Coi{
 				Coi: item,
 			},
 		})
+		if err != nil {
+			log.Printf("failed to send COI: %v", err)
+		}
 	}
 
 	publishResultsReady := func(b bool) {
-		p.stream.Send(&golang.PluginMessage{
+		err := p.stream.Send(&golang.PluginMessage{
 			PluginMessage: &golang.PluginMessage_Ready{
 				Ready: &golang.ResultsReady{
 					Ready: b,
 				},
 			},
 		})
+		if err != nil {
+			log.Printf("failed to send results ready: %v", err)
+		}
 	}
 
 	publishResultSummary := func(summary *golang.ResultSummary) {
-		p.stream.Send(&golang.PluginMessage{
+		err := p.stream.Send(&golang.PluginMessage{
 			PluginMessage: &golang.PluginMessage_Summary{
 				Summary: summary,
 			},
 		})
+		if err != nil {
+			log.Printf("failed to send summary: %v", err)
+		}
+	}
+
+	publishNonInteractiveExport := func(ex *golang.NonInteractiveExport) {
+		err := p.stream.Send(&golang.PluginMessage{
+			PluginMessage: &golang.PluginMessage_NonInteractive{
+				NonInteractive: ex,
+			},
+		})
+		if err != nil {
+			log.Printf("failed to send non interactive export: %v", err)
+		}
 	}
 
 	publishResultsReady(false)
@@ -598,13 +619,6 @@ func (p *KubernetesPlugin) StartProcess(command string, flags map[string]string,
 	}
 
 	jobQueue.SetOnFinish(func() {
-		publishNonInteractiveExport := func(ex *golang.NonInteractiveExport) {
-			p.stream.Send(&golang.PluginMessage{
-				PluginMessage: &golang.PluginMessage_NonInteractive{
-					NonInteractive: ex,
-				},
-			})
-		}
 		publishNonInteractiveExport(p.processor.ExportNonInteractive())
 		publishResultsReady(true)
 	})
