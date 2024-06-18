@@ -81,8 +81,8 @@ github.com/jpillora/backoff v1.0.0 h1:uvFg412JmmHBHw7iwprIxkPMI+sGQ4kzOWsMeHnm2E
 github.com/jpillora/backoff v1.0.0/go.mod h1:J/6gKK9jxlEcS3zixgDgUAsiuZ7yrSoa/FX5e0EB2j4=
 github.com/json-iterator/go v1.1.12 h1:PV8peI4a0ysnczrg+LtxykD8LfKY9ML6u2jnxaEnrnM=
 github.com/json-iterator/go v1.1.12/go.mod h1:e30LSqwooZae/UwlEbR2852Gd8hjQvJoHmT4TnhNGBo=
-github.com/kaytu-io/kaytu v0.13.0-rc.0.0.20240618103054-e0ba37f6e027 h1:B/xZm5Ye37vYJIBnZPDYMIIOAvXf0XO0baSVwxu9dP8=
-github.com/kaytu-io/kaytu v0.13.0-rc.0.0.20240618103054-e0ba37f6e027/go.mod h1:csDLaCgTnp/D9SZuo55KjOzp/BYfkhkeSkGuEiCljtc=
+github.com/kaytu-io/kaytu v0.12.2 h1:fAd9uV95FiAYIC8flUSCrEwuVa/KhT30VlL3ODUaxbY=
+github.com/kaytu-io/kaytu v0.12.2/go.mod h1:csDLaCgTnp/D9SZuo55KjOzp/BYfkhkeSkGuEiCljtc=
 github.com/kaytu-io/kaytu-agent v0.0.0-20240615090533-caf550626941 h1:m6duwoHIaQQRz4xjNMa4RX3AcEaCoe5CU0ZyS4BOY3Y=
 github.com/kaytu-io/kaytu-agent v0.0.0-20240615090533-caf550626941/go.mod h1:BE7S6c0jyBxGN6qaaRJ4gFBqP8gGM296SdrdsZGbqZo=
 github.com/kisielk/errcheck v1.5.0/go.mod h1:pFxgyoBC7bSaBwPgfKdkLd5X25qrDl4LWUI2bnpBCr8=
