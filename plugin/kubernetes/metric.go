@@ -10,6 +10,7 @@ import (
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/client-go/tools/portforward"
 	"k8s.io/client-go/transport/spdy"
+	"log"
 	"net/http"
 	"net/url"
 	"strings"
@@ -165,14 +166,14 @@ func (s *Kubernetes) portForward(ctx context.Context, namespace, serviceName str
 	}
 
 	serverURL := url.URL{Scheme: "https", Path: path, Host: hostIP.Host}
-	fmt.Printf("%s - connecting\n", serverURL.Path)
+	log.Printf("%s - connecting\n", serverURL.Path)
 	s.reconnect(upgrader, ports, roundTripper, serverURL, mutex, stopChan)
 
 	return nil
 }
 
 func (s *Kubernetes) reconnect(upgrader spdy.Upgrader, ports []string, roundTripper http.RoundTripper, serverURL url.URL, mutex *sync.Mutex, stopChan chan struct{}) {
-	fmt.Printf("%s - reconnect\n", serverURL.Path)
+	log.Printf("%s - reconnect\n", serverURL.Path)
 	readyChan := make(chan struct{}, 1)
 
 	mutex.Lock()
@@ -180,7 +181,7 @@ func (s *Kubernetes) reconnect(upgrader spdy.Upgrader, ports []string, roundTrip
 	go func() {
 		defer func() {
 			if r := recover(); r != nil {
-				fmt.Printf("%s - %s\n", serverURL.Path, r)
+				log.Printf("%s - %s\n", serverURL.Path, r)
 			}
 
 			s.reconnect(upgrader, ports, roundTripper, serverURL, mutex, stopChan)
@@ -193,13 +194,13 @@ func (s *Kubernetes) reconnect(upgrader spdy.Upgrader, ports []string, roundTrip
 
 		forwarder, err := portforward.New(dialer, ports, stopChan, readyChan, out, errOut)
 		if err != nil {
-			fmt.Printf("%s - %v\n", serverURL.Path, err)
+			log.Printf("%s - %v\n", serverURL.Path, err)
 			return
 		}
 
 		err = forwarder.ForwardPorts()
 		if err != nil {
-			fmt.Printf("%s - %v\n", serverURL.Path, err)
+			log.Printf("%s - %v\n", serverURL.Path, err)
 			return
 		}
 	}()
