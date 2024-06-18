@@ -13,7 +13,6 @@ import (
 	golang2 "github.com/kaytu-io/plugin-kubernetes-internal/plugin/proto/src/golang"
 	util "github.com/kaytu-io/plugin-kubernetes-internal/utils"
 	corev1 "k8s.io/api/core/v1"
-	"sync"
 	"sync/atomic"
 )
 
@@ -32,8 +31,7 @@ type Processor struct {
 	namespace               *string
 	observabilityDays       int
 
-	summary      map[string]StatefulsetSummary
-	summaryMutex sync.RWMutex
+	summary util.ConcurrentMap[string, StatefulsetSummary]
 }
 
 func NewProcessor(ctx context.Context, identification map[string]string, kubernetesProvider *kaytuKubernetes.Kubernetes, prometheusProvider *kaytuPrometheus.Prometheus, kaytuClient *kaytuAgent.KaytuAgent, publishOptimizationItem func(item *golang.ChartOptimizationItem), publishResultSummary func(summary *golang.ResultSummary), jobQueue *sdk.JobQueue, configuration *kaytu.Configuration, client golang2.OptimizationClient, namespace *string, observabilityDays int) *Processor {
@@ -52,8 +50,7 @@ func NewProcessor(ctx context.Context, identification map[string]string, kuberne
 		namespace:               namespace,
 		observabilityDays:       observabilityDays,
 
-		summary:      map[string]StatefulsetSummary{},
-		summaryMutex: sync.RWMutex{},
+		summary: util.NewMap[string, StatefulsetSummary](),
 	}
 	if kaytuClient.IsEnabled() {
 		jobQueue.Push(NewDownloadKaytuAgentReportJob(ctx, r))
@@ -94,8 +91,7 @@ func (m *Processor) ResultsSummary() *golang.ResultSummary {
 	summary := &golang.ResultSummary{}
 	var cpuRequestChanges, cpuLimitChanges, memoryRequestChanges, memoryLimitChanges float64
 	var totalCpuRequest, totalCpuLimit, totalMemoryRequest, totalMemoryLimit float64
-	m.summaryMutex.RLock()
-	for _, item := range m.summary {
+	m.summary.Range(func(key string, item StatefulsetSummary) bool {
 		cpuRequestChanges += item.CPURequestChange * float64(item.ReplicaCount)
 		cpuLimitChanges += item.CPULimitChange * float64(item.ReplicaCount)
 		memoryRequestChanges += item.MemoryRequestChange * float64(item.ReplicaCount)
@@ -105,8 +101,9 @@ func (m *Processor) ResultsSummary() *golang.ResultSummary {
 		totalCpuLimit += item.TotalCPULimit * float64(item.ReplicaCount)
 		totalMemoryRequest += item.TotalMemoryRequest * float64(item.ReplicaCount)
 		totalMemoryLimit += item.TotalMemoryLimit * float64(item.ReplicaCount)
-	}
-	m.summaryMutex.RUnlock()
+
+		return true
+	})
 	summary.Message = fmt.Sprintf("Overall changes: CPU request: %.2f of %.2f core, CPU limit: %.2f of %.2f core, Memory request: %s of %s, Memory limit: %s of %s", cpuRequestChanges, totalCpuRequest, cpuLimitChanges, totalCpuLimit, shared.SizeByte64(memoryRequestChanges), shared.SizeByte64(totalMemoryRequest), shared.SizeByte64(memoryLimitChanges), shared.SizeByte64(totalMemoryLimit))
 	return summary
 }
@@ -146,7 +143,7 @@ func (m *Processor) UpdateSummary(itemId string) {
 			}
 		}
 
-		ds := StatefulsetSummary{
+		ss := StatefulsetSummary{
 			ReplicaCount:        1,
 			CPURequestChange:    cpuRequestChange,
 			TotalCPURequest:     totalCpuRequest,
@@ -158,13 +155,10 @@ func (m *Processor) UpdateSummary(itemId string) {
 			TotalMemoryLimit:    totalMemoryLimit,
 		}
 		if i.Statefulset.Spec.Replicas != nil {
-			ds.ReplicaCount = *i.Statefulset.Spec.Replicas
+			ss.ReplicaCount = *i.Statefulset.Spec.Replicas
 		}
 
-		m.summaryMutex.Lock()
-		m.summary[i.GetID()] = ds
-		m.summaryMutex.Unlock()
-
+		m.summary.Set(i.GetID(), ss)
 	}
 	m.publishResultSummary(m.ResultsSummary())
 }

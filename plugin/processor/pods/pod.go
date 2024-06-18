@@ -14,7 +14,6 @@ import (
 	util "github.com/kaytu-io/plugin-kubernetes-internal/utils"
 	corev1 "k8s.io/api/core/v1"
 	"strings"
-	"sync"
 	"sync/atomic"
 )
 
@@ -33,8 +32,7 @@ type Processor struct {
 	observabilityDays       int
 	kaytuClient             *kaytuAgent.KaytuAgent
 
-	summary      map[string]PodSummary
-	summaryMutex sync.RWMutex
+	summary util.ConcurrentMap[string, PodSummary]
 }
 
 func NewProcessor(ctx context.Context, identification map[string]string, kubernetesProvider *kaytuKubernetes.Kubernetes, prometheusProvider *kaytuPrometheus.Prometheus, kaytuClient *kaytuAgent.KaytuAgent, publishOptimizationItem func(item *golang.ChartOptimizationItem), publishResultSummary func(summary *golang.ResultSummary), jobQueue *sdk.JobQueue, configuration *kaytu.Configuration, client golang2.OptimizationClient, namespace *string, observabilityDays int) *Processor {
@@ -53,8 +51,7 @@ func NewProcessor(ctx context.Context, identification map[string]string, kuberne
 		observabilityDays:       observabilityDays,
 		kaytuClient:             kaytuClient,
 
-		summary:      map[string]PodSummary{},
-		summaryMutex: sync.RWMutex{},
+		summary: util.NewMap[string, PodSummary](),
 	}
 
 	if kaytuClient.IsEnabled() {
@@ -93,10 +90,10 @@ func (m *Processor) exportCsv() []*golang.CSVRow {
 	var rows []*golang.CSVRow
 	rows = append(rows, &golang.CSVRow{Row: headers})
 
-	for name, _ := range m.summary {
+	m.summary.Range(func(name string, value PodSummary) bool {
 		pod, ok := m.items.Get(name)
 		if !ok {
-			continue
+			return true
 		}
 		for _, container := range pod.Pod.Spec.Containers {
 			var row []string
@@ -193,8 +190,8 @@ func (m *Processor) exportCsv() []*golang.CSVRow {
 			}
 			rows = append(rows, &golang.CSVRow{Row: row})
 		}
-
-	}
+		return true
+	})
 
 	return rows
 }
@@ -203,8 +200,8 @@ func (m *Processor) ResultsSummary() *golang.ResultSummary {
 	summary := &golang.ResultSummary{}
 	var cpuRequestChanges, cpuLimitChanges, memoryRequestChanges, memoryLimitChanges float64
 	var totalCpuRequest, totalCpuLimit, totalMemoryRequest, totalMemoryLimit float64
-	m.summaryMutex.RLock()
-	for _, item := range m.summary {
+
+	m.summary.Range(func(key string, item PodSummary) bool {
 		cpuRequestChanges += item.CPURequestChange
 		cpuLimitChanges += item.CPULimitChange
 		memoryRequestChanges += item.MemoryRequestChange
@@ -214,8 +211,10 @@ func (m *Processor) ResultsSummary() *golang.ResultSummary {
 		totalCpuLimit += item.TotalCPULimit
 		totalMemoryRequest += item.TotalMemoryRequest
 		totalMemoryLimit += item.TotalMemoryLimit
-	}
-	m.summaryMutex.RUnlock()
+
+		return true
+	})
+
 	summary.Message = fmt.Sprintf("Overall changes: CPU request: %.2f of %.2f core, CPU limit: %.2f of %.2f core, Memory request: %s of %s, Memory limit: %s of %s", cpuRequestChanges, totalCpuRequest, cpuLimitChanges, totalCpuLimit, shared.SizeByte64(memoryRequestChanges), shared.SizeByte64(totalMemoryRequest), shared.SizeByte64(memoryLimitChanges), shared.SizeByte64(totalMemoryLimit))
 	return summary
 }
@@ -255,8 +254,7 @@ func (m *Processor) UpdateSummary(itemId string) {
 			}
 		}
 
-		m.summaryMutex.Lock()
-		m.summary[i.GetID()] = PodSummary{
+		m.summary.Set(i.GetID(), PodSummary{
 			CPURequestChange:    cpuRequestChange,
 			TotalCPURequest:     totalCpuRequest,
 			CPULimitChange:      cpuLimitChange,
@@ -265,9 +263,7 @@ func (m *Processor) UpdateSummary(itemId string) {
 			TotalMemoryRequest:  totalMemoryRequest,
 			MemoryLimitChange:   memoryLimitChange,
 			TotalMemoryLimit:    totalMemoryLimit,
-		}
-		m.summaryMutex.Unlock()
-
+		})
 	}
 	m.publishResultSummary(m.ResultsSummary())
 }

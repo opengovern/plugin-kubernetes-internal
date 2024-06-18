@@ -29,3 +29,9 @@ func (cm *ConcurrentMap[K, V]) Get(key K) (V, bool) {
 	}
 	return v.(V), true
 }
+
+func (cm *ConcurrentMap[K, V]) Range(f func(key K, value V) bool) {
+	cm.data.Range(func(key, value any) bool {
+		return f(key.(K), value.(V))
+	})
+}
