@@ -15,6 +15,7 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	"strings"
 	"sync"
+	"sync/atomic"
 )
 
 type Processor struct {
@@ -25,7 +26,7 @@ type Processor struct {
 	publishOptimizationItem func(item *golang.ChartOptimizationItem)
 	publishResultSummary    func(summary *golang.ResultSummary)
 	jobQueue                *sdk.JobQueue
-	lazyloadCounter         *sdk.SafeCounter
+	lazyloadCounter         atomic.Uint32
 	configuration           *kaytu.Configuration
 	client                  golang2.OptimizationClient
 	namespace               *string
@@ -45,7 +46,7 @@ func NewProcessor(ctx context.Context, identification map[string]string, kuberne
 		publishOptimizationItem: publishOptimizationItem,
 		publishResultSummary:    publishResultSummary,
 		jobQueue:                jobQueue,
-		lazyloadCounter:         &sdk.SafeCounter{},
+		lazyloadCounter:         atomic.Uint32{},
 		configuration:           configuration,
 		client:                  client,
 		namespace:               namespace,
