@@ -37,7 +37,7 @@ func NewPlugin() *KubernetesPlugin {
 	return &KubernetesPlugin{}
 }
 
-func (p *KubernetesPlugin) GetConfig() golang.RegisterConfig {
+func (p *KubernetesPlugin) GetConfig(_ context.Context) golang.RegisterConfig {
 	commonFlags := []*golang.Flag{
 		{
 			Name:        "context",
@@ -242,7 +242,7 @@ func (p *KubernetesPlugin) GetConfig() golang.RegisterConfig {
 	}
 }
 
-func (p *KubernetesPlugin) SetStream(stream *sdk.StreamController) {
+func (p *KubernetesPlugin) SetStream(_ context.Context, stream *sdk.StreamController) {
 	p.stream = stream
 }
 
@@ -253,9 +253,7 @@ func getFlagOrNil(flags map[string]string, key string) *string {
 	return nil
 }
 
-func (p *KubernetesPlugin) StartProcess(command string, flags map[string]string, kaytuAccessToken string, jobQueue *sdk.JobQueue) error {
-	ctx := context.Background()
-
+func (p *KubernetesPlugin) StartProcess(ctx context.Context, command string, flags map[string]string, kaytuAccessToken string, jobQueue *sdk.JobQueue) error {
 	kubeContext := getFlagOrNil(flags, "context")
 	restclientConfig, kubeConfig, err := kaytuKubernetes.GetConfig(ctx, kubeContext)
 	if err != nil {
@@ -628,6 +626,6 @@ func (p *KubernetesPlugin) StartProcess(command string, flags map[string]string,
 	return nil
 }
 
-func (p *KubernetesPlugin) ReEvaluate(evaluate *golang.ReEvaluate) {
+func (p *KubernetesPlugin) ReEvaluate(_ context.Context, evaluate *golang.ReEvaluate) {
 	p.processor.ReEvaluate(evaluate.Id, evaluate.Preferences)
 }
