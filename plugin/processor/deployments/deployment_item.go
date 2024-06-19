@@ -314,7 +314,10 @@ func (i DeploymentItem) ToOptimizationItem() *golang.ChartOptimizationItem {
 		status = "loading"
 	}
 
+	metrics := i.Metrics
+	i.Metrics = nil
 	kaytuJson, _ := json.Marshal(i)
+	i.Metrics = metrics
 	oi := &golang.ChartOptimizationItem{
 		OverviewChartRow: &golang.ChartRow{
 			RowId: i.GetID(),
