@@ -14,14 +14,12 @@ import (
 )
 
 type OptimizeDeploymentJob struct {
-	ctx       context.Context
 	processor *Processor
 	itemId    string
 }
 
-func NewOptimizeDeploymentJob(ctx context.Context, processor *Processor, itemId string) *OptimizeDeploymentJob {
+func NewOptimizeDeploymentJob(processor *Processor, itemId string) *OptimizeDeploymentJob {
 	return &OptimizeDeploymentJob{
-		ctx:       ctx,
 		processor: processor,
 		itemId:    itemId,
 	}
@@ -33,13 +31,13 @@ func (j *OptimizeDeploymentJob) Id() string {
 func (j *OptimizeDeploymentJob) Description() string {
 	return fmt.Sprintf("Optimizing deployment %s", j.itemId)
 }
-func (j *OptimizeDeploymentJob) Run() error {
+func (j *OptimizeDeploymentJob) Run(ctx context.Context) error {
 	item, ok := j.processor.items.Get(j.itemId)
 	if !ok {
 		return errors.New("deployment not found in items list")
 	}
 	if item.LazyLoadingEnabled {
-		j.processor.jobQueue.Push(NewListPodsForDeploymentJob(j.ctx, j.processor, item.GetID()))
+		j.processor.jobQueue.Push(NewListPodsForDeploymentJob(j.processor, item.GetID()))
 		return nil
 	}
 
@@ -103,7 +101,7 @@ func (j *OptimizeDeploymentJob) Run() error {
 		}
 	}
 
-	grpcCtx := metadata.NewOutgoingContext(j.ctx, metadata.Pairs("workspace-name", "kaytu"))
+	grpcCtx := metadata.NewOutgoingContext(ctx, metadata.Pairs("workspace-name", "kaytu"))
 	grpcCtx, cancel := context.WithTimeout(grpcCtx, time.Minute)
 	defer cancel()
 	resp, err := j.processor.client.KubernetesDeploymentOptimization(grpcCtx, &golang.KubernetesDeploymentOptimizationRequest{

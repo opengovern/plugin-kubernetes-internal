@@ -7,14 +7,12 @@ import (
 )
 
 type ListStatefulsetsForNamespaceJob struct {
-	ctx       context.Context
 	processor *Processor
 	namespace string
 }
 
-func NewListStatefulsetsForNamespaceJob(ctx context.Context, processor *Processor, namespace string) *ListStatefulsetsForNamespaceJob {
+func NewListStatefulsetsForNamespaceJob(processor *Processor, namespace string) *ListStatefulsetsForNamespaceJob {
 	return &ListStatefulsetsForNamespaceJob{
-		ctx:       ctx,
 		processor: processor,
 		namespace: namespace,
 	}
@@ -26,8 +24,8 @@ func (j *ListStatefulsetsForNamespaceJob) Id() string {
 func (j *ListStatefulsetsForNamespaceJob) Description() string {
 	return fmt.Sprintf("Listing all pods in namespace %s (Kubernetes Statefulsets)", j.namespace)
 }
-func (j *ListStatefulsetsForNamespaceJob) Run() error {
-	statefulsets, err := j.processor.kubernetesProvider.ListStatefulsetsInNamespace(j.ctx, j.namespace)
+func (j *ListStatefulsetsForNamespaceJob) Run(ctx context.Context) error {
+	statefulsets, err := j.processor.kubernetesProvider.ListStatefulsetsInNamespace(ctx, j.namespace)
 	if err != nil {
 		return err
 	}
@@ -58,7 +56,7 @@ func (j *ListStatefulsetsForNamespaceJob) Run() error {
 		if item.LazyLoadingEnabled || !item.OptimizationLoading || item.Skipped {
 			continue
 		}
-		j.processor.jobQueue.Push(NewListPodsForStatefulsetJob(j.ctx, j.processor, item.GetID()))
+		j.processor.jobQueue.Push(NewListPodsForStatefulsetJob(j.processor, item.GetID()))
 	}
 
 	return nil

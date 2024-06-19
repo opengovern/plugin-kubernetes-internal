@@ -7,14 +7,12 @@ import (
 )
 
 type ListPodsForStatefulsetJob struct {
-	ctx       context.Context
 	processor *Processor
 	itemId    string
 }
 
-func NewListPodsForStatefulsetJob(ctx context.Context, processor *Processor, itemId string) *ListPodsForStatefulsetJob {
+func NewListPodsForStatefulsetJob(processor *Processor, itemId string) *ListPodsForStatefulsetJob {
 	return &ListPodsForStatefulsetJob{
-		ctx:       ctx,
 		processor: processor,
 		itemId:    itemId,
 	}
@@ -26,14 +24,14 @@ func (j *ListPodsForStatefulsetJob) Id() string {
 func (j *ListPodsForStatefulsetJob) Description() string {
 	return fmt.Sprintf("Listing all pods for statefulset %s (Kubernetes Statefulsets)", j.itemId)
 }
-func (j *ListPodsForStatefulsetJob) Run() error {
+func (j *ListPodsForStatefulsetJob) Run(ctx context.Context) error {
 	var err error
 	item, ok := j.processor.items.Get(j.itemId)
 	if !ok {
 		return errors.New("statefulset not found in the items list")
 	}
 
-	item.Pods, err = j.processor.kubernetesProvider.ListStatefulsetPods(j.ctx, item.Statefulset)
+	item.Pods, err = j.processor.kubernetesProvider.ListStatefulsetPods(ctx, item.Statefulset)
 	if err != nil {
 		return err
 	}
@@ -42,6 +40,6 @@ func (j *ListPodsForStatefulsetJob) Run() error {
 	j.processor.items.Set(j.itemId, item)
 	j.processor.publishOptimizationItem(item.ToOptimizationItem())
 
-	j.processor.jobQueue.Push(NewGetStatefulsetPodMetricsJob(j.ctx, j.processor, item.GetID()))
+	j.processor.jobQueue.Push(NewGetStatefulsetPodMetricsJob(j.processor, item.GetID()))
 	return nil
 }

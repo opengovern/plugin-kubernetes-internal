@@ -8,14 +8,12 @@ import (
 )
 
 type GetDaemonsetPodMetricsJob struct {
-	ctx       context.Context
 	processor *Processor
 	itemId    string
 }
 
-func NewGetDaemonsetPodMetricsJob(ctx context.Context, processor *Processor, itemId string) *GetDaemonsetPodMetricsJob {
+func NewGetDaemonsetPodMetricsJob(processor *Processor, itemId string) *GetDaemonsetPodMetricsJob {
 	return &GetDaemonsetPodMetricsJob{
-		ctx:       ctx,
 		processor: processor,
 		itemId:    itemId,
 	}
@@ -27,13 +25,13 @@ func (j *GetDaemonsetPodMetricsJob) Id() string {
 func (j *GetDaemonsetPodMetricsJob) Description() string {
 	return fmt.Sprintf("Getting metrics for %s (Kubernetes Daemonsets)", j.itemId)
 }
-func (j *GetDaemonsetPodMetricsJob) Run() error {
+func (j *GetDaemonsetPodMetricsJob) Run(ctx context.Context) error {
 	daemonset, ok := j.processor.items.Get(j.itemId)
 	if !ok {
 		return errors.New("daemonset not found in the items list")
 	}
 
-	cpuUsageWithHistory, err := j.processor.prometheusProvider.GetCpuMetricsForPodOwnerPrefix(j.ctx, daemonset.Namespace, daemonset.Daemonset.Name, j.processor.observabilityDays, kaytuPrometheus.PodSuffixModeRandom)
+	cpuUsageWithHistory, err := j.processor.prometheusProvider.GetCpuMetricsForPodOwnerPrefix(ctx, daemonset.Namespace, daemonset.Daemonset.Name, j.processor.observabilityDays, kaytuPrometheus.PodSuffixModeRandom)
 	if err != nil {
 		return err
 	}
@@ -51,7 +49,7 @@ func (j *GetDaemonsetPodMetricsJob) Run() error {
 		}
 	}
 
-	cpuThrottlingWithHistory, err := j.processor.prometheusProvider.GetCpuThrottlingMetricsForPodOwnerPrefix(j.ctx, daemonset.Namespace, daemonset.Daemonset.Name, j.processor.observabilityDays, kaytuPrometheus.PodSuffixModeRandom)
+	cpuThrottlingWithHistory, err := j.processor.prometheusProvider.GetCpuThrottlingMetricsForPodOwnerPrefix(ctx, daemonset.Namespace, daemonset.Daemonset.Name, j.processor.observabilityDays, kaytuPrometheus.PodSuffixModeRandom)
 	if err != nil {
 		return err
 	}
@@ -69,7 +67,7 @@ func (j *GetDaemonsetPodMetricsJob) Run() error {
 		}
 	}
 
-	memoryUsageWithHistory, err := j.processor.prometheusProvider.GetMemoryMetricsForPodOwnerPrefix(j.ctx, daemonset.Namespace, daemonset.Daemonset.Name, j.processor.observabilityDays, kaytuPrometheus.PodSuffixModeRandom)
+	memoryUsageWithHistory, err := j.processor.prometheusProvider.GetMemoryMetricsForPodOwnerPrefix(ctx, daemonset.Namespace, daemonset.Daemonset.Name, j.processor.observabilityDays, kaytuPrometheus.PodSuffixModeRandom)
 	if err != nil {
 		return err
 	}
@@ -93,7 +91,7 @@ func (j *GetDaemonsetPodMetricsJob) Run() error {
 	j.processor.UpdateSummary(daemonset.GetID())
 
 	if !daemonset.Skipped {
-		j.processor.jobQueue.Push(NewOptimizeDaemonsetJob(j.ctx, j.processor, daemonset.GetID()))
+		j.processor.jobQueue.Push(NewOptimizeDaemonsetJob(j.processor, daemonset.GetID()))
 	}
 	return nil
 }

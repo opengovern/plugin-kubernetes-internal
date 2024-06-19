@@ -8,14 +8,12 @@ import (
 )
 
 type ListPodsForNamespaceJob struct {
-	ctx       context.Context
 	processor *Processor
 	namespace string
 }
 
-func NewListPodsForNamespaceJob(ctx context.Context, processor *Processor, namespace string) *ListPodsForNamespaceJob {
+func NewListPodsForNamespaceJob(processor *Processor, namespace string) *ListPodsForNamespaceJob {
 	return &ListPodsForNamespaceJob{
-		ctx:       ctx,
 		processor: processor,
 		namespace: namespace,
 	}
@@ -27,8 +25,8 @@ func (j *ListPodsForNamespaceJob) Id() string {
 func (j *ListPodsForNamespaceJob) Description() string {
 	return fmt.Sprintf("Listing all pods in namespace %s (Kubernetes Pods)", j.namespace)
 }
-func (j *ListPodsForNamespaceJob) Run() error {
-	pods, err := j.processor.kubernetesProvider.ListPodsInNamespace(j.ctx, j.namespace)
+func (j *ListPodsForNamespaceJob) Run(ctx context.Context) error {
+	pods, err := j.processor.kubernetesProvider.ListPodsInNamespace(ctx, j.namespace)
 	if err != nil {
 		return err
 	}
@@ -61,7 +59,7 @@ func (j *ListPodsForNamespaceJob) Run() error {
 		if item.LazyLoadingEnabled || !item.OptimizationLoading || item.Skipped {
 			continue
 		}
-		j.processor.jobQueue.Push(NewGetPodMetricsJob(j.ctx, j.processor, item.GetID()))
+		j.processor.jobQueue.Push(NewGetPodMetricsJob(j.processor, item.GetID()))
 	}
 
 	return nil

@@ -7,14 +7,12 @@ import (
 )
 
 type ListDeploymentsForNamespaceJob struct {
-	ctx       context.Context
 	processor *Processor
 	namespace string
 }
 
-func NewListDeploymentsForNamespaceJob(ctx context.Context, processor *Processor, namespace string) *ListDeploymentsForNamespaceJob {
+func NewListDeploymentsForNamespaceJob(processor *Processor, namespace string) *ListDeploymentsForNamespaceJob {
 	return &ListDeploymentsForNamespaceJob{
-		ctx:       ctx,
 		processor: processor,
 		namespace: namespace,
 	}
@@ -26,8 +24,8 @@ func (j *ListDeploymentsForNamespaceJob) Id() string {
 func (j *ListDeploymentsForNamespaceJob) Description() string {
 	return fmt.Sprintf("Listing all pods in namespace %s (Kubernetes Deployments)", j.namespace)
 }
-func (j *ListDeploymentsForNamespaceJob) Run() error {
-	deployments, err := j.processor.kubernetesProvider.ListDeploymentsInNamespace(j.ctx, j.namespace)
+func (j *ListDeploymentsForNamespaceJob) Run(ctx context.Context) error {
+	deployments, err := j.processor.kubernetesProvider.ListDeploymentsInNamespace(ctx, j.namespace)
 	if err != nil {
 		return err
 	}
@@ -58,7 +56,7 @@ func (j *ListDeploymentsForNamespaceJob) Run() error {
 		if item.LazyLoadingEnabled || !item.OptimizationLoading || item.Skipped {
 			continue
 		}
-		j.processor.jobQueue.Push(NewListPodsForDeploymentJob(j.ctx, j.processor, item.GetID()))
+		j.processor.jobQueue.Push(NewListPodsForDeploymentJob(j.processor, item.GetID()))
 	}
 
 	return nil

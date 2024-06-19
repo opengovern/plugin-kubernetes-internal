@@ -7,14 +7,12 @@ import (
 )
 
 type ListPodsForDeploymentJob struct {
-	ctx       context.Context
 	processor *Processor
 	itemId    string
 }
 
-func NewListPodsForDeploymentJob(ctx context.Context, processor *Processor, itemId string) *ListPodsForDeploymentJob {
+func NewListPodsForDeploymentJob(processor *Processor, itemId string) *ListPodsForDeploymentJob {
 	return &ListPodsForDeploymentJob{
-		ctx:       ctx,
 		processor: processor,
 		itemId:    itemId,
 	}
@@ -26,14 +24,14 @@ func (j *ListPodsForDeploymentJob) Id() string {
 func (j *ListPodsForDeploymentJob) Description() string {
 	return fmt.Sprintf("Listing all pods for deployment %s (Kubernetes Deployments)", j.itemId)
 }
-func (j *ListPodsForDeploymentJob) Run() error {
+func (j *ListPodsForDeploymentJob) Run(ctx context.Context) error {
 	var err error
 	item, ok := j.processor.items.Get(j.itemId)
 	if !ok {
 		return errors.New("deployment not found in the items list")
 	}
 
-	item.Pods, item.HistoricalReplicaSetNames, err = j.processor.kubernetesProvider.ListDeploymentPodsAndHistoricalReplicaSets(j.ctx, item.Deployment, j.processor.observabilityDays)
+	item.Pods, item.HistoricalReplicaSetNames, err = j.processor.kubernetesProvider.ListDeploymentPodsAndHistoricalReplicaSets(ctx, item.Deployment, j.processor.observabilityDays)
 	if err != nil {
 		return err
 	}
@@ -46,6 +44,6 @@ func (j *ListPodsForDeploymentJob) Run() error {
 	j.processor.items.Set(j.itemId, item)
 	j.processor.publishOptimizationItem(item.ToOptimizationItem())
 
-	j.processor.jobQueue.Push(NewGetDeploymentPodMetricsJob(j.ctx, j.processor, item.GetID()))
+	j.processor.jobQueue.Push(NewGetDeploymentPodMetricsJob(j.processor, item.GetID()))
 	return nil
 }

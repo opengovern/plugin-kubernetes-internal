@@ -9,14 +9,12 @@ import (
 )
 
 type GetPodMetricsJob struct {
-	ctx       context.Context
 	processor *Processor
 	podId     string
 }
 
-func NewGetPodMetricsJob(ctx context.Context, processor *Processor, podId string) *GetPodMetricsJob {
+func NewGetPodMetricsJob(processor *Processor, podId string) *GetPodMetricsJob {
 	return &GetPodMetricsJob{
-		ctx:       ctx,
 		processor: processor,
 		podId:     podId,
 	}
@@ -28,7 +26,7 @@ func (j *GetPodMetricsJob) Id() string {
 func (j *GetPodMetricsJob) Description() string {
 	return fmt.Sprintf("Getting metrics for pod %s (Kubernetes Pods)", j.podId)
 }
-func (j *GetPodMetricsJob) Run() error {
+func (j *GetPodMetricsJob) Run(ctx context.Context) error {
 	log.Printf("------- job %s - starting", j.Id())
 	pod, ok := j.processor.items.Get(j.podId)
 	if !ok {
@@ -36,19 +34,19 @@ func (j *GetPodMetricsJob) Run() error {
 	}
 
 	log.Printf("------- job %s - getting cpu metrics", j.Id())
-	cpuUsage, err := j.processor.prometheusProvider.GetCpuMetricsForPod(j.ctx, pod.Pod.Namespace, pod.Pod.Name, j.processor.observabilityDays)
+	cpuUsage, err := j.processor.prometheusProvider.GetCpuMetricsForPod(ctx, pod.Pod.Namespace, pod.Pod.Name, j.processor.observabilityDays)
 	if err != nil {
 		return err
 	}
 
 	log.Printf("------- job %s - getting cpu throttling metrics", j.Id())
-	cpuThrottling, err := j.processor.prometheusProvider.GetCpuThrottlingMetricsForPod(j.ctx, pod.Pod.Namespace, pod.Pod.Name, j.processor.observabilityDays)
+	cpuThrottling, err := j.processor.prometheusProvider.GetCpuThrottlingMetricsForPod(ctx, pod.Pod.Namespace, pod.Pod.Name, j.processor.observabilityDays)
 	if err != nil {
 		return err
 	}
 
 	log.Printf("------- job %s - getting memory metrics", j.Id())
-	memoryUsage, err := j.processor.prometheusProvider.GetMemoryMetricsForPod(j.ctx, pod.Pod.Namespace, pod.Pod.Name, j.processor.observabilityDays)
+	memoryUsage, err := j.processor.prometheusProvider.GetMemoryMetricsForPod(ctx, pod.Pod.Namespace, pod.Pod.Name, j.processor.observabilityDays)
 	if err != nil {
 		return err
 	}
@@ -81,7 +79,7 @@ func (j *GetPodMetricsJob) Run() error {
 
 	if !pod.Skipped {
 		log.Printf("------- job %s - pushing new optimize pod job", j.Id())
-		j.processor.jobQueue.Push(NewOptimizePodJob(j.ctx, j.processor, pod.GetID()))
+		j.processor.jobQueue.Push(NewOptimizePodJob(j.processor, pod.GetID()))
 	}
 
 	log.Printf("------- job %s - done", j.Id())

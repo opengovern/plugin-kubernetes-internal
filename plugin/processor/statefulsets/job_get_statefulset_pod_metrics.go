@@ -8,14 +8,12 @@ import (
 )
 
 type GetStatefulsetPodMetricsJob struct {
-	ctx       context.Context
 	processor *Processor
 	itemId    string
 }
 
-func NewGetStatefulsetPodMetricsJob(ctx context.Context, processor *Processor, itemId string) *GetStatefulsetPodMetricsJob {
+func NewGetStatefulsetPodMetricsJob(processor *Processor, itemId string) *GetStatefulsetPodMetricsJob {
 	return &GetStatefulsetPodMetricsJob{
-		ctx:       ctx,
 		processor: processor,
 		itemId:    itemId,
 	}
@@ -27,13 +25,13 @@ func (j *GetStatefulsetPodMetricsJob) Id() string {
 func (j *GetStatefulsetPodMetricsJob) Description() string {
 	return fmt.Sprintf("Getting metrics for %s (Kubernetes Statefulsets)", j.itemId)
 }
-func (j *GetStatefulsetPodMetricsJob) Run() error {
+func (j *GetStatefulsetPodMetricsJob) Run(ctx context.Context) error {
 	statefulset, ok := j.processor.items.Get(j.itemId)
 	if !ok {
 		return errors.New("statefulset not found in the items list")
 	}
 
-	cpuUsageWithHistory, err := j.processor.prometheusProvider.GetCpuMetricsForPodOwnerPrefix(j.ctx, statefulset.Namespace, statefulset.Statefulset.Name, j.processor.observabilityDays, kaytuPrometheus.PodSuffixModeIncremental)
+	cpuUsageWithHistory, err := j.processor.prometheusProvider.GetCpuMetricsForPodOwnerPrefix(ctx, statefulset.Namespace, statefulset.Statefulset.Name, j.processor.observabilityDays, kaytuPrometheus.PodSuffixModeIncremental)
 	if err != nil {
 		return err
 	}
@@ -51,7 +49,7 @@ func (j *GetStatefulsetPodMetricsJob) Run() error {
 		}
 	}
 
-	cpuThrottlingWithHistory, err := j.processor.prometheusProvider.GetCpuThrottlingMetricsForPodOwnerPrefix(j.ctx, statefulset.Namespace, statefulset.Statefulset.Name, j.processor.observabilityDays, kaytuPrometheus.PodSuffixModeIncremental)
+	cpuThrottlingWithHistory, err := j.processor.prometheusProvider.GetCpuThrottlingMetricsForPodOwnerPrefix(ctx, statefulset.Namespace, statefulset.Statefulset.Name, j.processor.observabilityDays, kaytuPrometheus.PodSuffixModeIncremental)
 	if err != nil {
 		return err
 	}
@@ -69,7 +67,7 @@ func (j *GetStatefulsetPodMetricsJob) Run() error {
 		}
 	}
 
-	memoryUsageWithHistory, err := j.processor.prometheusProvider.GetMemoryMetricsForPodOwnerPrefix(j.ctx, statefulset.Namespace, statefulset.Statefulset.Name, j.processor.observabilityDays, kaytuPrometheus.PodSuffixModeIncremental)
+	memoryUsageWithHistory, err := j.processor.prometheusProvider.GetMemoryMetricsForPodOwnerPrefix(ctx, statefulset.Namespace, statefulset.Statefulset.Name, j.processor.observabilityDays, kaytuPrometheus.PodSuffixModeIncremental)
 	if err != nil {
 		return err
 	}
@@ -93,7 +91,7 @@ func (j *GetStatefulsetPodMetricsJob) Run() error {
 	j.processor.UpdateSummary(statefulset.GetID())
 
 	if !statefulset.Skipped {
-		j.processor.jobQueue.Push(NewOptimizeStatefulsetJob(j.ctx, j.processor, statefulset.GetID()))
+		j.processor.jobQueue.Push(NewOptimizeStatefulsetJob(j.processor, statefulset.GetID()))
 	}
 	return nil
 }

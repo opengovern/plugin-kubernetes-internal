@@ -5,13 +5,11 @@ import (
 )
 
 type ListAllNamespacesJob struct {
-	ctx       context.Context
 	processor *Processor
 }
 
-func NewListAllNamespacesJob(ctx context.Context, processor *Processor) *ListAllNamespacesJob {
+func NewListAllNamespacesJob(processor *Processor) *ListAllNamespacesJob {
 	return &ListAllNamespacesJob{
-		ctx:       ctx,
 		processor: processor,
 	}
 }
@@ -22,13 +20,13 @@ func (j *ListAllNamespacesJob) Id() string {
 func (j *ListAllNamespacesJob) Description() string {
 	return "Listing all available namespaces (Kubernetes Deployments)"
 }
-func (j *ListAllNamespacesJob) Run() error {
+func (j *ListAllNamespacesJob) Run(ctx context.Context) error {
 	var namespaces []string
 	if j.processor.namespace != nil &&
 		*j.processor.namespace != "" {
 		namespaces = []string{*j.processor.namespace}
 	} else {
-		nss, err := j.processor.kubernetesProvider.ListAllNamespaces(j.ctx)
+		nss, err := j.processor.kubernetesProvider.ListAllNamespaces(ctx)
 		if err != nil {
 			return err
 		}
@@ -41,7 +39,7 @@ func (j *ListAllNamespacesJob) Run() error {
 		if namespace == "kube-system" {
 			continue
 		}
-		j.processor.jobQueue.Push(NewListDeploymentsForNamespaceJob(j.ctx, j.processor, namespace))
+		j.processor.jobQueue.Push(NewListDeploymentsForNamespaceJob(j.processor, namespace))
 	}
 	return nil
 }

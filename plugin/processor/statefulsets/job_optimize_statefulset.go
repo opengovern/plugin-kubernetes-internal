@@ -14,14 +14,12 @@ import (
 )
 
 type OptimizeStatefulsetJob struct {
-	ctx       context.Context
 	processor *Processor
 	itemId    string
 }
 
-func NewOptimizeStatefulsetJob(ctx context.Context, processor *Processor, itemId string) *OptimizeStatefulsetJob {
+func NewOptimizeStatefulsetJob(processor *Processor, itemId string) *OptimizeStatefulsetJob {
 	return &OptimizeStatefulsetJob{
-		ctx:       ctx,
 		processor: processor,
 		itemId:    itemId,
 	}
@@ -33,13 +31,13 @@ func (j *OptimizeStatefulsetJob) Id() string {
 func (j *OptimizeStatefulsetJob) Description() string {
 	return fmt.Sprintf("Optimizing statefulset %s", j.itemId)
 }
-func (j *OptimizeStatefulsetJob) Run() error {
+func (j *OptimizeStatefulsetJob) Run(ctx context.Context) error {
 	item, ok := j.processor.items.Get(j.itemId)
 	if !ok {
 		return errors.New("statefulset not found in items list")
 	}
 	if item.LazyLoadingEnabled {
-		j.processor.jobQueue.Push(NewListPodsForStatefulsetJob(j.ctx, j.processor, item.GetID()))
+		j.processor.jobQueue.Push(NewListPodsForStatefulsetJob(j.processor, item.GetID()))
 		return nil
 	}
 
@@ -103,7 +101,7 @@ func (j *OptimizeStatefulsetJob) Run() error {
 		}
 	}
 
-	grpcCtx := metadata.NewOutgoingContext(j.ctx, metadata.Pairs("workspace-name", "kaytu"))
+	grpcCtx := metadata.NewOutgoingContext(ctx, metadata.Pairs("workspace-name", "kaytu"))
 	grpcCtx, cancel := context.WithTimeout(grpcCtx, time.Minute)
 	defer cancel()
 	resp, err := j.processor.client.KubernetesStatefulsetOptimization(grpcCtx, &golang.KubernetesStatefulsetOptimizationRequest{
