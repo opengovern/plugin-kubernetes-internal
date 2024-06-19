@@ -280,32 +280,6 @@ func (p *KubernetesPlugin) StartProcess(command string, flags map[string]string,
 	}
 	client := golang2.NewOptimizationClient(conn)
 
-	promAddress := getFlagOrNil(flags, "prom-address")
-	promUsername := getFlagOrNil(flags, "prom-username")
-	promPassword := getFlagOrNil(flags, "prom-password")
-	promClientId := getFlagOrNil(flags, "prom-client-id")
-	promClientSecret := getFlagOrNil(flags, "prom-client-secret")
-	promTokenUrl := getFlagOrNil(flags, "prom-token-url")
-	promScopesStr := getFlagOrNil(flags, "prom-scopes")
-	var promScopes []string
-	if promScopesStr != nil {
-		promScopes = strings.Split(*promScopesStr, ",")
-	}
-	promCfg, err := kaytuPrometheus.GetConfig(promAddress, promUsername, promPassword, promClientId, promClientSecret, promTokenUrl, promScopes, kubeClient)
-	if err != nil {
-		return err
-	}
-
-	promClient, err := kaytuPrometheus.NewPrometheus(promCfg)
-	if err != nil {
-		return err
-	}
-
-	err = promClient.Ping(ctx)
-	if err != nil {
-		return fmt.Errorf("failed to connect to prometheus on %s due to %v", promCfg.Address, err)
-	}
-
 	agentAddress := getFlagOrNil(flags, "agent-address")
 	agentDisabledStr := getFlagOrNil(flags, "agent-disabled")
 	agentDisabled := false
@@ -329,6 +303,34 @@ func (p *KubernetesPlugin) StartProcess(command string, flags map[string]string,
 		err = kaytuClient.Ping(ctx)
 		if err != nil {
 			return fmt.Errorf("failed to connect to kaytu agent on %s due to %v", kaytuAgentCfg.Address, err)
+		}
+	}
+
+	promAddress := getFlagOrNil(flags, "prom-address")
+	promUsername := getFlagOrNil(flags, "prom-username")
+	promPassword := getFlagOrNil(flags, "prom-password")
+	promClientId := getFlagOrNil(flags, "prom-client-id")
+	promClientSecret := getFlagOrNil(flags, "prom-client-secret")
+	promTokenUrl := getFlagOrNil(flags, "prom-token-url")
+	promScopesStr := getFlagOrNil(flags, "prom-scopes")
+	var promScopes []string
+	if promScopesStr != nil {
+		promScopes = strings.Split(*promScopesStr, ",")
+	}
+
+	var promClient *kaytuPrometheus.Prometheus
+	if !kaytuClient.IsEnabled() {
+		promCfg, err := kaytuPrometheus.GetConfig(promAddress, promUsername, promPassword, promClientId, promClientSecret, promTokenUrl, promScopes, kubeClient)
+		if err != nil {
+			return err
+		}
+		promClient, err = kaytuPrometheus.NewPrometheus(promCfg)
+		if err != nil {
+			return err
+		}
+		err = promClient.Ping(ctx)
+		if err != nil {
+			return fmt.Errorf("failed to connect to prometheus on %s due to %v", promCfg.Address, err)
 		}
 	}
 
