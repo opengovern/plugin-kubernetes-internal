@@ -1,7 +1,6 @@
 package daemonsets
 
 import (
-	"context"
 	"fmt"
 	"github.com/kaytu-io/kaytu/pkg/plugin/proto/src/golang"
 	"github.com/kaytu-io/kaytu/pkg/plugin/sdk"
@@ -34,7 +33,7 @@ type Processor struct {
 	summary util.ConcurrentMap[string, DaemonsetSummary]
 }
 
-func NewProcessor(ctx context.Context, identification map[string]string, kubernetesProvider *kaytuKubernetes.Kubernetes, prometheusProvider *kaytuPrometheus.Prometheus, kaytuClient *kaytuAgent.KaytuAgent, publishOptimizationItem func(item *golang.ChartOptimizationItem), publishResultSummary func(summary *golang.ResultSummary), jobQueue *sdk.JobQueue, configuration *kaytu.Configuration, client golang2.OptimizationClient, namespace *string, observabilityDays int) *Processor {
+func NewProcessor(identification map[string]string, kubernetesProvider *kaytuKubernetes.Kubernetes, prometheusProvider *kaytuPrometheus.Prometheus, kaytuClient *kaytuAgent.KaytuAgent, publishOptimizationItem func(item *golang.ChartOptimizationItem), publishResultSummary func(summary *golang.ResultSummary), jobQueue *sdk.JobQueue, configuration *kaytu.Configuration, client golang2.OptimizationClient, namespace *string, observabilityDays int) *Processor {
 	r := &Processor{
 		identification:          identification,
 		kubernetesProvider:      kubernetesProvider,
@@ -53,9 +52,9 @@ func NewProcessor(ctx context.Context, identification map[string]string, kuberne
 		summary: util.NewMap[string, DaemonsetSummary](),
 	}
 	if kaytuClient.IsEnabled() {
-		jobQueue.Push(NewDownloadKaytuAgentReportJob(ctx, r))
+		jobQueue.Push(NewDownloadKaytuAgentReportJob(r))
 	} else {
-		jobQueue.Push(NewListAllNamespacesJob(ctx, r))
+		jobQueue.Push(NewListAllNamespacesJob(r))
 	}
 	return r
 }
@@ -65,7 +64,7 @@ func (m *Processor) ReEvaluate(id string, items []*golang.PreferenceItem) {
 	v.Preferences = items
 	v.OptimizationLoading = true
 	m.items.Set(id, v)
-	m.jobQueue.Push(NewOptimizeDaemonsetJob(context.Background(), m, id))
+	m.jobQueue.Push(NewOptimizeDaemonsetJob(m, id))
 
 	v.LazyLoadingEnabled = false
 	m.publishOptimizationItem(v.ToOptimizationItem())

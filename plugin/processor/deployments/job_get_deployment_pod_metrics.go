@@ -8,14 +8,12 @@ import (
 )
 
 type GetDeploymentPodMetricsJob struct {
-	ctx       context.Context
 	processor *Processor
 	itemId    string
 }
 
-func NewGetDeploymentPodMetricsJob(ctx context.Context, processor *Processor, itemId string) *GetDeploymentPodMetricsJob {
+func NewGetDeploymentPodMetricsJob(processor *Processor, itemId string) *GetDeploymentPodMetricsJob {
 	return &GetDeploymentPodMetricsJob{
-		ctx:       ctx,
 		processor: processor,
 		itemId:    itemId,
 	}
@@ -27,24 +25,24 @@ func (j *GetDeploymentPodMetricsJob) Id() string {
 func (j *GetDeploymentPodMetricsJob) Description() string {
 	return fmt.Sprintf("Getting metrics for %s (Kubernetes Deployments)", j.itemId)
 }
-func (j *GetDeploymentPodMetricsJob) Run() error {
+func (j *GetDeploymentPodMetricsJob) Run(ctx context.Context) error {
 	deployment, ok := j.processor.items.Get(j.itemId)
 	if !ok {
 		return errors.New("deployment not found in the items list")
 	}
 
 	for _, pod := range deployment.Pods {
-		cpuUsage, err := j.processor.prometheusProvider.GetCpuMetricsForPod(j.ctx, pod.Namespace, pod.Name, j.processor.observabilityDays)
+		cpuUsage, err := j.processor.prometheusProvider.GetCpuMetricsForPod(ctx, pod.Namespace, pod.Name, j.processor.observabilityDays)
 		if err != nil {
 			return err
 		}
 
-		cpuThrottling, err := j.processor.prometheusProvider.GetCpuThrottlingMetricsForPod(j.ctx, pod.Namespace, pod.Name, j.processor.observabilityDays)
+		cpuThrottling, err := j.processor.prometheusProvider.GetCpuThrottlingMetricsForPod(ctx, pod.Namespace, pod.Name, j.processor.observabilityDays)
 		if err != nil {
 			return err
 		}
 
-		memoryUsage, err := j.processor.prometheusProvider.GetMemoryMetricsForPod(j.ctx, pod.Namespace, pod.Name, j.processor.observabilityDays)
+		memoryUsage, err := j.processor.prometheusProvider.GetMemoryMetricsForPod(ctx, pod.Namespace, pod.Name, j.processor.observabilityDays)
 		if err != nil {
 			return err
 		}
@@ -76,7 +74,7 @@ func (j *GetDeploymentPodMetricsJob) Run() error {
 	}
 
 	for _, replicaSetName := range deployment.HistoricalReplicaSetNames {
-		cpuHistoryUsage, err := j.processor.prometheusProvider.GetCpuMetricsForPodOwnerPrefix(j.ctx, deployment.Namespace, replicaSetName, j.processor.observabilityDays, kaytuPrometheus.PodSuffixModeRandom)
+		cpuHistoryUsage, err := j.processor.prometheusProvider.GetCpuMetricsForPodOwnerPrefix(ctx, deployment.Namespace, replicaSetName, j.processor.observabilityDays, kaytuPrometheus.PodSuffixModeRandom)
 		if err != nil {
 			return err
 		}
@@ -94,7 +92,7 @@ func (j *GetDeploymentPodMetricsJob) Run() error {
 			}
 		}
 
-		cpuThrottlingHistory, err := j.processor.prometheusProvider.GetCpuThrottlingMetricsForPodOwnerPrefix(j.ctx, deployment.Namespace, replicaSetName, j.processor.observabilityDays, kaytuPrometheus.PodSuffixModeRandom)
+		cpuThrottlingHistory, err := j.processor.prometheusProvider.GetCpuThrottlingMetricsForPodOwnerPrefix(ctx, deployment.Namespace, replicaSetName, j.processor.observabilityDays, kaytuPrometheus.PodSuffixModeRandom)
 		if err != nil {
 			return err
 		}
@@ -112,7 +110,7 @@ func (j *GetDeploymentPodMetricsJob) Run() error {
 			}
 		}
 
-		memoryHistoryUsage, err := j.processor.prometheusProvider.GetMemoryMetricsForPodOwnerPrefix(j.ctx, deployment.Namespace, replicaSetName, j.processor.observabilityDays, kaytuPrometheus.PodSuffixModeRandom)
+		memoryHistoryUsage, err := j.processor.prometheusProvider.GetMemoryMetricsForPodOwnerPrefix(ctx, deployment.Namespace, replicaSetName, j.processor.observabilityDays, kaytuPrometheus.PodSuffixModeRandom)
 		if err != nil {
 			return err
 		}
@@ -137,7 +135,7 @@ func (j *GetDeploymentPodMetricsJob) Run() error {
 	j.processor.UpdateSummary(deployment.GetID())
 
 	if !deployment.Skipped {
-		j.processor.jobQueue.Push(NewOptimizeDeploymentJob(j.ctx, j.processor, deployment.GetID()))
+		j.processor.jobQueue.Push(NewOptimizeDeploymentJob(j.processor, deployment.GetID()))
 	}
 	return nil
 }

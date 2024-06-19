@@ -9,9 +9,8 @@ type ListAllNamespacesJob struct {
 	processor *Processor
 }
 
-func NewListAllNamespacesJob(ctx context.Context, processor *Processor) *ListAllNamespacesJob {
+func NewListAllNamespacesJob(processor *Processor) *ListAllNamespacesJob {
 	return &ListAllNamespacesJob{
-		ctx:       ctx,
 		processor: processor,
 	}
 }
@@ -22,7 +21,7 @@ func (j *ListAllNamespacesJob) Id() string {
 func (j *ListAllNamespacesJob) Description() string {
 	return "Listing all available namespaces (Kubernetes Pods)"
 }
-func (j *ListAllNamespacesJob) Run() error {
+func (j *ListAllNamespacesJob) Run(ctx context.Context) error {
 	var namespaces []string
 	if j.processor.namespace != nil &&
 		*j.processor.namespace != "" {
@@ -41,7 +40,7 @@ func (j *ListAllNamespacesJob) Run() error {
 		if namespace == "kube-system" {
 			continue
 		}
-		j.processor.jobQueue.Push(NewListPodsForNamespaceJob(j.ctx, j.processor, namespace))
+		j.processor.jobQueue.Push(NewListPodsForNamespaceJob(j.processor, namespace))
 	}
 	return nil
 }

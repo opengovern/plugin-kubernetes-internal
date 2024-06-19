@@ -7,13 +7,11 @@ import (
 )
 
 type DownloadKaytuAgentReportJob struct {
-	ctx       context.Context
 	processor *Processor
 }
 
-func NewDownloadKaytuAgentReportJob(ctx context.Context, processor *Processor) *DownloadKaytuAgentReportJob {
+func NewDownloadKaytuAgentReportJob(processor *Processor) *DownloadKaytuAgentReportJob {
 	return &DownloadKaytuAgentReportJob{
-		ctx:       ctx,
 		processor: processor,
 	}
 }
@@ -24,7 +22,7 @@ func (j *DownloadKaytuAgentReportJob) Id() string {
 func (j *DownloadKaytuAgentReportJob) Description() string {
 	return "Downloading Kaytu Agent report (Kubernetes StatefulSets)"
 }
-func (j *DownloadKaytuAgentReportJob) Run() error {
+func (j *DownloadKaytuAgentReportJob) Run(ctx context.Context) error {
 	report, err := j.processor.kaytuClient.DownloadReport("kubernetes-statefulsets")
 	if err != nil {
 		return err

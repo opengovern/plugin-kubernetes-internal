@@ -7,14 +7,12 @@ import (
 )
 
 type ListPodsForDaemonsetJob struct {
-	ctx       context.Context
 	processor *Processor
 	itemId    string
 }
 
-func NewListPodsForDaemonsetJob(ctx context.Context, processor *Processor, itemId string) *ListPodsForDaemonsetJob {
+func NewListPodsForDaemonsetJob(processor *Processor, itemId string) *ListPodsForDaemonsetJob {
 	return &ListPodsForDaemonsetJob{
-		ctx:       ctx,
 		processor: processor,
 		itemId:    itemId,
 	}
@@ -26,14 +24,14 @@ func (j *ListPodsForDaemonsetJob) Id() string {
 func (j *ListPodsForDaemonsetJob) Description() string {
 	return fmt.Sprintf("Listing all pods for daemonset %s (Kubernetes Daemonsets)", j.itemId)
 }
-func (j *ListPodsForDaemonsetJob) Run() error {
+func (j *ListPodsForDaemonsetJob) Run(ctx context.Context) error {
 	var err error
 	item, ok := j.processor.items.Get(j.itemId)
 	if !ok {
 		return errors.New("daemonset not found in the items list")
 	}
 
-	item.Pods, err = j.processor.kubernetesProvider.ListDaemonsetPods(j.ctx, item.Daemonset)
+	item.Pods, err = j.processor.kubernetesProvider.ListDaemonsetPods(ctx, item.Daemonset)
 	if err != nil {
 		return err
 	}
@@ -42,6 +40,6 @@ func (j *ListPodsForDaemonsetJob) Run() error {
 	j.processor.items.Set(j.itemId, item)
 	j.processor.publishOptimizationItem(item.ToOptimizationItem())
 
-	j.processor.jobQueue.Push(NewGetDaemonsetPodMetricsJob(j.ctx, j.processor, item.GetID()))
+	j.processor.jobQueue.Push(NewGetDaemonsetPodMetricsJob(j.processor, item.GetID()))
 	return nil
 }

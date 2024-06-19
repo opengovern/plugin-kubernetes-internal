@@ -14,14 +14,12 @@ import (
 )
 
 type OptimizeDaemonsetJob struct {
-	ctx       context.Context
 	processor *Processor
 	itemId    string
 }
 
-func NewOptimizeDaemonsetJob(ctx context.Context, processor *Processor, itemId string) *OptimizeDaemonsetJob {
+func NewOptimizeDaemonsetJob(processor *Processor, itemId string) *OptimizeDaemonsetJob {
 	return &OptimizeDaemonsetJob{
-		ctx:       ctx,
 		processor: processor,
 		itemId:    itemId,
 	}
@@ -33,13 +31,13 @@ func (j *OptimizeDaemonsetJob) Id() string {
 func (j *OptimizeDaemonsetJob) Description() string {
 	return fmt.Sprintf("Optimizing daemonset %s", j.itemId)
 }
-func (j *OptimizeDaemonsetJob) Run() error {
+func (j *OptimizeDaemonsetJob) Run(ctx context.Context) error {
 	item, ok := j.processor.items.Get(j.itemId)
 	if !ok {
 		return errors.New("daemonset not found in items list")
 	}
 	if item.LazyLoadingEnabled {
-		j.processor.jobQueue.Push(NewListPodsForDaemonsetJob(j.ctx, j.processor, item.GetID()))
+		j.processor.jobQueue.Push(NewListPodsForDaemonsetJob(j.processor, item.GetID()))
 		return nil
 	}
 
@@ -103,7 +101,7 @@ func (j *OptimizeDaemonsetJob) Run() error {
 		}
 	}
 
-	grpcCtx := metadata.NewOutgoingContext(j.ctx, metadata.Pairs("workspace-name", "kaytu"))
+	grpcCtx := metadata.NewOutgoingContext(ctx, metadata.Pairs("workspace-name", "kaytu"))
 	grpcCtx, cancel := context.WithTimeout(grpcCtx, time.Minute)
 	defer cancel()
 	resp, err := j.processor.client.KubernetesDaemonsetOptimization(grpcCtx, &golang.KubernetesDaemonsetOptimizationRequest{

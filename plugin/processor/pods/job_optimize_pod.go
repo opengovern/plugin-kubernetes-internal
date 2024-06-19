@@ -14,14 +14,12 @@ import (
 )
 
 type OptimizePodJob struct {
-	ctx       context.Context
 	processor *Processor
 	itemId    string
 }
 
-func NewOptimizePodJob(ctx context.Context, processor *Processor, item string) *OptimizePodJob {
+func NewOptimizePodJob(processor *Processor, item string) *OptimizePodJob {
 	return &OptimizePodJob{
-		ctx:       ctx,
 		processor: processor,
 		itemId:    item,
 	}
@@ -33,13 +31,13 @@ func (j *OptimizePodJob) Id() string {
 func (j *OptimizePodJob) Description() string {
 	return fmt.Sprintf("Optimizing pod %s", j.itemId)
 }
-func (j *OptimizePodJob) Run() error {
+func (j *OptimizePodJob) Run(ctx context.Context) error {
 	item, ok := j.processor.items.Get(j.itemId)
 	if !ok {
 		return errors.New("pod not found in items list")
 	}
 	if item.LazyLoadingEnabled {
-		j.processor.jobQueue.Push(NewGetPodMetricsJob(j.ctx, j.processor, item.GetID()))
+		j.processor.jobQueue.Push(NewGetPodMetricsJob(j.processor, item.GetID()))
 		return nil
 	}
 
@@ -95,7 +93,7 @@ func (j *OptimizePodJob) Run() error {
 		}
 	}
 
-	grpcCtx := metadata.NewOutgoingContext(j.ctx, metadata.Pairs("workspace-name", "kaytu"))
+	grpcCtx := metadata.NewOutgoingContext(ctx, metadata.Pairs("workspace-name", "kaytu"))
 	grpcCtx, cancel := context.WithTimeout(grpcCtx, time.Minute)
 	defer cancel()
 	resp, err := j.processor.client.KubernetesPodOptimization(grpcCtx, &golang.KubernetesPodOptimizationRequest{
