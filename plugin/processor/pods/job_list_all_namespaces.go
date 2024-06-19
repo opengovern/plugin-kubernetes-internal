@@ -5,7 +5,6 @@ import (
 )
 
 type ListAllNamespacesJob struct {
-	ctx       context.Context
 	processor *Processor
 }
 
@@ -27,7 +26,7 @@ func (j *ListAllNamespacesJob) Run(ctx context.Context) error {
 		*j.processor.namespace != "" {
 		namespaces = []string{*j.processor.namespace}
 	} else {
-		nss, err := j.processor.kubernetesProvider.ListAllNamespaces(j.ctx)
+		nss, err := j.processor.kubernetesProvider.ListAllNamespaces(ctx)
 		if err != nil {
 			return err
 		}
