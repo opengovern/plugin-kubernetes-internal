@@ -19,7 +19,8 @@ func NewKaytuAgent(cfg *Config, agentDisabled bool) (*KaytuAgent, error) {
 		discovered: cfg.Address != "" && !agentDisabled,
 	}
 	if agent.discovered {
-		conn, err := grpc.NewClient(cfg.Address, grpc.WithTransportCredentials(insecure.NewCredentials()))
+		conn, err := grpc.NewClient(cfg.Address, grpc.WithTransportCredentials(insecure.NewCredentials()),
+			grpc.WithDefaultCallOptions(grpc.MaxCallRecvMsgSize(128*1024*1024)))
 		if err != nil {
 			return nil, err
 		}
