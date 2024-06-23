@@ -30,11 +30,12 @@ type Processor struct {
 	kaytuClient             *kaytuAgent.KaytuAgent
 	namespace               *string
 	observabilityDays       int
+	defaultPreferences      []*golang.PreferenceItem
 
 	summary util.ConcurrentMap[string, DeploymentSummary]
 }
 
-func NewProcessor(identification map[string]string, kubernetesProvider *kaytuKubernetes.Kubernetes, prometheusProvider *kaytuPrometheus.Prometheus, kaytuClient *kaytuAgent.KaytuAgent, publishOptimizationItem func(item *golang.ChartOptimizationItem), publishResultSummary func(summary *golang.ResultSummary), kaytuAcccessToken string, jobQueue *sdk.JobQueue, configuration *kaytu.Configuration, client golang2.OptimizationClient, namespace *string, observabilityDays int) *Processor {
+func NewProcessor(identification map[string]string, kubernetesProvider *kaytuKubernetes.Kubernetes, prometheusProvider *kaytuPrometheus.Prometheus, kaytuClient *kaytuAgent.KaytuAgent, publishOptimizationItem func(item *golang.ChartOptimizationItem), publishResultSummary func(summary *golang.ResultSummary), kaytuAcccessToken string, jobQueue *sdk.JobQueue, configuration *kaytu.Configuration, client golang2.OptimizationClient, namespace *string, observabilityDays int, defaultPreferences []*golang.PreferenceItem) *Processor {
 	r := &Processor{
 		identification:          identification,
 		kubernetesProvider:      kubernetesProvider,
@@ -50,6 +51,7 @@ func NewProcessor(identification map[string]string, kubernetesProvider *kaytuKub
 		kaytuClient:             kaytuClient,
 		namespace:               namespace,
 		observabilityDays:       observabilityDays,
+		defaultPreferences:      defaultPreferences,
 
 		summary: util.NewMap[string, DeploymentSummary](),
 	}

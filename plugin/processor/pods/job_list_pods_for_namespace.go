@@ -3,7 +3,6 @@ package pods
 import (
 	"context"
 	"fmt"
-	"github.com/kaytu-io/plugin-kubernetes-internal/plugin/preferences"
 	v1 "k8s.io/api/core/v1"
 )
 
@@ -36,7 +35,7 @@ func (j *ListPodsForNamespaceJob) Run(ctx context.Context) error {
 			Pod:                 pod,
 			Namespace:           j.namespace,
 			OptimizationLoading: true,
-			Preferences:         preferences.DefaultPodsPreferences,
+			Preferences:         j.processor.defaultPreferences,
 			Skipped:             false,
 			LazyLoadingEnabled:  false,
 		}
