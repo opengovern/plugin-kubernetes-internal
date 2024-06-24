@@ -3,6 +3,7 @@ package kubernetes
 import (
 	"context"
 	"errors"
+	"fmt"
 	"github.com/kaytu-io/kaytu/pkg/utils"
 	appv1 "k8s.io/api/apps/v1"
 	batchv1 "k8s.io/api/batch/v1"
@@ -280,23 +281,28 @@ func (s *Kubernetes) ListJobPods(ctx context.Context, job batchv1.Job) ([]corev1
 	return pods, nil
 }
 
-func (s *Kubernetes) DiscoverAndPortForwardKaytuAgent(ctx context.Context, reconnectMutex *sync.Mutex) (chan struct{}, error) {
+func (s *Kubernetes) DiscoverAndPortForwardKaytuAgent(ctx context.Context, reconnectMutex *sync.Mutex) (chan struct{}, string, error) {
 	stopChan := make(chan struct{}, 1)
+
+	port, err := getNextOpenPort()
+	if err != nil {
+		return nil, "", err
+	}
 
 	svc, err := s.findKaytuService(ctx)
 	if err != nil {
-		return nil, err
+		return nil, "", err
 	}
 	if svc == nil {
-		return nil, errors.New("kaytu not found")
+		return nil, "", errors.New("kaytu not found")
 	}
 
-	err = s.portForward(ctx, svc.Namespace, svc.Name, []string{"8001:8001"}, reconnectMutex, stopChan)
+	err = s.portForward(ctx, svc.Namespace, svc.Name, []string{fmt.Sprintf("%d:8001", port)}, reconnectMutex, stopChan)
 	if err != nil {
-		return nil, err
+		return nil, "", err
 	}
 
-	return stopChan, nil
+	return stopChan, fmt.Sprintf("localhost:%d", port), nil
 }
 
 func (s *Kubernetes) findKaytuService(ctx context.Context) (*corev1.Service, error) {

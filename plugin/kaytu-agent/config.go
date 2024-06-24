@@ -23,12 +23,12 @@ func GetConfig(address *string, agentDisabled bool, client *kaytuKubernetes.Kube
 	}
 
 	if cfg.Address == "" && !agentDisabled {
-		_, err := client.DiscoverAndPortForwardKaytuAgent(context.Background(), &cfg.reconnectWait)
+		_, addr, err := client.DiscoverAndPortForwardKaytuAgent(context.Background(), &cfg.reconnectWait)
 		if err != nil {
 			return nil, err
 		}
 		time.Sleep(1 * time.Second)
-		cfg.Address = "localhost:8001"
+		cfg.Address = addr
 	}
 
 	return &cfg, nil
