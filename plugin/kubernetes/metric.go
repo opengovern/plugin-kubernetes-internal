@@ -11,27 +11,43 @@ import (
 	"k8s.io/client-go/tools/portforward"
 	"k8s.io/client-go/transport/spdy"
 	"log"
+	"net"
 	"net/http"
 	"net/url"
 	"strings"
 	"sync"
 )
 
+func getNextOpenPort() (int, error) {
+	listener, err := net.Listen("tcp", ":0")
+	if err != nil {
+		return 0, err
+	}
+	defer listener.Close()
+
+	return listener.Addr().(*net.TCPAddr).Port, nil
+}
+
 func (s *Kubernetes) DiscoverAndPortForwardPrometheusCompatible(ctx context.Context, reconnectMutex *sync.Mutex) (chan struct{}, string, error) {
 	var svc *corev1.Service
 	var err error
 	stopChan := make(chan struct{}, 1)
+
+	port, err := getNextOpenPort()
+	if err != nil {
+		return nil, "", err
+	}
 
 	svc, err = s.findPrometheusService(ctx)
 	if err != nil {
 		return nil, "", err
 	}
 	if svc != nil {
-		err = s.portForward(ctx, svc.Namespace, svc.Name, []string{"9090:9090"}, reconnectMutex, stopChan)
+		err = s.portForward(ctx, svc.Namespace, svc.Name, []string{fmt.Sprintf("%d:9090", port)}, reconnectMutex, stopChan)
 		if err != nil {
 			return nil, "", err
 		}
-		return stopChan, "http://localhost:9090", nil
+		return stopChan, fmt.Sprintf("http://localhost:%d", port), nil
 	}
 
 	svc, err = s.findVictoriaMetricsClusterSelectService(ctx)
@@ -39,11 +55,11 @@ func (s *Kubernetes) DiscoverAndPortForwardPrometheusCompatible(ctx context.Cont
 		return nil, "", err
 	}
 	if svc != nil {
-		err = s.portForward(ctx, svc.Namespace, svc.Name, []string{"8481:8481"}, reconnectMutex, stopChan)
+		err = s.portForward(ctx, svc.Namespace, svc.Name, []string{fmt.Sprintf("%d:8481", port)}, reconnectMutex, stopChan)
 		if err != nil {
 			return nil, "", err
 		}
-		return stopChan, "http://localhost:8481/select/0/prometheus", nil
+		return stopChan, fmt.Sprintf("http://localhost:%d/select/0/prometheus", port), nil
 	}
 
 	svc, err = s.findVictoriaMetricsSingleServerService(ctx)
@@ -51,11 +67,11 @@ func (s *Kubernetes) DiscoverAndPortForwardPrometheusCompatible(ctx context.Cont
 		return nil, "", err
 	}
 	if svc != nil {
-		err = s.portForward(ctx, svc.Namespace, svc.Name, []string{"8429:8429"}, reconnectMutex, stopChan)
+		err = s.portForward(ctx, svc.Namespace, svc.Name, []string{fmt.Sprintf("%d:8429", port)}, reconnectMutex, stopChan)
 		if err != nil {
 			return nil, "", err
 		}
-		return stopChan, "http://localhost:8429", nil
+		return stopChan, fmt.Sprintf("http://localhost:%d", port), nil
 	}
 
 	return nil, "", errors.New("no prometheus compatible service found - try passing the prometheus compatible endpoint with the --prom-address flag e.g. --prom-address 'http://localhost:9090'")
