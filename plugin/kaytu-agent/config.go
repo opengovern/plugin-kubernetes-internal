@@ -2,6 +2,7 @@ package prometheus
 
 import (
 	"context"
+	"errors"
 	kaytuKubernetes "github.com/kaytu-io/plugin-kubernetes-internal/plugin/kubernetes"
 	"sync"
 	"time"
@@ -25,6 +26,9 @@ func GetConfig(address *string, agentDisabled bool, client *kaytuKubernetes.Kube
 	if cfg.Address == "" && !agentDisabled {
 		_, addr, err := client.DiscoverAndPortForwardKaytuAgent(context.Background(), &cfg.reconnectWait)
 		if err != nil {
+			if errors.Is(err, kaytuKubernetes.KaytuNotFoundErr) {
+				return &cfg, nil
+			}
 			return nil, err
 		}
 		time.Sleep(1 * time.Second)
