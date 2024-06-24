@@ -47,8 +47,12 @@ func (s *Kubernetes) Identify() map[string]string {
 	}
 
 	currentContext := s.kubeCfg.Contexts[s.kubeCfg.CurrentContext]
-	if currentContext == nil {
+	if currentContext == nil && len(s.kubeCfg.Contexts) > 1 {
 		return result
+	} else if currentContext == nil {
+		for _, v := range s.kubeCfg.Contexts {
+			currentContext = v
+		}
 	}
 	result["context_name"] = s.kubeCfg.CurrentContext
 	result["cluster_name"] = currentContext.Cluster
