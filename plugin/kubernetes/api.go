@@ -19,6 +19,8 @@ import (
 	"time"
 )
 
+var KaytuNotFoundErr = errors.New("kaytu not found")
+
 type Kubernetes struct {
 	restClientCfg *restclient.Config
 	kubeCfg       *api.Config
@@ -294,7 +296,7 @@ func (s *Kubernetes) DiscoverAndPortForwardKaytuAgent(ctx context.Context, recon
 		return nil, "", err
 	}
 	if svc == nil {
-		return nil, "", errors.New("kaytu not found")
+		return nil, "", KaytuNotFoundErr
 	}
 
 	err = s.portForward(ctx, svc.Namespace, svc.Name, []string{fmt.Sprintf("%d:8001", port)}, reconnectMutex, stopChan)
