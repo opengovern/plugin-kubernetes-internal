@@ -3,5 +3,5 @@ package shared
 import "time"
 
 const (
-	GrpcOptimizeRequestTimeout = time.Minute * 10
+	GrpcOptimizeRequestTimeout = time.Minute * 1
 )
