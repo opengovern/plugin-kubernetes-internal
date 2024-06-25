@@ -367,6 +367,17 @@ func (p *KubernetesPlugin) StartProcess(ctx context.Context, command string, fla
 		}
 	}
 
+	publishResultSummaryTable := func(summary *golang.ResultSummaryTable) {
+		err := p.stream.Send(&golang.PluginMessage{
+			PluginMessage: &golang.PluginMessage_SummaryTable{
+				SummaryTable: summary,
+			},
+		})
+		if err != nil {
+			log.Printf("failed to send summary table: %v", err)
+		}
+	}
+
 	publishNonInteractiveExport := func(ex *golang.NonInteractiveExport) {
 		err := p.stream.Send(&golang.PluginMessage{
 			PluginMessage: &golang.PluginMessage_NonInteractive{
@@ -403,7 +414,7 @@ func (p *KubernetesPlugin) StartProcess(ctx context.Context, command string, fla
 
 	switch command {
 	case "kubernetes-pods":
-		p.processor = pods.NewProcessor(identification, kubeClient, promClient, kaytuClient, publishOptimizationItem, publishResultSummary, jobQueue, configurations, client, namespace, observabilityDays, preferences)
+		p.processor = pods.NewProcessor(identification, kubeClient, promClient, kaytuClient, publishOptimizationItem, publishResultSummary, publishResultSummaryTable, jobQueue, configurations, client, namespace, observabilityDays, preferences)
 	case "kubernetes-deployments":
 		err = p.stream.Send(&golang.PluginMessage{
 			PluginMessage: &golang.PluginMessage_UpdateChart{
@@ -456,7 +467,7 @@ func (p *KubernetesPlugin) StartProcess(ctx context.Context, command string, fla
 		if err != nil {
 			return err
 		}
-		p.processor = deployments.NewProcessor(identification, kubeClient, promClient, kaytuClient, publishOptimizationItem, publishResultSummary, kaytuAccessToken, jobQueue, configurations, client, namespace, observabilityDays, preferences)
+		p.processor = deployments.NewProcessor(identification, kubeClient, promClient, kaytuClient, publishOptimizationItem, publishResultSummary, publishResultSummaryTable, kaytuAccessToken, jobQueue, configurations, client, namespace, observabilityDays, preferences)
 	case "kubernetes-statefulsets":
 		err = p.stream.Send(&golang.PluginMessage{
 			PluginMessage: &golang.PluginMessage_UpdateChart{
@@ -509,7 +520,7 @@ func (p *KubernetesPlugin) StartProcess(ctx context.Context, command string, fla
 		if err != nil {
 			return err
 		}
-		p.processor = statefulsets.NewProcessor(identification, kubeClient, promClient, kaytuClient, publishOptimizationItem, publishResultSummary, jobQueue, configurations, client, namespace, observabilityDays, preferences)
+		p.processor = statefulsets.NewProcessor(identification, kubeClient, promClient, kaytuClient, publishOptimizationItem, publishResultSummary, publishResultSummaryTable, jobQueue, configurations, client, namespace, observabilityDays, preferences)
 	case "kubernetes-daemonsets":
 		err = p.stream.Send(&golang.PluginMessage{
 			PluginMessage: &golang.PluginMessage_UpdateChart{
@@ -562,7 +573,7 @@ func (p *KubernetesPlugin) StartProcess(ctx context.Context, command string, fla
 		if err != nil {
 			return err
 		}
-		p.processor = daemonsets.NewProcessor(identification, kubeClient, promClient, kaytuClient, publishOptimizationItem, publishResultSummary, jobQueue, configurations, client, namespace, observabilityDays, preferences)
+		p.processor = daemonsets.NewProcessor(identification, kubeClient, promClient, kaytuClient, publishOptimizationItem, publishResultSummary, publishResultSummaryTable, jobQueue, configurations, client, namespace, observabilityDays, preferences)
 	case "kubernetes-jobs":
 		err = p.stream.Send(&golang.PluginMessage{
 			PluginMessage: &golang.PluginMessage_UpdateChart{
@@ -615,7 +626,7 @@ func (p *KubernetesPlugin) StartProcess(ctx context.Context, command string, fla
 		if err != nil {
 			return err
 		}
-		p.processor = jobs.NewProcessor(identification, kubeClient, promClient, kaytuClient, publishOptimizationItem, publishResultSummary, jobQueue, configurations, client, namespace, observabilityDays, preferences)
+		p.processor = jobs.NewProcessor(identification, kubeClient, promClient, kaytuClient, publishOptimizationItem, publishResultSummary, publishResultSummaryTable, jobQueue, configurations, client, namespace, observabilityDays, preferences)
 	}
 
 	jobQueue.SetOnFinish(func(ctx context.Context) {
