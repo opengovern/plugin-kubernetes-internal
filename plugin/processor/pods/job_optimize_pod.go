@@ -6,11 +6,11 @@ import (
 	"fmt"
 	"github.com/google/uuid"
 	"github.com/kaytu-io/kaytu/preferences"
+	"github.com/kaytu-io/plugin-kubernetes-internal/plugin/processor/shared"
 	"github.com/kaytu-io/plugin-kubernetes-internal/plugin/proto/src/golang"
 	"github.com/kaytu-io/plugin-kubernetes-internal/plugin/version"
 	"google.golang.org/grpc/metadata"
 	"google.golang.org/protobuf/types/known/wrapperspb"
-	"time"
 )
 
 type OptimizePodJob struct {
@@ -94,7 +94,7 @@ func (j *OptimizePodJob) Run(ctx context.Context) error {
 	}
 
 	grpcCtx := metadata.NewOutgoingContext(ctx, metadata.Pairs("workspace-name", "kaytu"))
-	grpcCtx, cancel := context.WithTimeout(grpcCtx, time.Minute)
+	grpcCtx, cancel := context.WithTimeout(grpcCtx, shared.GrpcOptimizeRequestTimeout)
 	defer cancel()
 	resp, err := j.processor.client.KubernetesPodOptimization(grpcCtx, &golang.KubernetesPodOptimizationRequest{
 		RequestId:      wrapperspb.String(reqID),
