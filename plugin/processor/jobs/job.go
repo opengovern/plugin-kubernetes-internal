@@ -15,41 +15,45 @@ import (
 	"sync/atomic"
 )
 
+const MB = 1024 * 1024
+
 type Processor struct {
-	identification          map[string]string
-	kubernetesProvider      *kaytuKubernetes.Kubernetes
-	prometheusProvider      *kaytuPrometheus.Prometheus
-	items                   util.ConcurrentMap[string, JobItem]
-	publishOptimizationItem func(item *golang.ChartOptimizationItem)
-	publishResultSummary    func(summary *golang.ResultSummary)
-	jobQueue                *sdk.JobQueue
-	lazyloadCounter         atomic.Uint32
-	configuration           *kaytu.Configuration
-	client                  golang2.OptimizationClient
-	kaytuClient             *kaytuAgent.KaytuAgent
-	namespace               *string
-	observabilityDays       int
-	defaultPreferences      []*golang.PreferenceItem
+	identification            map[string]string
+	kubernetesProvider        *kaytuKubernetes.Kubernetes
+	prometheusProvider        *kaytuPrometheus.Prometheus
+	items                     util.ConcurrentMap[string, JobItem]
+	publishOptimizationItem   func(item *golang.ChartOptimizationItem)
+	publishResultSummary      func(summary *golang.ResultSummary)
+	publishResultSummaryTable func(summary *golang.ResultSummaryTable)
+	jobQueue                  *sdk.JobQueue
+	lazyloadCounter           atomic.Uint32
+	configuration             *kaytu.Configuration
+	client                    golang2.OptimizationClient
+	kaytuClient               *kaytuAgent.KaytuAgent
+	namespace                 *string
+	observabilityDays         int
+	defaultPreferences        []*golang.PreferenceItem
 
 	summary util.ConcurrentMap[string, JobSummary]
 }
 
-func NewProcessor(identification map[string]string, kubernetesProvider *kaytuKubernetes.Kubernetes, prometheusProvider *kaytuPrometheus.Prometheus, kaytuClient *kaytuAgent.KaytuAgent, publishOptimizationItem func(item *golang.ChartOptimizationItem), publishResultSummary func(summary *golang.ResultSummary), jobQueue *sdk.JobQueue, configuration *kaytu.Configuration, client golang2.OptimizationClient, namespace *string, observabilityDays int, defaultPreferences []*golang.PreferenceItem) *Processor {
+func NewProcessor(identification map[string]string, kubernetesProvider *kaytuKubernetes.Kubernetes, prometheusProvider *kaytuPrometheus.Prometheus, kaytuClient *kaytuAgent.KaytuAgent, publishOptimizationItem func(item *golang.ChartOptimizationItem), publishResultSummary func(summary *golang.ResultSummary), publishResultSummaryTable func(summary *golang.ResultSummaryTable), jobQueue *sdk.JobQueue, configuration *kaytu.Configuration, client golang2.OptimizationClient, namespace *string, observabilityDays int, defaultPreferences []*golang.PreferenceItem) *Processor {
 	r := &Processor{
-		identification:          identification,
-		kubernetesProvider:      kubernetesProvider,
-		prometheusProvider:      prometheusProvider,
-		items:                   util.NewMap[string, JobItem](),
-		publishOptimizationItem: publishOptimizationItem,
-		publishResultSummary:    publishResultSummary,
-		jobQueue:                jobQueue,
-		lazyloadCounter:         atomic.Uint32{},
-		configuration:           configuration,
-		kaytuClient:             kaytuClient,
-		client:                  client,
-		namespace:               namespace,
-		observabilityDays:       observabilityDays,
-		defaultPreferences:      defaultPreferences,
+		identification:            identification,
+		kubernetesProvider:        kubernetesProvider,
+		prometheusProvider:        prometheusProvider,
+		items:                     util.NewMap[string, JobItem](),
+		publishOptimizationItem:   publishOptimizationItem,
+		publishResultSummary:      publishResultSummary,
+		publishResultSummaryTable: publishResultSummaryTable,
+		jobQueue:                  jobQueue,
+		lazyloadCounter:           atomic.Uint32{},
+		configuration:             configuration,
+		kaytuClient:               kaytuClient,
+		client:                    client,
+		namespace:                 namespace,
+		observabilityDays:         observabilityDays,
+		defaultPreferences:        defaultPreferences,
 
 		summary: util.NewMap[string, JobSummary](),
 	}
@@ -109,6 +113,63 @@ func (m *Processor) ResultsSummary() *golang.ResultSummary {
 	return summary
 }
 
+func (m *Processor) ResultsSummaryTable() *golang.ResultSummaryTable {
+	summaryTable := &golang.ResultSummaryTable{}
+	var cpuRequestChanges, cpuLimitChanges, memoryRequestChanges, memoryLimitChanges float64
+	var totalCpuRequest, totalCpuLimit, totalMemoryRequest, totalMemoryLimit float64
+	m.summary.Range(func(key string, item JobSummary) bool {
+		cpuRequestChanges += item.CPURequestChange * float64(item.ReplicaCount)
+		cpuLimitChanges += item.CPULimitChange * float64(item.ReplicaCount)
+		memoryRequestChanges += item.MemoryRequestChange * float64(item.ReplicaCount)
+		memoryLimitChanges += item.MemoryLimitChange * float64(item.ReplicaCount)
+
+		totalCpuRequest += item.TotalCPURequest * float64(item.ReplicaCount)
+		totalCpuLimit += item.TotalCPULimit * float64(item.ReplicaCount)
+		totalMemoryRequest += item.TotalMemoryRequest * float64(item.ReplicaCount)
+		totalMemoryLimit += item.TotalMemoryLimit * float64(item.ReplicaCount)
+
+		return true
+	})
+	summaryTable.Headers = []string{"Summary", "Current", "Recommended", "Net Impact", "Change"}
+	summaryTable.Message = append(summaryTable.Message, &golang.ResultSummaryTableRow{
+		Cells: []string{
+			"CPU Request (Cores)",
+			fmt.Sprintf("%.2f Cores", totalCpuRequest),
+			fmt.Sprintf("%.2f Cores", totalCpuRequest+cpuRequestChanges),
+			fmt.Sprintf("%.2f Cores", cpuRequestChanges),
+			fmt.Sprintf("%.2f%%", cpuRequestChanges/totalCpuRequest*100.0),
+		},
+	})
+	summaryTable.Message = append(summaryTable.Message, &golang.ResultSummaryTableRow{
+		Cells: []string{
+			"CPU Limit (Cores)",
+			fmt.Sprintf("%.2f Cores", totalCpuLimit),
+			fmt.Sprintf("%.2f Cores", totalCpuLimit+cpuLimitChanges),
+			fmt.Sprintf("%.2f Cores", cpuLimitChanges),
+			fmt.Sprintf("%.2f%%", cpuLimitChanges/totalCpuLimit*100.0),
+		},
+	})
+	summaryTable.Message = append(summaryTable.Message, &golang.ResultSummaryTableRow{
+		Cells: []string{
+			"Memory Request",
+			shared.SizeByte64(totalMemoryRequest),
+			shared.SizeByte64(totalMemoryRequest + memoryRequestChanges),
+			shared.SizeByte64(memoryRequestChanges),
+			fmt.Sprintf("%.2f%%", memoryRequestChanges/totalMemoryRequest*100.0),
+		},
+	})
+	summaryTable.Message = append(summaryTable.Message, &golang.ResultSummaryTableRow{
+		Cells: []string{
+			"Memory Limit",
+			shared.SizeByte64(totalMemoryLimit),
+			shared.SizeByte64(totalMemoryLimit + memoryLimitChanges),
+			shared.SizeByte64(memoryLimitChanges),
+			fmt.Sprintf("%.2f%%", memoryLimitChanges/totalMemoryLimit*100.0),
+		},
+	})
+	return summaryTable
+}
+
 func (m *Processor) UpdateSummary(itemId string) {
 	i, ok := m.items.Get(itemId)
 	if ok && i.Wastage != nil {
@@ -162,4 +223,5 @@ func (m *Processor) UpdateSummary(itemId string) {
 		m.summary.Set(i.GetID(), js)
 	}
 	m.publishResultSummary(m.ResultsSummary())
+	m.publishResultSummaryTable(m.ResultsSummaryTable())
 }
