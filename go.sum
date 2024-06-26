@@ -136,6 +136,8 @@ github.com/kaytu-io/kaytu v0.14.2-rc.2.0.20240623175355-3f14c8c8b06e h1:U6jUdOMW
 github.com/kaytu-io/kaytu v0.14.2-rc.2.0.20240623175355-3f14c8c8b06e/go.mod h1:csDLaCgTnp/D9SZuo55KjOzp/BYfkhkeSkGuEiCljtc=
 github.com/kaytu-io/kaytu v0.15.1-rc.0.0.20240625180242-79d5e8f3cdd5 h1:W7chKrH7pmYDnSxRW+ovWoY52CPLSXqSb+Nzgq2rP90=
 github.com/kaytu-io/kaytu v0.15.1-rc.0.0.20240625180242-79d5e8f3cdd5/go.mod h1:csDLaCgTnp/D9SZuo55KjOzp/BYfkhkeSkGuEiCljtc=
+github.com/kaytu-io/kaytu v0.16.0-rc.0.0.20240626105550-2235dc492ec1 h1:5SJmZMsYvfTsoowHLZ4tftpq1jCc5UOvDQAgQ/ZDb/g=
+github.com/kaytu-io/kaytu v0.16.0-rc.0.0.20240626105550-2235dc492ec1/go.mod h1:csDLaCgTnp/D9SZuo55KjOzp/BYfkhkeSkGuEiCljtc=
 github.com/kaytu-io/kaytu-agent v0.0.0-20240615090533-caf550626941 h1:m6duwoHIaQQRz4xjNMa4RX3AcEaCoe5CU0ZyS4BOY3Y=
 github.com/kaytu-io/kaytu-agent v0.0.0-20240615090533-caf550626941/go.mod h1:BE7S6c0jyBxGN6qaaRJ4gFBqP8gGM296SdrdsZGbqZo=
 github.com/kevinburke/ssh_config v1.2.0 h1:x584FjTGwHzMwvHx18PXxbBVzfnxogHaAReU4gf13a4=

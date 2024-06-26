@@ -3,6 +3,7 @@ package jobs
 import (
 	"context"
 	"fmt"
+	"github.com/kaytu-io/kaytu/pkg/plugin/sdk"
 	"github.com/kaytu-io/plugin-kubernetes-internal/plugin/preferences"
 )
 
@@ -18,11 +19,12 @@ func NewListJobsForNamespaceJob(processor *Processor, namespace string) *ListJob
 	}
 }
 
-func (j *ListJobsForNamespaceJob) Id() string {
-	return fmt.Sprintf("list_jobs_for_namespace_kubernetes_%s", j.namespace)
-}
-func (j *ListJobsForNamespaceJob) Description() string {
-	return fmt.Sprintf("Listing all pods in namespace %s (Kubernetes Jobs)", j.namespace)
+func (j *ListJobsForNamespaceJob) Properties() sdk.JobProperties {
+	return sdk.JobProperties{
+		ID:          fmt.Sprintf("list_jobs_for_namespace_kubernetes_%s", j.namespace),
+		Description: fmt.Sprintf("Listing all pods in namespace %s (Kubernetes Jobs)", j.namespace),
+		MaxRetry:    0,
+	}
 }
 func (j *ListJobsForNamespaceJob) Run(ctx context.Context) error {
 	jobs, err := j.processor.kubernetesProvider.ListJobsInNamespace(ctx, j.namespace)

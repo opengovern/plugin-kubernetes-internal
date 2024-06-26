@@ -3,6 +3,7 @@ package pods
 import (
 	"context"
 	"fmt"
+	"github.com/kaytu-io/kaytu/pkg/plugin/sdk"
 	v1 "k8s.io/api/core/v1"
 )
 
@@ -18,12 +19,14 @@ func NewListPodsForNamespaceJob(processor *Processor, namespace string) *ListPod
 	}
 }
 
-func (j *ListPodsForNamespaceJob) Id() string {
-	return fmt.Sprintf("list_pods_for_namespace_kubernetes_%s", j.namespace)
+func (j *ListPodsForNamespaceJob) Properties() sdk.JobProperties {
+	return sdk.JobProperties{
+		ID:          fmt.Sprintf("list_pods_for_namespace_kubernetes_%s", j.namespace),
+		Description: fmt.Sprintf("Listing all pods in namespace %s (Kubernetes Pods)", j.namespace),
+		MaxRetry:    0,
+	}
 }
-func (j *ListPodsForNamespaceJob) Description() string {
-	return fmt.Sprintf("Listing all pods in namespace %s (Kubernetes Pods)", j.namespace)
-}
+
 func (j *ListPodsForNamespaceJob) Run(ctx context.Context) error {
 	pods, err := j.processor.kubernetesProvider.ListPodsInNamespace(ctx, j.namespace)
 	if err != nil {

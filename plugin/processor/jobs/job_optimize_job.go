@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"github.com/google/uuid"
+	"github.com/kaytu-io/kaytu/pkg/plugin/sdk"
 	"github.com/kaytu-io/kaytu/preferences"
 	"github.com/kaytu-io/plugin-kubernetes-internal/plugin/processor/shared"
 	"github.com/kaytu-io/plugin-kubernetes-internal/plugin/proto/src/golang"
@@ -24,12 +25,12 @@ func NewOptimizeJobJob(processor *Processor, itemId string) *OptimizeJobJob {
 		itemId:    itemId,
 	}
 }
-
-func (j *OptimizeJobJob) Id() string {
-	return fmt.Sprintf("optimize_job_%s", j.itemId)
-}
-func (j *OptimizeJobJob) Description() string {
-	return fmt.Sprintf("Optimizing job %s", j.itemId)
+func (j *OptimizeJobJob) Properties() sdk.JobProperties {
+	return sdk.JobProperties{
+		ID:          fmt.Sprintf("optimize_job_%s", j.itemId),
+		Description: fmt.Sprintf("optimize_job_%s", j.itemId),
+		MaxRetry:    3,
+	}
 }
 func (j *OptimizeJobJob) Run(ctx context.Context) error {
 	item, ok := j.processor.items.Get(j.itemId)
