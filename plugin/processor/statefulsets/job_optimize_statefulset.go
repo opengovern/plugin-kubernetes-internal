@@ -120,10 +120,11 @@ func (j *OptimizeStatefulsetJob) Run(ctx context.Context) error {
 		return err
 	}
 
-	item.Wastage = resp
-	item.OptimizationLoading = false
 	item.LazyLoadingEnabled = false
+	item.OptimizationLoading = false
 	item.Skipped = false
+	item.SkipReason = ""
+	item.Wastage = resp
 
 	j.processor.items.Set(item.GetID(), item)
 	j.processor.publishOptimizationItem(item.ToOptimizationItem())
