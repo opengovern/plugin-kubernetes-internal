@@ -3,6 +3,7 @@ package deployments
 import (
 	"context"
 	"fmt"
+	"github.com/kaytu-io/kaytu/pkg/plugin/sdk"
 	"github.com/kaytu-io/plugin-kubernetes-internal/plugin/preferences"
 )
 
@@ -18,12 +19,14 @@ func NewListDeploymentsForNamespaceJob(processor *Processor, namespace string) *
 	}
 }
 
-func (j *ListDeploymentsForNamespaceJob) Id() string {
-	return fmt.Sprintf("list_deployments_for_namespace_kubernetes_%s", j.namespace)
+func (j *ListDeploymentsForNamespaceJob) Properties() sdk.JobProperties {
+	return sdk.JobProperties{
+		ID:          fmt.Sprintf("list_deployments_for_namespace_kubernetes_%s", j.namespace),
+		Description: fmt.Sprintf("Listing all pods in namespace %s (Kubernetes Deployments)", j.namespace),
+		MaxRetry:    0,
+	}
 }
-func (j *ListDeploymentsForNamespaceJob) Description() string {
-	return fmt.Sprintf("Listing all pods in namespace %s (Kubernetes Deployments)", j.namespace)
-}
+
 func (j *ListDeploymentsForNamespaceJob) Run(ctx context.Context) error {
 	deployments, err := j.processor.kubernetesProvider.ListDeploymentsInNamespace(ctx, j.namespace)
 	if err != nil {

@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"github.com/kaytu-io/kaytu/pkg/plugin/sdk"
 	kaytuPrometheus "github.com/kaytu-io/plugin-kubernetes-internal/plugin/prometheus"
 )
 
@@ -18,12 +19,12 @@ func NewGetJobPodMetricsJob(processor *Processor, itemId string) *GetJobPodMetri
 		itemId:    itemId,
 	}
 }
-
-func (j *GetJobPodMetricsJob) Id() string {
-	return fmt.Sprintf("get_job_pod_metrics_for_%s", j.itemId)
-}
-func (j *GetJobPodMetricsJob) Description() string {
-	return fmt.Sprintf("Getting metrics for %s (Kubernetes Jobs)", j.itemId)
+func (j *GetJobPodMetricsJob) Properties() sdk.JobProperties {
+	return sdk.JobProperties{
+		ID:          fmt.Sprintf("get_job_pod_metrics_for_%s", j.itemId),
+		Description: fmt.Sprintf("Getting metrics for %s (Kubernetes Jobs)", j.itemId),
+		MaxRetry:    3,
+	}
 }
 func (j *GetJobPodMetricsJob) Run(ctx context.Context) error {
 	job, ok := j.processor.items.Get(j.itemId)

@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"github.com/google/uuid"
+	"github.com/kaytu-io/kaytu/pkg/plugin/sdk"
 	"github.com/kaytu-io/kaytu/preferences"
 	"github.com/kaytu-io/plugin-kubernetes-internal/plugin/processor/shared"
 	"github.com/kaytu-io/plugin-kubernetes-internal/plugin/proto/src/golang"
@@ -24,13 +25,14 @@ func NewOptimizePodJob(processor *Processor, item string) *OptimizePodJob {
 		itemId:    item,
 	}
 }
+func (j *OptimizePodJob) Properties() sdk.JobProperties {
+	return sdk.JobProperties{
+		ID:          fmt.Sprintf("optimize_pod_cluster_%s", j.itemId),
+		Description: fmt.Sprintf("Optimizing pod %s", j.itemId),
+		MaxRetry:    3,
+	}
+}
 
-func (j *OptimizePodJob) Id() string {
-	return fmt.Sprintf("optimize_pod_cluster_%s", j.itemId)
-}
-func (j *OptimizePodJob) Description() string {
-	return fmt.Sprintf("Optimizing pod %s", j.itemId)
-}
 func (j *OptimizePodJob) Run(ctx context.Context) error {
 	item, ok := j.processor.items.Get(j.itemId)
 	if !ok {

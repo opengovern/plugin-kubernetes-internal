@@ -3,6 +3,7 @@ package statefulsets
 import (
 	"context"
 	"fmt"
+	"github.com/kaytu-io/kaytu/pkg/plugin/sdk"
 	"github.com/kaytu-io/plugin-kubernetes-internal/plugin/preferences"
 )
 
@@ -18,11 +19,12 @@ func NewListStatefulsetsForNamespaceJob(processor *Processor, namespace string) 
 	}
 }
 
-func (j *ListStatefulsetsForNamespaceJob) Id() string {
-	return fmt.Sprintf("list_statefulsets_for_namespace_kubernetes_%s", j.namespace)
-}
-func (j *ListStatefulsetsForNamespaceJob) Description() string {
-	return fmt.Sprintf("Listing all pods in namespace %s (Kubernetes Statefulsets)", j.namespace)
+func (j *ListStatefulsetsForNamespaceJob) Properties() sdk.JobProperties {
+	return sdk.JobProperties{
+		ID:          fmt.Sprintf("list_statefulsets_for_namespace_kubernetes_%s", j.namespace),
+		Description: fmt.Sprintf("Listing all pods in namespace %s (Kubernetes Statefulsets)", j.namespace),
+		MaxRetry:    0,
+	}
 }
 func (j *ListStatefulsetsForNamespaceJob) Run(ctx context.Context) error {
 	statefulsets, err := j.processor.kubernetesProvider.ListStatefulsetsInNamespace(ctx, j.namespace)

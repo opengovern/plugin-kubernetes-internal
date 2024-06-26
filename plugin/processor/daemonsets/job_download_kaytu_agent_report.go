@@ -3,6 +3,7 @@ package daemonsets
 import (
 	"context"
 	"encoding/json"
+	"github.com/kaytu-io/kaytu/pkg/plugin/sdk"
 	"github.com/kaytu-io/kaytu/view"
 )
 
@@ -16,12 +17,14 @@ func NewDownloadKaytuAgentReportJob(processor *Processor) *DownloadKaytuAgentRep
 	}
 }
 
-func (j *DownloadKaytuAgentReportJob) Id() string {
-	return "download_kaytu_agent_report_job"
+func (j *DownloadKaytuAgentReportJob) Properties() sdk.JobProperties {
+	return sdk.JobProperties{
+		ID:          "download_kaytu_agent_report_job",
+		Description: "Downloading Kaytu Agent report (Kubernetes DaemonSets)",
+		MaxRetry:    0,
+	}
 }
-func (j *DownloadKaytuAgentReportJob) Description() string {
-	return "Downloading Kaytu Agent report (Kubernetes DaemonSets)"
-}
+
 func (j *DownloadKaytuAgentReportJob) Run(ctx context.Context) error {
 	report, err := j.processor.kaytuClient.DownloadReport("kubernetes-daemonsets")
 	if err != nil {

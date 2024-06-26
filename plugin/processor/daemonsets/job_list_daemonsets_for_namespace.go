@@ -3,6 +3,7 @@ package daemonsets
 import (
 	"context"
 	"fmt"
+	"github.com/kaytu-io/kaytu/pkg/plugin/sdk"
 	"github.com/kaytu-io/plugin-kubernetes-internal/plugin/preferences"
 )
 
@@ -17,13 +18,14 @@ func NewListDaemonsetsForNamespaceJob(processor *Processor, namespace string) *L
 		namespace: namespace,
 	}
 }
+func (j *ListDaemonsetsForNamespaceJob) Properties() sdk.JobProperties {
+	return sdk.JobProperties{
+		ID:          fmt.Sprintf("list_daemonsets_for_namespace_kubernetes_%s", j.namespace),
+		Description: fmt.Sprintf("Listing all pods in namespace %s (Kubernetes Daemonsets)", j.namespace),
+		MaxRetry:    0,
+	}
+}
 
-func (j *ListDaemonsetsForNamespaceJob) Id() string {
-	return fmt.Sprintf("list_daemonsets_for_namespace_kubernetes_%s", j.namespace)
-}
-func (j *ListDaemonsetsForNamespaceJob) Description() string {
-	return fmt.Sprintf("Listing all pods in namespace %s (Kubernetes Daemonsets)", j.namespace)
-}
 func (j *ListDaemonsetsForNamespaceJob) Run(ctx context.Context) error {
 	daemonsets, err := j.processor.kubernetesProvider.ListDaemonsetsInNamespace(ctx, j.namespace)
 	if err != nil {

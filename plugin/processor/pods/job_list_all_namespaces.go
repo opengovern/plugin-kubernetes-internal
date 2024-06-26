@@ -2,6 +2,7 @@ package pods
 
 import (
 	"context"
+	"github.com/kaytu-io/kaytu/pkg/plugin/sdk"
 )
 
 type ListAllNamespacesJob struct {
@@ -14,12 +15,14 @@ func NewListAllNamespacesJob(processor *Processor) *ListAllNamespacesJob {
 	}
 }
 
-func (j *ListAllNamespacesJob) Id() string {
-	return "list_all_namespaces_for_kubernetes_pods"
+func (j *ListAllNamespacesJob) Properties() sdk.JobProperties {
+	return sdk.JobProperties{
+		ID:          "list_all_namespaces_for_kubernetes_pods",
+		Description: "Listing all available namespaces (Kubernetes Pods)",
+		MaxRetry:    0,
+	}
 }
-func (j *ListAllNamespacesJob) Description() string {
-	return "Listing all available namespaces (Kubernetes Pods)"
-}
+
 func (j *ListAllNamespacesJob) Run(ctx context.Context) error {
 	var namespaces []string
 	if j.processor.namespace != nil &&

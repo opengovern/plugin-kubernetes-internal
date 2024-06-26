@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"github.com/kaytu-io/kaytu/pkg/plugin/sdk"
 )
 
 type ListPodsForJobJob struct {
@@ -18,12 +19,14 @@ func NewListPodsForJobJob(processor *Processor, itemId string) *ListPodsForJobJo
 	}
 }
 
-func (j *ListPodsForJobJob) Id() string {
-	return fmt.Sprintf("list_pods_for_job_kubernetes_%s", j.itemId)
+func (j *ListPodsForJobJob) Properties() sdk.JobProperties {
+	return sdk.JobProperties{
+		ID:          fmt.Sprintf("list_pods_for_job_kubernetes_%s", j.itemId),
+		Description: fmt.Sprintf("Listing all pods for job %s (Kubernetes Jobs)", j.itemId),
+		MaxRetry:    0,
+	}
 }
-func (j *ListPodsForJobJob) Description() string {
-	return fmt.Sprintf("Listing all pods for job %s (Kubernetes Jobs)", j.itemId)
-}
+
 func (j *ListPodsForJobJob) Run(ctx context.Context) error {
 	var err error
 	item, ok := j.processor.items.Get(j.itemId)
