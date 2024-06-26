@@ -86,10 +86,9 @@ func (m *Processor) ReEvaluate(id string, items []*golang.PreferenceItem) {
 	v.Preferences = items
 	v.OptimizationLoading = true
 	m.items.Set(id, v)
-	m.jobQueue.Push(NewOptimizePodJob(m, id))
-
 	v.LazyLoadingEnabled = false
 	m.publishOptimizationItem(v.ToOptimizationItem())
+	m.jobQueue.Push(NewOptimizePodJob(m, id))
 }
 
 func (m *Processor) ExportNonInteractive() *golang.NonInteractiveExport {
