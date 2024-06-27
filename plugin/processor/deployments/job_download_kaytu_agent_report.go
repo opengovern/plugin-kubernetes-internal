@@ -46,7 +46,7 @@ func (j *DownloadKaytuAgentReportJob) Run(ctx context.Context) error {
 		}
 
 		item.Nodes = j.nodes
-		if j.processor.namespace != nil {
+		if j.processor.namespace != nil && *j.processor.namespace != "" {
 			if item.Namespace != *j.processor.namespace {
 				continue
 			}

@@ -3,6 +3,7 @@ package pods
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 	"github.com/kaytu-io/kaytu/pkg/plugin/sdk"
 	"github.com/kaytu-io/kaytu/view"
 	"github.com/kaytu-io/plugin-kubernetes-internal/plugin/processor/shared"
@@ -46,18 +47,21 @@ func (j *DownloadKaytuAgentReportJob) Run(ctx context.Context) error {
 		}
 
 		item.Nodes = j.nodes
-		if j.processor.namespace != nil {
+		if j.processor.namespace != nil && *j.processor.namespace != "" {
 			if item.Namespace != *j.processor.namespace {
+				fmt.Println("ignoring by namespace")
 				continue
 			}
 		}
 		if j.processor.selector != "" {
 			if !shared.LabelFilter(j.processor.selector, item.Pod.Labels) {
+				fmt.Println("ignoring by label")
 				continue
 			}
 		}
 		if j.processor.nodeSelector != "" {
 			if !shared.PodsInNodes([]v1.Pod{item.Pod}, item.Nodes) {
+				fmt.Println("ignoring by node")
 				continue
 			}
 		}
