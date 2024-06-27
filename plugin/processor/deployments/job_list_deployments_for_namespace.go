@@ -5,17 +5,21 @@ import (
 	"fmt"
 	"github.com/kaytu-io/kaytu/pkg/plugin/sdk"
 	"github.com/kaytu-io/plugin-kubernetes-internal/plugin/preferences"
+	"github.com/kaytu-io/plugin-kubernetes-internal/plugin/processor/shared"
+	corev1 "k8s.io/api/core/v1"
 )
 
 type ListDeploymentsForNamespaceJob struct {
 	processor *Processor
 	namespace string
+	nodes     []corev1.Node
 }
 
-func NewListDeploymentsForNamespaceJob(processor *Processor, namespace string) *ListDeploymentsForNamespaceJob {
+func NewListDeploymentsForNamespaceJob(processor *Processor, namespace string, nodes []corev1.Node) *ListDeploymentsForNamespaceJob {
 	return &ListDeploymentsForNamespaceJob{
 		processor: processor,
 		namespace: namespace,
+		nodes:     nodes,
 	}
 }
 
@@ -28,7 +32,7 @@ func (j *ListDeploymentsForNamespaceJob) Properties() sdk.JobProperties {
 }
 
 func (j *ListDeploymentsForNamespaceJob) Run(ctx context.Context) error {
-	deployments, err := j.processor.kubernetesProvider.ListDeploymentsInNamespace(ctx, j.namespace)
+	deployments, err := j.processor.kubernetesProvider.ListDeploymentsInNamespace(ctx, j.namespace, j.processor.selector)
 	if err != nil {
 		return err
 	}
@@ -41,6 +45,12 @@ func (j *ListDeploymentsForNamespaceJob) Run(ctx context.Context) error {
 			Preferences:         preferences.DefaultDeploymentsPreferences,
 			Skipped:             false,
 			LazyLoadingEnabled:  false,
+			Nodes:               j.nodes,
+		}
+		if j.processor.nodeSelector != "" {
+			if !shared.PodsInNodes(item.Pods, item.Nodes) {
+				continue
+			}
 		}
 
 		if deployment.Status.AvailableReplicas == 0 {
@@ -57,6 +67,7 @@ func (j *ListDeploymentsForNamespaceJob) Run(ctx context.Context) error {
 		j.processor.UpdateSummary(item.GetID())
 
 		if item.LazyLoadingEnabled || !item.OptimizationLoading || item.Skipped {
+			fmt.Println("skipping deployment", item.Deployment.Name)
 			continue
 		}
 		j.processor.jobQueue.Push(NewListPodsForDeploymentJob(j.processor, item.GetID()))

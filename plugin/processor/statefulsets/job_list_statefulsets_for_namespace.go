@@ -5,17 +5,21 @@ import (
 	"fmt"
 	"github.com/kaytu-io/kaytu/pkg/plugin/sdk"
 	"github.com/kaytu-io/plugin-kubernetes-internal/plugin/preferences"
+	"github.com/kaytu-io/plugin-kubernetes-internal/plugin/processor/shared"
+	corev1 "k8s.io/api/core/v1"
 )
 
 type ListStatefulsetsForNamespaceJob struct {
 	processor *Processor
 	namespace string
+	nodes     []corev1.Node
 }
 
-func NewListStatefulsetsForNamespaceJob(processor *Processor, namespace string) *ListStatefulsetsForNamespaceJob {
+func NewListStatefulsetsForNamespaceJob(processor *Processor, namespace string, nodes []corev1.Node) *ListStatefulsetsForNamespaceJob {
 	return &ListStatefulsetsForNamespaceJob{
 		processor: processor,
 		namespace: namespace,
+		nodes:     nodes,
 	}
 }
 
@@ -27,7 +31,7 @@ func (j *ListStatefulsetsForNamespaceJob) Properties() sdk.JobProperties {
 	}
 }
 func (j *ListStatefulsetsForNamespaceJob) Run(ctx context.Context) error {
-	statefulsets, err := j.processor.kubernetesProvider.ListStatefulsetsInNamespace(ctx, j.namespace)
+	statefulsets, err := j.processor.kubernetesProvider.ListStatefulsetsInNamespace(ctx, j.namespace, j.processor.selector)
 	if err != nil {
 		return err
 	}
@@ -40,6 +44,12 @@ func (j *ListStatefulsetsForNamespaceJob) Run(ctx context.Context) error {
 			Preferences:         preferences.DefaultStatefulsetsPreferences,
 			Skipped:             false,
 			LazyLoadingEnabled:  false,
+			Nodes:               j.nodes,
+		}
+		if j.processor.nodeSelector != "" {
+			if !shared.PodsInNodes(item.Pods, item.Nodes) {
+				continue
+			}
 		}
 
 		if statefulset.Status.AvailableReplicas == 0 {

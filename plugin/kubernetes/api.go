@@ -75,8 +75,16 @@ func (s *Kubernetes) ListAllNamespaces(ctx context.Context) ([]corev1.Namespace,
 	return namespaces.Items, nil
 }
 
-func (s *Kubernetes) ListPodsInNamespace(ctx context.Context, namespace string) ([]corev1.Pod, error) {
-	pods, err := s.clientset.CoreV1().Pods(namespace).List(ctx, metav1.ListOptions{})
+func (s *Kubernetes) ListAllNodes(ctx context.Context, labelSelector string) ([]corev1.Node, error) {
+	nodes, err := s.clientset.CoreV1().Nodes().List(ctx, metav1.ListOptions{LabelSelector: labelSelector})
+	if err != nil {
+		return nil, err
+	}
+	return nodes.Items, nil
+}
+
+func (s *Kubernetes) ListPodsInNamespace(ctx context.Context, namespace, labelSelector string) ([]corev1.Pod, error) {
+	pods, err := s.clientset.CoreV1().Pods(namespace).List(ctx, metav1.ListOptions{LabelSelector: labelSelector})
 	if err != nil {
 		return nil, err
 	}
@@ -84,8 +92,8 @@ func (s *Kubernetes) ListPodsInNamespace(ctx context.Context, namespace string) 
 	return pods.Items, nil
 }
 
-func (s *Kubernetes) ListDeploymentsInNamespace(ctx context.Context, namespace string) ([]appv1.Deployment, error) {
-	deployments, err := s.clientset.AppsV1().Deployments(namespace).List(ctx, metav1.ListOptions{})
+func (s *Kubernetes) ListDeploymentsInNamespace(ctx context.Context, namespace, labelSelector string) ([]appv1.Deployment, error) {
+	deployments, err := s.clientset.AppsV1().Deployments(namespace).List(ctx, metav1.ListOptions{LabelSelector: labelSelector})
 	if err != nil {
 		return nil, err
 	}
@@ -93,8 +101,8 @@ func (s *Kubernetes) ListDeploymentsInNamespace(ctx context.Context, namespace s
 	return deployments.Items, nil
 }
 
-func (s *Kubernetes) ListStatefulsetsInNamespace(ctx context.Context, namespace string) ([]appv1.StatefulSet, error) {
-	statefulsets, err := s.clientset.AppsV1().StatefulSets(namespace).List(ctx, metav1.ListOptions{})
+func (s *Kubernetes) ListStatefulsetsInNamespace(ctx context.Context, namespace, labelSelector string) ([]appv1.StatefulSet, error) {
+	statefulsets, err := s.clientset.AppsV1().StatefulSets(namespace).List(ctx, metav1.ListOptions{LabelSelector: labelSelector})
 	if err != nil {
 		return nil, err
 	}
@@ -102,8 +110,8 @@ func (s *Kubernetes) ListStatefulsetsInNamespace(ctx context.Context, namespace 
 	return statefulsets.Items, nil
 }
 
-func (s *Kubernetes) ListDaemonsetsInNamespace(ctx context.Context, namespace string) ([]appv1.DaemonSet, error) {
-	daemonsets, err := s.clientset.AppsV1().DaemonSets(namespace).List(ctx, metav1.ListOptions{})
+func (s *Kubernetes) ListDaemonsetsInNamespace(ctx context.Context, namespace, labelSelector string) ([]appv1.DaemonSet, error) {
+	daemonsets, err := s.clientset.AppsV1().DaemonSets(namespace).List(ctx, metav1.ListOptions{LabelSelector: labelSelector})
 	if err != nil {
 		return nil, err
 	}
@@ -111,8 +119,8 @@ func (s *Kubernetes) ListDaemonsetsInNamespace(ctx context.Context, namespace st
 	return daemonsets.Items, nil
 }
 
-func (s *Kubernetes) ListJobsInNamespace(ctx context.Context, namespace string) ([]batchv1.Job, error) {
-	jobs, err := s.clientset.BatchV1().Jobs(namespace).List(ctx, metav1.ListOptions{})
+func (s *Kubernetes) ListJobsInNamespace(ctx context.Context, namespace, labelSelector string) ([]batchv1.Job, error) {
+	jobs, err := s.clientset.BatchV1().Jobs(namespace).List(ctx, metav1.ListOptions{LabelSelector: labelSelector})
 	if err != nil {
 		return nil, err
 	}

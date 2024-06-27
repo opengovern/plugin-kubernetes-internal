@@ -5,17 +5,21 @@ import (
 	"fmt"
 	"github.com/kaytu-io/kaytu/pkg/plugin/sdk"
 	"github.com/kaytu-io/plugin-kubernetes-internal/plugin/preferences"
+	"github.com/kaytu-io/plugin-kubernetes-internal/plugin/processor/shared"
+	corev1 "k8s.io/api/core/v1"
 )
 
 type ListJobsForNamespaceJob struct {
 	processor *Processor
 	namespace string
+	nodes     []corev1.Node
 }
 
-func NewListJobsForNamespaceJob(processor *Processor, namespace string) *ListJobsForNamespaceJob {
+func NewListJobsForNamespaceJob(processor *Processor, namespace string, nodes []corev1.Node) *ListJobsForNamespaceJob {
 	return &ListJobsForNamespaceJob{
 		processor: processor,
 		namespace: namespace,
+		nodes:     nodes,
 	}
 }
 
@@ -27,7 +31,7 @@ func (j *ListJobsForNamespaceJob) Properties() sdk.JobProperties {
 	}
 }
 func (j *ListJobsForNamespaceJob) Run(ctx context.Context) error {
-	jobs, err := j.processor.kubernetesProvider.ListJobsInNamespace(ctx, j.namespace)
+	jobs, err := j.processor.kubernetesProvider.ListJobsInNamespace(ctx, j.namespace, j.processor.selector)
 	if err != nil {
 		return err
 	}
@@ -40,6 +44,12 @@ func (j *ListJobsForNamespaceJob) Run(ctx context.Context) error {
 			Preferences:         preferences.DefaultJobsPreferences,
 			Skipped:             false,
 			LazyLoadingEnabled:  false,
+			Nodes:               j.nodes,
+		}
+		if j.processor.nodeSelector != "" {
+			if !shared.PodsInNodes(item.Pods, item.Nodes) {
+				continue
+			}
 		}
 
 		if job.Status.Active+job.Status.Succeeded+job.Status.Failed == 0 {

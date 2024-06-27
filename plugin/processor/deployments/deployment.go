@@ -7,6 +7,7 @@ import (
 	"github.com/kaytu-io/plugin-kubernetes-internal/plugin/kaytu"
 	kaytuAgent "github.com/kaytu-io/plugin-kubernetes-internal/plugin/kaytu-agent"
 	kaytuKubernetes "github.com/kaytu-io/plugin-kubernetes-internal/plugin/kubernetes"
+	"github.com/kaytu-io/plugin-kubernetes-internal/plugin/processor"
 	"github.com/kaytu-io/plugin-kubernetes-internal/plugin/processor/shared"
 	kaytuPrometheus "github.com/kaytu-io/plugin-kubernetes-internal/plugin/prometheus"
 	golang2 "github.com/kaytu-io/plugin-kubernetes-internal/plugin/proto/src/golang"
@@ -14,8 +15,6 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	"sync/atomic"
 )
-
-const MB = 1024 * 1024
 
 type Processor struct {
 	identification            map[string]string
@@ -32,53 +31,38 @@ type Processor struct {
 	client                    golang2.OptimizationClient
 	kaytuClient               *kaytuAgent.KaytuAgent
 	namespace                 *string
+	selector                  string
+	nodeSelector              string
 	observabilityDays         int
 	defaultPreferences        []*golang.PreferenceItem
 
 	summary util.ConcurrentMap[string, DeploymentSummary]
 }
 
-func NewProcessor(
-	identification map[string]string,
-	kubernetesProvider *kaytuKubernetes.Kubernetes,
-	prometheusProvider *kaytuPrometheus.Prometheus,
-	kaytuClient *kaytuAgent.KaytuAgent,
-	publishOptimizationItem func(item *golang.ChartOptimizationItem),
-	publishResultSummary func(summary *golang.ResultSummary),
-	publishResultSummaryTable func(summary *golang.ResultSummaryTable),
-	kaytuAcccessToken string,
-	jobQueue *sdk.JobQueue,
-	configuration *kaytu.Configuration,
-	client golang2.OptimizationClient,
-	namespace *string,
-	observabilityDays int,
-	defaultPreferences []*golang.PreferenceItem,
-) *Processor {
+func NewProcessor(processorConf shared.Configuration) processor.Processor {
 	r := &Processor{
-		identification:            identification,
-		kubernetesProvider:        kubernetesProvider,
-		prometheusProvider:        prometheusProvider,
+		identification:            processorConf.Identification,
+		kubernetesProvider:        processorConf.KubernetesProvider,
+		prometheusProvider:        processorConf.PrometheusProvider,
 		items:                     util.NewMap[string, DeploymentItem](),
-		publishOptimizationItem:   publishOptimizationItem,
-		publishResultSummary:      publishResultSummary,
-		publishResultSummaryTable: publishResultSummaryTable,
-		kaytuAcccessToken:         kaytuAcccessToken,
-		jobQueue:                  jobQueue,
+		publishOptimizationItem:   processorConf.PublishOptimizationItem,
+		publishResultSummary:      processorConf.PublishResultSummary,
+		publishResultSummaryTable: processorConf.PublishResultSummaryTable,
+		kaytuAcccessToken:         processorConf.KaytuAcccessToken,
+		jobQueue:                  processorConf.JobQueue,
 		lazyloadCounter:           atomic.Uint32{},
-		configuration:             configuration,
-		client:                    client,
-		kaytuClient:               kaytuClient,
-		namespace:                 namespace,
-		observabilityDays:         observabilityDays,
-		defaultPreferences:        defaultPreferences,
+		configuration:             processorConf.Configuration,
+		client:                    processorConf.Client,
+		kaytuClient:               processorConf.KaytuClient,
+		namespace:                 processorConf.Namespace,
+		selector:                  processorConf.Selector,
+		nodeSelector:              processorConf.NodeSelector,
+		observabilityDays:         processorConf.ObservabilityDays,
+		defaultPreferences:        processorConf.DefaultPreferences,
 
 		summary: util.NewMap[string, DeploymentSummary](),
 	}
-	if kaytuClient.IsEnabled() {
-		jobQueue.Push(NewDownloadKaytuAgentReportJob(r))
-	} else {
-		jobQueue.Push(NewListAllNamespacesJob(r))
-	}
+	processorConf.JobQueue.Push(NewListAllNodesJob(r))
 	return r
 }
 
@@ -239,5 +223,5 @@ func (m *Processor) UpdateSummary(itemId string) {
 		m.summary.Set(i.GetID(), ds)
 	}
 	m.publishResultSummary(m.ResultsSummary())
-	m.publishResultSummary(m.ResultsSummary())
+	m.publishResultSummaryTable(m.ResultsSummaryTable())
 }
