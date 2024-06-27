@@ -22,6 +22,7 @@ type PodItem struct {
 	SkipReason          string
 	Metrics             map[string]map[string][]kaytuPrometheus.PromDatapoint // Metric -> Container -> Datapoints
 	Wastage             *golang2.KubernetesPodOptimizationResponse
+	Nodes               []corev1.Node
 }
 
 func (i PodItem) GetID() string {

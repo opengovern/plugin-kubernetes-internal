@@ -4,18 +4,21 @@ import (
 	"context"
 	"fmt"
 	"github.com/kaytu-io/kaytu/pkg/plugin/sdk"
+	"github.com/kaytu-io/plugin-kubernetes-internal/plugin/processor/shared"
 	v1 "k8s.io/api/core/v1"
 )
 
 type ListPodsForNamespaceJob struct {
 	processor *Processor
 	namespace string
+	nodes     []v1.Node
 }
 
-func NewListPodsForNamespaceJob(processor *Processor, namespace string) *ListPodsForNamespaceJob {
+func NewListPodsForNamespaceJob(processor *Processor, namespace string, nodes []v1.Node) *ListPodsForNamespaceJob {
 	return &ListPodsForNamespaceJob{
 		processor: processor,
 		namespace: namespace,
+		nodes:     nodes,
 	}
 }
 
@@ -28,7 +31,7 @@ func (j *ListPodsForNamespaceJob) Properties() sdk.JobProperties {
 }
 
 func (j *ListPodsForNamespaceJob) Run(ctx context.Context) error {
-	pods, err := j.processor.kubernetesProvider.ListPodsInNamespace(ctx, j.namespace)
+	pods, err := j.processor.kubernetesProvider.ListPodsInNamespace(ctx, j.namespace, j.processor.selector)
 	if err != nil {
 		return err
 	}
@@ -41,6 +44,12 @@ func (j *ListPodsForNamespaceJob) Run(ctx context.Context) error {
 			Preferences:         j.processor.defaultPreferences,
 			Skipped:             false,
 			LazyLoadingEnabled:  false,
+			Nodes:               j.nodes,
+		}
+		if j.processor.nodeSelector != "" {
+			if !shared.PodsInNodes([]v1.Pod{item.Pod}, item.Nodes) {
+				continue
+			}
 		}
 
 		if pod.Status.Phase != v1.PodRunning {

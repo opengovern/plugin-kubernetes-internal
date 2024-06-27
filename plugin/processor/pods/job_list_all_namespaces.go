@@ -3,15 +3,18 @@ package pods
 import (
 	"context"
 	"github.com/kaytu-io/kaytu/pkg/plugin/sdk"
+	corev1 "k8s.io/api/core/v1"
 )
 
 type ListAllNamespacesJob struct {
 	processor *Processor
+	nodes     []corev1.Node
 }
 
-func NewListAllNamespacesJob(processor *Processor) *ListAllNamespacesJob {
+func NewListAllNamespacesJob(processor *Processor, nodes []corev1.Node) *ListAllNamespacesJob {
 	return &ListAllNamespacesJob{
 		processor: processor,
+		nodes:     nodes,
 	}
 }
 
@@ -42,7 +45,7 @@ func (j *ListAllNamespacesJob) Run(ctx context.Context) error {
 		if namespace == "kube-system" {
 			continue
 		}
-		j.processor.jobQueue.Push(NewListPodsForNamespaceJob(j.processor, namespace))
+		j.processor.jobQueue.Push(NewListPodsForNamespaceJob(j.processor, namespace, j.nodes))
 	}
 	return nil
 }

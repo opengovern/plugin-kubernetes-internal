@@ -5,17 +5,21 @@ import (
 	"fmt"
 	"github.com/kaytu-io/kaytu/pkg/plugin/sdk"
 	"github.com/kaytu-io/plugin-kubernetes-internal/plugin/preferences"
+	"github.com/kaytu-io/plugin-kubernetes-internal/plugin/processor/shared"
+	corev1 "k8s.io/api/core/v1"
 )
 
 type ListDaemonsetsForNamespaceJob struct {
 	processor *Processor
 	namespace string
+	nodes     []corev1.Node
 }
 
-func NewListDaemonsetsForNamespaceJob(processor *Processor, namespace string) *ListDaemonsetsForNamespaceJob {
+func NewListDaemonsetsForNamespaceJob(processor *Processor, namespace string, nodes []corev1.Node) *ListDaemonsetsForNamespaceJob {
 	return &ListDaemonsetsForNamespaceJob{
 		processor: processor,
 		namespace: namespace,
+		nodes:     nodes,
 	}
 }
 func (j *ListDaemonsetsForNamespaceJob) Properties() sdk.JobProperties {
@@ -27,7 +31,7 @@ func (j *ListDaemonsetsForNamespaceJob) Properties() sdk.JobProperties {
 }
 
 func (j *ListDaemonsetsForNamespaceJob) Run(ctx context.Context) error {
-	daemonsets, err := j.processor.kubernetesProvider.ListDaemonsetsInNamespace(ctx, j.namespace)
+	daemonsets, err := j.processor.kubernetesProvider.ListDaemonsetsInNamespace(ctx, j.namespace, j.processor.selector)
 	if err != nil {
 		return err
 	}
@@ -40,6 +44,12 @@ func (j *ListDaemonsetsForNamespaceJob) Run(ctx context.Context) error {
 			Preferences:         preferences.DefaultDaemonsetsPreferences,
 			Skipped:             false,
 			LazyLoadingEnabled:  false,
+			Nodes:               j.nodes,
+		}
+		if j.processor.nodeSelector != "" {
+			if !shared.PodsInNodes(item.Pods, item.Nodes) {
+				continue
+			}
 		}
 
 		if daemonset.Status.CurrentNumberScheduled == 0 {

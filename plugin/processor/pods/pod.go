@@ -7,6 +7,7 @@ import (
 	"github.com/kaytu-io/plugin-kubernetes-internal/plugin/kaytu"
 	kaytuAgent "github.com/kaytu-io/plugin-kubernetes-internal/plugin/kaytu-agent"
 	kaytuKubernetes "github.com/kaytu-io/plugin-kubernetes-internal/plugin/kubernetes"
+	"github.com/kaytu-io/plugin-kubernetes-internal/plugin/processor"
 	"github.com/kaytu-io/plugin-kubernetes-internal/plugin/processor/shared"
 	kaytuPrometheus "github.com/kaytu-io/plugin-kubernetes-internal/plugin/prometheus"
 	golang2 "github.com/kaytu-io/plugin-kubernetes-internal/plugin/proto/src/golang"
@@ -15,8 +16,6 @@ import (
 	"strings"
 	"sync/atomic"
 )
-
-const MB = 1024 * 1024
 
 type Processor struct {
 	identification            map[string]string
@@ -31,6 +30,8 @@ type Processor struct {
 	configuration             *kaytu.Configuration
 	client                    golang2.OptimizationClient
 	namespace                 *string
+	selector                  string
+	nodeSelector              string
 	observabilityDays         int
 	kaytuClient               *kaytuAgent.KaytuAgent
 
@@ -38,46 +39,30 @@ type Processor struct {
 	defaultPreferences []*golang.PreferenceItem
 }
 
-func NewProcessor(
-	identification map[string]string,
-	kubernetesProvider *kaytuKubernetes.Kubernetes,
-	prometheusProvider *kaytuPrometheus.Prometheus,
-	kaytuClient *kaytuAgent.KaytuAgent,
-	publishOptimizationItem func(item *golang.ChartOptimizationItem),
-	publishResultSummary func(summary *golang.ResultSummary),
-	publishResultSummaryTable func(summary *golang.ResultSummaryTable),
-	jobQueue *sdk.JobQueue,
-	configuration *kaytu.Configuration,
-	client golang2.OptimizationClient,
-	namespace *string,
-	observabilityDays int,
-	defaultPreferences []*golang.PreferenceItem,
-) *Processor {
+func NewProcessor(processorConf shared.Configuration) processor.Processor {
 	r := &Processor{
-		identification:            identification,
-		kubernetesProvider:        kubernetesProvider,
-		prometheusProvider:        prometheusProvider,
+		identification:            processorConf.Identification,
+		kubernetesProvider:        processorConf.KubernetesProvider,
+		prometheusProvider:        processorConf.PrometheusProvider,
 		items:                     util.NewMap[string, PodItem](),
-		publishOptimizationItem:   publishOptimizationItem,
-		publishResultSummary:      publishResultSummary,
-		publishResultSummaryTable: publishResultSummaryTable,
-		jobQueue:                  jobQueue,
+		publishOptimizationItem:   processorConf.PublishOptimizationItem,
+		publishResultSummary:      processorConf.PublishResultSummary,
+		publishResultSummaryTable: processorConf.PublishResultSummaryTable,
+		jobQueue:                  processorConf.JobQueue,
 		lazyloadCounter:           atomic.Uint32{},
-		configuration:             configuration,
-		client:                    client,
-		namespace:                 namespace,
-		observabilityDays:         observabilityDays,
-		kaytuClient:               kaytuClient,
-		defaultPreferences:        defaultPreferences,
+		configuration:             processorConf.Configuration,
+		client:                    processorConf.Client,
+		namespace:                 processorConf.Namespace,
+		selector:                  processorConf.Selector,
+		nodeSelector:              processorConf.NodeSelector,
+		observabilityDays:         processorConf.ObservabilityDays,
+		kaytuClient:               processorConf.KaytuClient,
+		defaultPreferences:        processorConf.DefaultPreferences,
 
 		summary: util.NewMap[string, PodSummary](),
 	}
 
-	if kaytuClient.IsEnabled() {
-		jobQueue.Push(NewDownloadKaytuAgentReportJob(r))
-	} else {
-		jobQueue.Push(NewListAllNamespacesJob(r))
-	}
+	processorConf.JobQueue.Push(NewListAllNodesJob(r))
 	return r
 }
 

@@ -24,6 +24,7 @@ type StatefulsetItem struct {
 	SkipReason          string
 	Metrics             map[string]map[string]map[string][]kaytuPrometheus.PromDatapoint // Metric -> Pod -> Container -> Datapoints
 	Wastage             *golang2.KubernetesStatefulsetOptimizationResponse
+	Nodes               []corev1.Node
 }
 
 func (i StatefulsetItem) GetID() string {
