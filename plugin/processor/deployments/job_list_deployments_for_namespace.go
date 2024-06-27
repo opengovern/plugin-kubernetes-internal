@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"github.com/kaytu-io/kaytu/pkg/plugin/sdk"
 	"github.com/kaytu-io/plugin-kubernetes-internal/plugin/preferences"
-	"github.com/kaytu-io/plugin-kubernetes-internal/plugin/processor/shared"
 	corev1 "k8s.io/api/core/v1"
 )
 
@@ -46,11 +45,6 @@ func (j *ListDeploymentsForNamespaceJob) Run(ctx context.Context) error {
 			Skipped:             false,
 			LazyLoadingEnabled:  false,
 			Nodes:               j.nodes,
-		}
-		if j.processor.nodeSelector != "" {
-			if !shared.PodsInNodes(item.Pods, item.Nodes) {
-				continue
-			}
 		}
 
 		if deployment.Status.AvailableReplicas == 0 {
