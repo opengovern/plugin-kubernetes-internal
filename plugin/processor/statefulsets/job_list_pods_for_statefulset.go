@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"github.com/kaytu-io/kaytu/pkg/plugin/sdk"
+	"github.com/kaytu-io/plugin-kubernetes-internal/plugin/processor/shared"
 )
 
 type ListPodsForStatefulsetJob struct {
@@ -40,6 +41,16 @@ func (j *ListPodsForStatefulsetJob) Run(ctx context.Context) error {
 	}
 
 	item.LazyLoadingEnabled = false
+	if j.processor.nodeSelector != "" {
+		if !shared.PodsInNodes(item.Pods, item.Nodes) {
+			item.Skipped = true
+			item.SkipReason = "not in selected nodes"
+			j.processor.items.Set(j.itemId, item)
+			j.processor.publishOptimizationItem(item.ToOptimizationItem())
+			return nil
+		}
+	}
+
 	j.processor.items.Set(j.itemId, item)
 	j.processor.publishOptimizationItem(item.ToOptimizationItem())
 
