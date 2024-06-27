@@ -145,7 +145,7 @@ func (p *Prometheus) calculateScrapeInterval() (time.Duration, error) {
 	sampleDuration := 24 * time.Hour
 	minV := math.MaxInt
 
-	metrics := append([]string{"up", "prometheus_ready"})
+	metrics := []string{"up", "prometheus_ready"}
 	metrics = append(metrics, cpuUsageMetrics...)
 	metrics = append(metrics, cpuThrottlingThrottledPeriodsMetrics...)
 	metrics = append(metrics, cpuThrottlingPeriodsMetrics...)
@@ -165,7 +165,7 @@ func (p *Prometheus) calculateScrapeInterval() (time.Duration, error) {
 		}
 	}
 
-	if minV == 0 {
+	if minV == math.MaxInt {
 		return defaultScrapeInterval, errors.New("could not determine scrape interval")
 	}
 
