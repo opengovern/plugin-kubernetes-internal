@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"github.com/kaytu-io/kaytu/pkg/plugin/sdk"
 	kaytuPrometheus "github.com/kaytu-io/plugin-kubernetes-internal/plugin/prometheus"
+	"time"
 )
 
 type GetDeploymentPodMetricsJob struct {
@@ -131,6 +132,20 @@ func (j *GetDeploymentPodMetricsJob) Run(ctx context.Context) error {
 	}
 
 	deployment.LazyLoadingEnabled = false
+	earliest := time.Now()
+	for _, pm := range deployment.Metrics {
+		for _, kvs := range pm {
+			for _, v := range kvs {
+				for _, m := range v {
+					if m.Timestamp.Before(earliest) {
+						earliest = m.Timestamp
+					}
+				}
+			}
+		}
+	}
+	deployment.ObservabilityDuration = time.Now().Sub(earliest)
+
 	j.processor.items.Set(deployment.GetID(), deployment)
 	j.processor.publishOptimizationItem(deployment.ToOptimizationItem())
 	j.processor.UpdateSummary(deployment.GetID())
