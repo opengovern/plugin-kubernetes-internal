@@ -11,20 +11,22 @@ import (
 	appv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	"strconv"
+	"time"
 )
 
 type DaemonsetItem struct {
-	Daemonset           appv1.DaemonSet
-	Pods                []corev1.Pod
-	Namespace           string
-	OptimizationLoading bool
-	Preferences         []*golang.PreferenceItem
-	Skipped             bool
-	LazyLoadingEnabled  bool
-	SkipReason          string
-	Metrics             map[string]map[string]map[string][]kaytuPrometheus.PromDatapoint // Metric -> Pod -> Container -> Datapoints
-	Wastage             *golang2.KubernetesDaemonsetOptimizationResponse
-	Nodes               []corev1.Node
+	Daemonset             appv1.DaemonSet
+	Pods                  []corev1.Pod
+	Namespace             string
+	OptimizationLoading   bool
+	Preferences           []*golang.PreferenceItem
+	Skipped               bool
+	LazyLoadingEnabled    bool
+	SkipReason            string
+	Metrics               map[string]map[string]map[string][]kaytuPrometheus.PromDatapoint // Metric -> Pod -> Container -> Datapoints
+	Wastage               *golang2.KubernetesDaemonsetOptimizationResponse
+	Nodes                 []corev1.Node
+	ObservabilityDuration time.Duration
 }
 
 func (i DaemonsetItem) GetID() string {
@@ -136,6 +138,9 @@ func (i DaemonsetItem) Devices() ([]*golang.ChartRow, map[string]*golang.Propert
 			}
 			row.Values["suggested_memory_limit"] = &golang.ChartRowItem{
 				Value: fmt.Sprintf("%.2f GB", rightSizing.Recommended.MemoryLimit/(1024*1024*1024)),
+			}
+			row.Values["x_kaytu_observability_duration"] = &golang.ChartRowItem{
+				Value: i.ObservabilityDuration.String(),
 			}
 		}
 
@@ -253,6 +258,9 @@ func (i DaemonsetItem) Devices() ([]*golang.ChartRow, map[string]*golang.Propert
 				}
 				row.Values["suggested_memory_limit"] = &golang.ChartRowItem{
 					Value: fmt.Sprintf("%.2f GB", rightSizing.Recommended.MemoryLimit/(1024*1024*1024)),
+				}
+				row.Values["x_kaytu_observability_duration"] = &golang.ChartRowItem{
+					Value: i.ObservabilityDuration.String(),
 				}
 			}
 

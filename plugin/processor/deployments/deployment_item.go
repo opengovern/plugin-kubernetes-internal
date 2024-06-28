@@ -11,6 +11,7 @@ import (
 	appv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	"strconv"
+	"time"
 )
 
 type DeploymentItem struct {
@@ -26,6 +27,7 @@ type DeploymentItem struct {
 	Metrics                   map[string]map[string]map[string][]kaytuPrometheus.PromDatapoint // Metric -> Pod -> Container -> Datapoints
 	Wastage                   *golang2.KubernetesDeploymentOptimizationResponse
 	Nodes                     []corev1.Node
+	ObservabilityDuration     time.Duration
 }
 
 func (i DeploymentItem) GetID() string {
@@ -137,6 +139,9 @@ func (i DeploymentItem) Devices() ([]*golang.ChartRow, map[string]*golang.Proper
 			}
 			row.Values["suggested_memory_limit"] = &golang.ChartRowItem{
 				Value: fmt.Sprintf("%.2f GB", rightSizing.Recommended.MemoryLimit/(1024*1024*1024)),
+			}
+			row.Values["x_kaytu_observability_duration"] = &golang.ChartRowItem{
+				Value: i.ObservabilityDuration.String(),
 			}
 		}
 
@@ -254,6 +259,9 @@ func (i DeploymentItem) Devices() ([]*golang.ChartRow, map[string]*golang.Proper
 				}
 				row.Values["suggested_memory_limit"] = &golang.ChartRowItem{
 					Value: fmt.Sprintf("%.2f GB", rightSizing.Recommended.MemoryLimit/(1024*1024*1024)),
+				}
+				row.Values["x_kaytu_observability_duration"] = &golang.ChartRowItem{
+					Value: i.ObservabilityDuration.String(),
 				}
 			}
 

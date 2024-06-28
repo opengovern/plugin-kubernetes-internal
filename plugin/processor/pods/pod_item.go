@@ -10,19 +10,21 @@ import (
 	"google.golang.org/protobuf/types/known/wrapperspb"
 	corev1 "k8s.io/api/core/v1"
 	"strconv"
+	"time"
 )
 
 type PodItem struct {
-	Pod                 corev1.Pod
-	Namespace           string
-	OptimizationLoading bool
-	Preferences         []*golang.PreferenceItem
-	Skipped             bool
-	LazyLoadingEnabled  bool
-	SkipReason          string
-	Metrics             map[string]map[string][]kaytuPrometheus.PromDatapoint // Metric -> Container -> Datapoints
-	Wastage             *golang2.KubernetesPodOptimizationResponse
-	Nodes               []corev1.Node
+	Pod                   corev1.Pod
+	Namespace             string
+	OptimizationLoading   bool
+	Preferences           []*golang.PreferenceItem
+	Skipped               bool
+	LazyLoadingEnabled    bool
+	SkipReason            string
+	Metrics               map[string]map[string][]kaytuPrometheus.PromDatapoint // Metric -> Container -> Datapoints
+	ObservabilityDuration time.Duration
+	Wastage               *golang2.KubernetesPodOptimizationResponse
+	Nodes                 []corev1.Node
 }
 
 func (i PodItem) GetID() string {
@@ -156,6 +158,9 @@ func (i PodItem) Devices() ([]*golang.ChartRow, map[string]*golang.Properties) {
 			}
 			row.Values["suggested_memory_limit"] = &golang.ChartRowItem{
 				Value: fmt.Sprintf("%.2f GB", righSizing.Recommended.MemoryLimit/(1024*1024*1024)),
+			}
+			row.Values["x_kaytu_observability_duration"] = &golang.ChartRowItem{
+				Value: i.ObservabilityDuration.String(),
 			}
 		}
 

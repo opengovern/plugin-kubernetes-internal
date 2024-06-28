@@ -11,20 +11,22 @@ import (
 	batchv1 "k8s.io/api/batch/v1"
 	corev1 "k8s.io/api/core/v1"
 	"strconv"
+	"time"
 )
 
 type JobItem struct {
-	Job                 batchv1.Job
-	Pods                []corev1.Pod
-	Namespace           string
-	OptimizationLoading bool
-	Preferences         []*golang.PreferenceItem
-	Skipped             bool
-	LazyLoadingEnabled  bool
-	SkipReason          string
-	Metrics             map[string]map[string]map[string][]kaytuPrometheus.PromDatapoint // Metric -> Pod -> Container -> Datapoints
-	Wastage             *golang2.KubernetesJobOptimizationResponse
-	Nodes               []corev1.Node
+	Job                   batchv1.Job
+	Pods                  []corev1.Pod
+	Namespace             string
+	OptimizationLoading   bool
+	Preferences           []*golang.PreferenceItem
+	Skipped               bool
+	LazyLoadingEnabled    bool
+	SkipReason            string
+	Metrics               map[string]map[string]map[string][]kaytuPrometheus.PromDatapoint // Metric -> Pod -> Container -> Datapoints
+	Wastage               *golang2.KubernetesJobOptimizationResponse
+	Nodes                 []corev1.Node
+	ObservabilityDuration time.Duration
 }
 
 func (i JobItem) GetID() string {
@@ -136,6 +138,9 @@ func (i JobItem) Devices() ([]*golang.ChartRow, map[string]*golang.Properties) {
 			}
 			row.Values["suggested_memory_limit"] = &golang.ChartRowItem{
 				Value: fmt.Sprintf("%.2f GB", rightSizing.Recommended.MemoryLimit/(1024*1024*1024)),
+			}
+			row.Values["x_kaytu_observability_duration"] = &golang.ChartRowItem{
+				Value: i.ObservabilityDuration.String(),
 			}
 		}
 
@@ -253,6 +258,9 @@ func (i JobItem) Devices() ([]*golang.ChartRow, map[string]*golang.Properties) {
 				}
 				row.Values["suggested_memory_limit"] = &golang.ChartRowItem{
 					Value: fmt.Sprintf("%.2f GB", rightSizing.Recommended.MemoryLimit/(1024*1024*1024)),
+				}
+				row.Values["x_kaytu_observability_duration"] = &golang.ChartRowItem{
+					Value: i.ObservabilityDuration.String(),
 				}
 			}
 
