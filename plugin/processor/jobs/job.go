@@ -7,7 +7,6 @@ import (
 	"github.com/kaytu-io/plugin-kubernetes-internal/plugin/kaytu"
 	kaytuAgent "github.com/kaytu-io/plugin-kubernetes-internal/plugin/kaytu-agent"
 	kaytuKubernetes "github.com/kaytu-io/plugin-kubernetes-internal/plugin/kubernetes"
-	"github.com/kaytu-io/plugin-kubernetes-internal/plugin/processor"
 	"github.com/kaytu-io/plugin-kubernetes-internal/plugin/processor/shared"
 	kaytuPrometheus "github.com/kaytu-io/plugin-kubernetes-internal/plugin/prometheus"
 	golang2 "github.com/kaytu-io/plugin-kubernetes-internal/plugin/proto/src/golang"
@@ -25,7 +24,7 @@ type Processor struct {
 	publishResultSummary      func(summary *golang.ResultSummary)
 	publishResultSummaryTable func(summary *golang.ResultSummaryTable)
 	jobQueue                  *sdk.JobQueue
-	lazyloadCounter           atomic.Uint32
+	lazyloadCounter           *atomic.Uint32
 	configuration             *kaytu.Configuration
 	client                    golang2.OptimizationClient
 	kaytuClient               *kaytuAgent.KaytuAgent
@@ -38,17 +37,17 @@ type Processor struct {
 	summary util.ConcurrentMap[string, JobSummary]
 }
 
-func NewProcessor(processorConf shared.Configuration) processor.Processor {
+func NewProcessor(processorConf shared.Configuration) *Processor {
 	r := &Processor{
 		identification:            processorConf.Identification,
 		kubernetesProvider:        processorConf.KubernetesProvider,
 		prometheusProvider:        processorConf.PrometheusProvider,
-		items:                     util.NewMap[string, JobItem](),
+		items:                     util.NewConcurrentMap[string, JobItem](),
 		publishOptimizationItem:   processorConf.PublishOptimizationItem,
 		publishResultSummary:      processorConf.PublishResultSummary,
 		publishResultSummaryTable: processorConf.PublishResultSummaryTable,
 		jobQueue:                  processorConf.JobQueue,
-		lazyloadCounter:           atomic.Uint32{},
+		lazyloadCounter:           processorConf.LazyloadCounter,
 		configuration:             processorConf.Configuration,
 		kaytuClient:               processorConf.KaytuClient,
 		client:                    processorConf.Client,
@@ -58,7 +57,7 @@ func NewProcessor(processorConf shared.Configuration) processor.Processor {
 		observabilityDays:         processorConf.ObservabilityDays,
 		defaultPreferences:        processorConf.DefaultPreferences,
 
-		summary: util.NewMap[string, JobSummary](),
+		summary: util.NewConcurrentMap[string, JobSummary](),
 	}
 	processorConf.JobQueue.Push(NewListAllNodesJob(r))
 	return r

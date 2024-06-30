@@ -83,13 +83,30 @@ func (s *Kubernetes) ListAllNodes(ctx context.Context, labelSelector string) ([]
 	return nodes.Items, nil
 }
 
-func (s *Kubernetes) ListPodsInNamespace(ctx context.Context, namespace, labelSelector string) ([]corev1.Pod, error) {
+func (s *Kubernetes) ListPodsInNamespace(ctx context.Context, namespace, labelSelector string, orphanOnly bool) ([]corev1.Pod, error) {
 	pods, err := s.clientset.CoreV1().Pods(namespace).List(ctx, metav1.ListOptions{LabelSelector: labelSelector})
 	if err != nil {
 		return nil, err
 	}
+	if !orphanOnly {
+		return pods.Items, nil
+	}
 
-	return pods.Items, nil
+	orphanPods := make([]corev1.Pod, 0, len(pods.Items))
+	for _, pod := range pods.Items {
+		isOwned := false
+		for _, owner := range pod.ObjectMeta.OwnerReferences {
+			if owner.Kind == "ReplicaSet" || owner.Kind == "StatefulSet" || owner.Kind == "DaemonSet" || owner.Kind == "Job" {
+				isOwned = true
+				break
+			}
+		}
+		if !isOwned {
+			orphanPods = append(orphanPods, pod)
+		}
+	}
+
+	return orphanPods, nil
 }
 
 func (s *Kubernetes) ListDeploymentsInNamespace(ctx context.Context, namespace, labelSelector string) ([]appv1.Deployment, error) {

@@ -40,7 +40,7 @@ func (j *ListJobsForNamespaceJob) Run(ctx context.Context) error {
 			Job:                 job,
 			Namespace:           j.namespace,
 			OptimizationLoading: true,
-			Preferences:         preferences.DefaultJobsPreferences,
+			Preferences:         preferences.DefaultKubernetesPreferences,
 			Skipped:             false,
 			LazyLoadingEnabled:  false,
 			Nodes:               j.nodes,

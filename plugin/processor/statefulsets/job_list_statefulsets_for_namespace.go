@@ -40,7 +40,7 @@ func (j *ListStatefulsetsForNamespaceJob) Run(ctx context.Context) error {
 			Statefulset:         statefulset,
 			Namespace:           j.namespace,
 			OptimizationLoading: true,
-			Preferences:         preferences.DefaultStatefulsetsPreferences,
+			Preferences:         preferences.DefaultKubernetesPreferences,
 			Skipped:             false,
 			LazyLoadingEnabled:  false,
 			Nodes:               j.nodes,

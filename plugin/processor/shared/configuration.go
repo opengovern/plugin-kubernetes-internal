@@ -8,6 +8,7 @@ import (
 	kaytuKubernetes "github.com/kaytu-io/plugin-kubernetes-internal/plugin/kubernetes"
 	kaytuPrometheus "github.com/kaytu-io/plugin-kubernetes-internal/plugin/prometheus"
 	golang2 "github.com/kaytu-io/plugin-kubernetes-internal/plugin/proto/src/golang"
+	"sync/atomic"
 )
 
 type Configuration struct {
@@ -19,6 +20,7 @@ type Configuration struct {
 	PublishOptimizationItem   func(item *golang.ChartOptimizationItem)
 	PublishResultSummary      func(summary *golang.ResultSummary)
 	PublishResultSummaryTable func(summary *golang.ResultSummaryTable)
+	LazyloadCounter           *atomic.Uint32
 	JobQueue                  *sdk.JobQueue
 	Configuration             *kaytu.Configuration
 	Client                    golang2.OptimizationClient

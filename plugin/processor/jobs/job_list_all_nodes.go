@@ -33,7 +33,6 @@ func (j *ListAllNodesJob) Run(ctx context.Context) error {
 	for _, node := range nodes {
 		knodes = append(knodes, shared.KubernetesNode{
 			Name: node.Name,
-			Cost: nil,
 		})
 	}
 

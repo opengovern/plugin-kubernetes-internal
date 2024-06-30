@@ -5,9 +5,9 @@ import (
 	"math"
 	"sort"
 
-	v1 "k8s.io/api/apps/v1"
-	v12 "k8s.io/api/batch/v1"
-	v13 "k8s.io/api/core/v1"
+	appv1 "k8s.io/api/apps/v1"
+	batchv1 "k8s.io/api/batch/v1"
+	corev1 "k8s.io/api/core/v1"
 	policyv1 "k8s.io/api/policy/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/labels"
@@ -23,12 +23,12 @@ type KubernetesNode struct {
 	VCores       float64
 	Memory       float64
 	MaxPodCount  int
-	Taints       []v13.Taint
+	Taints       []corev1.Taint
 	Labels       map[string]string
 	AllocatedCPU float64
 	AllocatedMem float64
 	AllocatedPod int
-	Pods         []v13.PodTemplateSpec
+	Pods         []corev1.PodTemplateSpec
 }
 
 type Scheduler struct {
@@ -46,7 +46,7 @@ func (s *Scheduler) AddPodDisruptionBudget(pdb policyv1.PodDisruptionBudget) {
 	s.pdbs = append(s.pdbs, pdb)
 }
 
-func (s *Scheduler) AddDaemonSet(item v1.DaemonSet) {
+func (s *Scheduler) AddDaemonSet(item appv1.DaemonSet) {
 	for _, node := range s.nodes {
 		if s.canScheduleOnNode(item.Spec.Template.Spec, &node) {
 			s.schedulePod(item.Spec.Template, &node)
@@ -54,26 +54,26 @@ func (s *Scheduler) AddDaemonSet(item v1.DaemonSet) {
 	}
 }
 
-func (s *Scheduler) AddDeployment(item v1.Deployment) {
+func (s *Scheduler) AddDeployment(item appv1.Deployment) {
 	for i := 0; i < int(*item.Spec.Replicas); i++ {
 		s.schedulePodWithStrategy(item.Spec.Template)
 	}
 }
 
-func (s *Scheduler) AddJob(item v12.Job) {
+func (s *Scheduler) AddJob(item batchv1.Job) {
 	for i := 0; i < int(*item.Spec.Completions); i++ {
 		s.schedulePodWithStrategy(item.Spec.Template)
 	}
 }
 
-func (s *Scheduler) AddStatefulSet(item v1.StatefulSet) {
+func (s *Scheduler) AddStatefulSet(item appv1.StatefulSet) {
 	for i := 0; i < int(*item.Spec.Replicas); i++ {
 		s.schedulePodWithStrategy(item.Spec.Template)
 	}
 }
 
-func (s *Scheduler) AddPod(item v13.Pod) {
-	s.schedulePodWithStrategy(v13.PodTemplateSpec{
+func (s *Scheduler) AddPod(item corev1.Pod) {
+	s.schedulePodWithStrategy(corev1.PodTemplateSpec{
 		ObjectMeta: item.ObjectMeta,
 		Spec:       item.Spec,
 	})
@@ -133,7 +133,7 @@ func (s *Scheduler) CanRemoveNode(nodeName string) (bool, error) {
 	return true, nil
 }
 
-func (s *Scheduler) schedulePodWithStrategy(podSpec v13.PodTemplateSpec) bool {
+func (s *Scheduler) schedulePodWithStrategy(podSpec corev1.PodTemplateSpec) bool {
 	// Sort nodes by most allocated resources
 	sort.Slice(s.nodes, func(i, j int) bool {
 		allocCpuRatioI := s.nodes[i].AllocatedCPU / (s.nodes[i].VCores * HeadroomFactor)
@@ -156,7 +156,7 @@ func (s *Scheduler) schedulePodWithStrategy(podSpec v13.PodTemplateSpec) bool {
 	return false
 }
 
-func (s *Scheduler) canScheduleOnNode(podSpec v13.PodSpec, node *KubernetesNode) bool {
+func (s *Scheduler) canScheduleOnNode(podSpec corev1.PodSpec, node *KubernetesNode) bool {
 	// Check resources
 	if !s.hasEnoughResources(podSpec, node) {
 		return false
@@ -191,7 +191,7 @@ func (s *Scheduler) canScheduleOnNode(podSpec v13.PodSpec, node *KubernetesNode)
 	return true
 }
 
-func (s *Scheduler) satisfiesAffinityRules(podSpec v13.PodSpec, node KubernetesNode) bool {
+func (s *Scheduler) satisfiesAffinityRules(podSpec corev1.PodSpec, node KubernetesNode) bool {
 	if podSpec.Affinity == nil {
 		return true
 	}
@@ -215,7 +215,7 @@ func (s *Scheduler) satisfiesAffinityRules(podSpec v13.PodSpec, node KubernetesN
 	return true
 }
 
-func (s *Scheduler) satisfiesPodAffinityTerm(term v13.PodAffinityTerm, node KubernetesNode) bool {
+func (s *Scheduler) satisfiesPodAffinityTerm(term corev1.PodAffinityTerm, node KubernetesNode) bool {
 	selector, err := metav1.LabelSelectorAsSelector(term.LabelSelector)
 	if err != nil {
 		return false
@@ -241,14 +241,14 @@ func (s *Scheduler) satisfiesPodAffinityTerm(term v13.PodAffinityTerm, node Kube
 	return false
 }
 
-func (s *Scheduler) hasEnoughResources(podSpec v13.PodSpec, node *KubernetesNode) bool {
+func (s *Scheduler) hasEnoughResources(podSpec corev1.PodSpec, node *KubernetesNode) bool {
 	cpuReq, memReq := s.getPodResourceRequests(podSpec)
 	return node.AllocatedCPU+cpuReq <= node.VCores*HeadroomFactor &&
 		node.AllocatedMem+memReq <= node.Memory*HeadroomFactor &&
 		node.AllocatedPod+1 <= int(float64(node.MaxPodCount)*PodHeadroomFactor)
 }
 
-func (s *Scheduler) getPodResourceRequests(podSpec v13.PodSpec) (float64, float64) {
+func (s *Scheduler) getPodResourceRequests(podSpec corev1.PodSpec) (float64, float64) {
 	cpuReq, memReq := float64(0), float64(0)
 
 	// Calculate for init containers
@@ -266,7 +266,7 @@ func (s *Scheduler) getPodResourceRequests(podSpec v13.PodSpec) (float64, float6
 	return cpuReq, memReq
 }
 
-func (s *Scheduler) tolerates(podSpec v13.PodSpec, nodeTaints []v13.Taint) bool {
+func (s *Scheduler) tolerates(podSpec corev1.PodSpec, nodeTaints []corev1.Taint) bool {
 	for _, taint := range nodeTaints {
 		if !taintTolerated(taint, podSpec.Tolerations) {
 			return false
@@ -275,16 +275,16 @@ func (s *Scheduler) tolerates(podSpec v13.PodSpec, nodeTaints []v13.Taint) bool 
 	return true
 }
 
-func taintTolerated(taint v13.Taint, tolerations []v13.Toleration) bool {
+func taintTolerated(taint corev1.Taint, tolerations []corev1.Toleration) bool {
 	for _, toleration := range tolerations {
 		if (toleration.Key == taint.Key || toleration.Key == "") &&
-			(toleration.Effect == taint.Effect || toleration.Effect == v13.TaintEffectNoExecute) {
+			(toleration.Effect == taint.Effect || toleration.Effect == corev1.TaintEffectNoExecute) {
 			return true
 		}
 	}
 	return false
 }
-func (s *Scheduler) satisfiesNodeAffinity(nodeAffinity *v13.NodeAffinity, nodeLabels map[string]string) bool {
+func (s *Scheduler) satisfiesNodeAffinity(nodeAffinity *corev1.NodeAffinity, nodeLabels map[string]string) bool {
 	if nodeAffinity.RequiredDuringSchedulingIgnoredDuringExecution != nil {
 		for _, term := range nodeAffinity.RequiredDuringSchedulingIgnoredDuringExecution.NodeSelectorTerms {
 			if s.matchNodeSelectorTerm(term, nodeLabels) {
@@ -296,7 +296,7 @@ func (s *Scheduler) satisfiesNodeAffinity(nodeAffinity *v13.NodeAffinity, nodeLa
 	return true
 }
 
-func (s *Scheduler) matchNodeSelectorTerm(term v13.NodeSelectorTerm, nodeLabels map[string]string) bool {
+func (s *Scheduler) matchNodeSelectorTerm(term corev1.NodeSelectorTerm, nodeLabels map[string]string) bool {
 	for _, expr := range term.MatchExpressions {
 		if !s.matchNodeSelectorRequirement(expr, nodeLabels) {
 			return false
@@ -305,18 +305,18 @@ func (s *Scheduler) matchNodeSelectorTerm(term v13.NodeSelectorTerm, nodeLabels 
 	return true
 }
 
-func (s *Scheduler) matchNodeSelectorRequirement(req v13.NodeSelectorRequirement, nodeLabels map[string]string) bool {
+func (s *Scheduler) matchNodeSelectorRequirement(req corev1.NodeSelectorRequirement, nodeLabels map[string]string) bool {
 	switch req.Operator {
-	case v13.NodeSelectorOpIn:
+	case corev1.NodeSelectorOpIn:
 		val, exists := nodeLabels[req.Key]
 		return exists && contains(req.Values, val)
-	case v13.NodeSelectorOpNotIn:
+	case corev1.NodeSelectorOpNotIn:
 		val, exists := nodeLabels[req.Key]
 		return !exists || !contains(req.Values, val)
-	case v13.NodeSelectorOpExists:
+	case corev1.NodeSelectorOpExists:
 		_, exists := nodeLabels[req.Key]
 		return exists
-	case v13.NodeSelectorOpDoesNotExist:
+	case corev1.NodeSelectorOpDoesNotExist:
 		_, exists := nodeLabels[req.Key]
 		return !exists
 	default:
@@ -333,7 +333,7 @@ func contains(slice []string, s string) bool {
 	return false
 }
 
-func (s *Scheduler) canEvictPod(pod v13.PodTemplateSpec) bool {
+func (s *Scheduler) canEvictPod(pod corev1.PodTemplateSpec) bool {
 	for _, pdb := range s.pdbs {
 		selector, err := metav1.LabelSelectorAsSelector(pdb.Spec.Selector)
 		if err != nil {
@@ -391,7 +391,7 @@ func (s *Scheduler) countHealthyPods(pdb policyv1.PodDisruptionBudget) int {
 	return count
 }
 
-func (s *Scheduler) schedulePod(pod v13.PodTemplateSpec, node *KubernetesNode) {
+func (s *Scheduler) schedulePod(pod corev1.PodTemplateSpec, node *KubernetesNode) {
 	cpuReq, memReq := s.getPodResourceRequests(pod.Spec)
 	node.AllocatedCPU += cpuReq
 	node.AllocatedMem += memReq

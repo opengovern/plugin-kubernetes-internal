@@ -8,7 +8,7 @@ type ConcurrentMap[K comparable, V any] struct {
 	data sync.Map
 }
 
-func NewMap[K comparable, V any]() ConcurrentMap[K, V] {
+func NewConcurrentMap[K comparable, V any]() ConcurrentMap[K, V] {
 	return ConcurrentMap[K, V]{
 		data: sync.Map{},
 	}
