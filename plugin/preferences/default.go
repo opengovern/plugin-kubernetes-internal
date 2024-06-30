@@ -49,3 +49,13 @@ var DefaultJobsPreferences = []*golang.PreferenceItem{
 	{Service: "KubernetesJobs", Key: "MinCpuRequest", IsNumber: true, Value: wrapperspb.String("0.1"), PreventPinning: true, Unit: "milli cores"},
 	{Service: "KubernetesJobs", Key: "MinMemoryRequest", IsNumber: true, Value: wrapperspb.String("100"), PreventPinning: true, Unit: "MB"},
 }
+
+var DefaultAllPreferences = append(DefaultPodsPreferences,
+	append(DefaultDeploymentsPreferences,
+		append(DefaultStatefulsetsPreferences,
+			append(DefaultDaemonsetsPreferences,
+				DefaultJobsPreferences...,
+			)...,
+		)...,
+	)...,
+)

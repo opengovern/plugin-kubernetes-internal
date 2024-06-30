@@ -31,7 +31,7 @@ func (j *ListPodsForNamespaceJob) Properties() sdk.JobProperties {
 }
 
 func (j *ListPodsForNamespaceJob) Run(ctx context.Context) error {
-	pods, err := j.processor.kubernetesProvider.ListPodsInNamespace(ctx, j.namespace, j.processor.selector)
+	pods, err := j.processor.kubernetesProvider.ListPodsInNamespace(ctx, j.namespace, j.processor.selector, j.processor.mode == ProcessorModeOrphan)
 	if err != nil {
 		return err
 	}

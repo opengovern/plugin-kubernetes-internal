@@ -341,6 +341,9 @@ func (i DeploymentItem) ToOptimizationItem() *golang.ChartOptimizationItem {
 				"name": {
 					Value: i.Deployment.Name,
 				},
+				"kubernetes_type": {
+					Value: "Deployment",
+				},
 				"x_kaytu_status": {
 					Value: status,
 				},

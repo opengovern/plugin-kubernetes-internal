@@ -339,6 +339,9 @@ func (i JobItem) ToOptimizationItem() *golang.ChartOptimizationItem {
 				"name": {
 					Value: i.Job.Name,
 				},
+				"kubernetes_type": {
+					Value: "Job",
+				},
 				"x_kaytu_status": {
 					Value: status,
 				},

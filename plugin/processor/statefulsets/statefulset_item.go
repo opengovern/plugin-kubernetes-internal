@@ -339,6 +339,9 @@ func (i StatefulsetItem) ToOptimizationItem() *golang.ChartOptimizationItem {
 				"name": {
 					Value: i.Statefulset.Name,
 				},
+				"kubernetes_type": {
+					Value: "StatefulSet",
+				},
 				"x_kaytu_status": {
 					Value: status,
 				},

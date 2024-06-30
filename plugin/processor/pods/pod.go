@@ -17,7 +17,16 @@ import (
 	"sync/atomic"
 )
 
+type ProcessorMode int
+
+const (
+	ProcessorModeAll    ProcessorMode = iota
+	ProcessorModeOrphan               // Orphan pods are pods that are not managed by any other kaytu supported resources (e.g. deployments, statefulsets, daemonsets)
+)
+
 type Processor struct {
+	mode ProcessorMode
+
 	identification            map[string]string
 	kubernetesProvider        *kaytuKubernetes.Kubernetes
 	prometheusProvider        *kaytuPrometheus.Prometheus
@@ -39,8 +48,9 @@ type Processor struct {
 	defaultPreferences []*golang.PreferenceItem
 }
 
-func NewProcessor(processorConf shared.Configuration) processor.Processor {
+func NewProcessor(processorConf shared.Configuration, mode ProcessorMode) processor.Processor {
 	r := &Processor{
+		mode:                      mode,
 		identification:            processorConf.Identification,
 		kubernetesProvider:        processorConf.KubernetesProvider,
 		prometheusProvider:        processorConf.PrometheusProvider,

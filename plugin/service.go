@@ -171,6 +171,13 @@ func (p *KubernetesPlugin) GetConfig(_ context.Context) golang.RegisterConfig {
 				DefaultPreferences: preferences.DefaultStatefulsetsPreferences,
 				LoginRequired:      true,
 			},
+			{
+				Name:               "kubernetes-all",
+				Description:        "Get optimization suggestions for all Kubernetes resources",
+				Flags:              commonFlags,
+				DefaultPreferences: preferences.DefaultAllPreferences,
+				LoginRequired:      true,
+			},
 		},
 		MinKaytuVersion: "v0.9.0",
 		OverviewChart: &golang.ChartDefinition{
@@ -462,7 +469,7 @@ func (p *KubernetesPlugin) StartProcess(ctx context.Context, command string, fla
 
 	switch command {
 	case "kubernetes-pods":
-		p.processor = pods.NewProcessor(processorConf)
+		p.processor = pods.NewProcessor(processorConf, pods.ProcessorModeAll)
 	case "kubernetes-deployments":
 		err = p.stream.Send(&golang.PluginMessage{
 			PluginMessage: &golang.PluginMessage_UpdateChart{
@@ -675,6 +682,62 @@ func (p *KubernetesPlugin) StartProcess(ctx context.Context, command string, fla
 			return err
 		}
 		p.processor = jobs.NewProcessor(processorConf)
+	case "kubernetes-all":
+		err = p.stream.Send(&golang.PluginMessage{
+			PluginMessage: &golang.PluginMessage_UpdateChart{
+				UpdateChart: &golang.UpdateChartDefinition{
+					OverviewChart: &golang.ChartDefinition{
+						Columns: []*golang.ChartColumnItem{
+							{
+								Id:    "name",
+								Name:  "Name",
+								Width: 20,
+							},
+							{
+								Id:    "namespace",
+								Name:  "Namespace",
+								Width: 15,
+							},
+							{
+								Id:       "kubernetes_type",
+								Name:     "Kube Type",
+								Width:    11,
+								Sortable: true,
+							},
+							{
+								Id:       "pod_count",
+								Name:     "# Pods",
+								Width:    6,
+								Sortable: true,
+							},
+							{
+								Id:       "cpu_change",
+								Name:     "CPU Change (x Replicas)",
+								Width:    40,
+								Sortable: true,
+							},
+							{
+								Id:       "memory_change",
+								Name:     "Memory Change (x Replicas)",
+								Width:    40,
+								Sortable: true,
+							},
+							{
+								Id:    "x_kaytu_status",
+								Name:  "Status",
+								Width: 21,
+							},
+							{
+								Id:    "x_kaytu_right_arrow",
+								Name:  "",
+								Width: 1,
+							},
+						},
+					},
+				},
+			},
+		})
+
 	}
 
 	jobQueue.SetOnFinish(func(ctx context.Context) {

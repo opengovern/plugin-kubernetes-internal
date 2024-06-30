@@ -237,6 +237,12 @@ func (i PodItem) ToOptimizationItem() *golang.ChartOptimizationItem {
 				"name": {
 					Value: i.Pod.Name,
 				},
+				"kubernetes_type": {
+					Value: "Pod",
+				},
+				"pod_count": {
+					Value: "1",
+				},
 				"x_kaytu_raw_json": {
 					Value: string(kaytuJson),
 				},

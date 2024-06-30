@@ -339,6 +339,9 @@ func (i DaemonsetItem) ToOptimizationItem() *golang.ChartOptimizationItem {
 				"name": {
 					Value: i.Daemonset.Name,
 				},
+				"kubernetes_type": {
+					Value: "DaemonSet",
+				},
 				"x_kaytu_status": {
 					Value: status,
 				},
