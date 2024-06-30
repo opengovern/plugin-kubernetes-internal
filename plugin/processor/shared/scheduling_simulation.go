@@ -14,7 +14,8 @@ import (
 )
 
 const (
-	HeadroomFactor = 0.85
+	HeadroomFactor    = 0.85
+	PodHeadroomFactor = 0.95
 )
 
 type KubernetesNode struct {
@@ -31,26 +32,14 @@ type KubernetesNode struct {
 }
 
 type Scheduler struct {
-	nodes              []KubernetesNode
-	nodeCPUCapacity    map[string]float64
-	nodeMemoryCapacity map[string]float64
-	nodePodCapacity    map[string]int
-	pdbs               []policyv1.PodDisruptionBudget
+	nodes []KubernetesNode
+	pdbs  []policyv1.PodDisruptionBudget
 }
 
 func New(nodes []KubernetesNode) *Scheduler {
-	s := &Scheduler{
-		nodes:              nodes,
-		nodeCPUCapacity:    make(map[string]float64),
-		nodeMemoryCapacity: make(map[string]float64),
-		nodePodCapacity:    make(map[string]int),
+	return &Scheduler{
+		nodes: nodes,
 	}
-	for _, node := range nodes {
-		s.nodeCPUCapacity[node.Name] = node.VCores * HeadroomFactor
-		s.nodeMemoryCapacity[node.Name] = node.Memory * HeadroomFactor
-		s.nodePodCapacity[node.Name] = int(float64(node.MaxPodCount) * HeadroomFactor)
-	}
-	return s
 }
 
 func (s *Scheduler) AddPodDisruptionBudget(pdb policyv1.PodDisruptionBudget) {
@@ -60,8 +49,8 @@ func (s *Scheduler) AddPodDisruptionBudget(pdb policyv1.PodDisruptionBudget) {
 func (s *Scheduler) schedulePodWithStrategy(podSpec v13.PodTemplateSpec) bool {
 	// Sort nodes by most allocated resources
 	sort.Slice(s.nodes, func(i, j int) bool {
-		allocRatioI := (s.nodes[i].AllocatedCPU / s.nodeCPUCapacity[s.nodes[i].Name]) + (s.nodes[i].AllocatedMem / s.nodeMemoryCapacity[s.nodes[i].Name])
-		allocRatioJ := (s.nodes[j].AllocatedCPU / s.nodeCPUCapacity[s.nodes[j].Name]) + (s.nodes[j].AllocatedMem / s.nodeMemoryCapacity[s.nodes[j].Name])
+		allocRatioI := (s.nodes[i].AllocatedCPU / (s.nodes[i].VCores * HeadroomFactor)) + (s.nodes[i].AllocatedMem / (s.nodes[i].Memory * HeadroomFactor))
+		allocRatioJ := (s.nodes[j].AllocatedCPU / (s.nodes[j].VCores * HeadroomFactor)) + (s.nodes[j].AllocatedMem / (s.nodes[j].Memory * HeadroomFactor))
 		return allocRatioI > allocRatioJ
 	})
 
@@ -196,9 +185,9 @@ func (s *Scheduler) AddPod(item v13.Pod) {
 
 func (s *Scheduler) hasEnoughResources(podSpec v13.PodSpec, node KubernetesNode) bool {
 	cpuReq, memReq := s.getPodResourceRequests(podSpec)
-	return node.AllocatedCPU+cpuReq <= s.nodeCPUCapacity[node.Name] &&
-		node.AllocatedMem+memReq <= s.nodeMemoryCapacity[node.Name] &&
-		node.AllocatedPod+1 <= s.nodePodCapacity[node.Name]
+	return node.AllocatedCPU+cpuReq <= node.VCores*HeadroomFactor &&
+		node.AllocatedMem+memReq <= node.Memory*HeadroomFactor &&
+		node.AllocatedPod+1 <= int(float64(node.MaxPodCount)*PodHeadroomFactor)
 }
 
 func (s *Scheduler) getPodResourceRequests(podSpec v13.PodSpec) (float64, float64) {
@@ -290,9 +279,9 @@ func (s *Scheduler) GetNodeUtilization() map[string]map[string]float64 {
 	utilization := make(map[string]map[string]float64)
 	for _, node := range s.nodes {
 		utilization[node.Name] = map[string]float64{
-			"CPU":    node.AllocatedCPU / s.nodeCPUCapacity[node.Name],
-			"Memory": node.AllocatedMem / s.nodeMemoryCapacity[node.Name],
-			"Pods":   float64(node.AllocatedPod) / float64(s.nodePodCapacity[node.Name]),
+			"CPU":    node.AllocatedCPU / (node.VCores * HeadroomFactor),
+			"Memory": node.AllocatedMem / (node.Memory * HeadroomFactor),
+			"Pods":   float64(node.AllocatedPod) / (float64(node.MaxPodCount) * PodHeadroomFactor),
 		}
 	}
 	return utilization
