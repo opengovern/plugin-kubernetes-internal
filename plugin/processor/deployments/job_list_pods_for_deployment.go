@@ -35,7 +35,7 @@ func (j *ListPodsForDeploymentJob) Run(ctx context.Context) error {
 		return errors.New("deployment not found in the items list")
 	}
 
-	item.Pods, item.HistoricalReplicaSetNames, err = j.processor.kubernetesProvider.ListDeploymentPodsAndHistoricalReplicaSets(ctx, item.Deployment, j.processor.observabilityDays)
+	item.Pods, item.CurrentReplicaSetName, item.HistoricalReplicaSetNames, err = j.processor.kubernetesProvider.ListDeploymentPodsAndHistoricalReplicaSets(ctx, item.Deployment, j.processor.observabilityDays)
 	if err != nil {
 		return err
 	}

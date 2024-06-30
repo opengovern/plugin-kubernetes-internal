@@ -128,14 +128,14 @@ func (s *Kubernetes) ListJobsInNamespace(ctx context.Context, namespace, labelSe
 	return jobs.Items, nil
 }
 
-func (s *Kubernetes) ListDeploymentPodsAndHistoricalReplicaSets(ctx context.Context, deployment appv1.Deployment, maxDays int) ([]corev1.Pod, []string, error) {
+func (s *Kubernetes) ListDeploymentPodsAndHistoricalReplicaSets(ctx context.Context, deployment appv1.Deployment, maxDays int) ([]corev1.Pod, string, []string, error) {
 	timeCut := time.Now().AddDate(0, 0, -maxDays).Truncate(24 * time.Hour)
 
 	probableReplicaSets, err := s.clientset.AppsV1().ReplicaSets(deployment.Namespace).List(ctx, metav1.ListOptions{
 		LabelSelector: labels.Set(deployment.Spec.Selector.MatchLabels).AsSelector().String(),
 	})
 	if err != nil {
-		return nil, nil, err
+		return nil, "", nil, err
 	}
 	var historicalReplicaSets []appv1.ReplicaSet
 	var activeReplicaSets []appv1.ReplicaSet
@@ -165,7 +165,7 @@ func (s *Kubernetes) ListDeploymentPodsAndHistoricalReplicaSets(ctx context.Cont
 		activeReplicaSet = &activeReplicaSets[0]
 	}
 	if activeReplicaSet == nil {
-		return nil, nil, errors.New("no active replica set found for deployment")
+		return nil, "", nil, errors.New("no active replica set found for deployment")
 	}
 
 	if len(activeReplicaSets) > 1 {
@@ -191,12 +191,16 @@ func (s *Kubernetes) ListDeploymentPodsAndHistoricalReplicaSets(ctx context.Cont
 		}
 		historicalReplicaSetNames = append(historicalReplicaSetNames, rs.Name)
 	}
+	// if active replica set is created after the time cut and there are no historical replica sets within the time cut add the last historical replica set (for the same reason as above)
+	if !activeReplicaSet.CreationTimestamp.Before(&metav1.Time{Time: timeCut}) && len(historicalReplicaSetNames) == 0 && len(historicalReplicaSets) > 0 {
+		historicalReplicaSetNames = append(historicalReplicaSetNames, historicalReplicaSets[len(historicalReplicaSets)-1].Name)
+	}
 
 	probablePods, err := s.clientset.CoreV1().Pods(deployment.Namespace).List(ctx, metav1.ListOptions{
 		LabelSelector: labels.Set(deployment.Spec.Selector.MatchLabels).AsSelector().String(),
 	})
 	if err != nil {
-		return nil, nil, err
+		return nil, "", nil, err
 	}
 
 	pods := make([]corev1.Pod, 0, len(probablePods.Items))
@@ -214,7 +218,7 @@ func (s *Kubernetes) ListDeploymentPodsAndHistoricalReplicaSets(ctx context.Cont
 		pods = append(pods, pod)
 	}
 
-	return pods, historicalReplicaSetNames, nil
+	return pods, activeReplicaSet.Name, historicalReplicaSetNames, nil
 }
 
 func (s *Kubernetes) ListStatefulsetPods(ctx context.Context, statefulset appv1.StatefulSet) ([]corev1.Pod, error) {
