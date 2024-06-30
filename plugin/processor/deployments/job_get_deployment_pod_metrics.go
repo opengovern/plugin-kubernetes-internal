@@ -44,11 +44,7 @@ func (j *GetDeploymentPodMetricsJob) Run(ctx context.Context) error {
 		if deployment.Metrics["cpu_usage"] == nil {
 			deployment.Metrics["cpu_usage"] = make(map[string]map[string][]kaytuPrometheus.PromDatapoint)
 		}
-		if _, ok := deployment.Metrics["cpu_usage"][podName]; ok {
-			continue
-		} else {
-			deployment.Metrics["cpu_usage"][podName] = containerMetrics
-		}
+		deployment.Metrics["cpu_usage"][podName] = containerMetrics
 	}
 
 	cpuThrottling, err := j.processor.prometheusProvider.GetCpuThrottlingMetricsForPodOwnerPrefix(ctx, deployment.Namespace, deployment.CurrentReplicaSetName, j.processor.observabilityDays, kaytuPrometheus.PodSuffixModeRandom)
@@ -62,11 +58,7 @@ func (j *GetDeploymentPodMetricsJob) Run(ctx context.Context) error {
 		if deployment.Metrics["cpu_throttling"] == nil {
 			deployment.Metrics["cpu_throttling"] = make(map[string]map[string][]kaytuPrometheus.PromDatapoint)
 		}
-		if _, ok := deployment.Metrics["cpu_throttling"][podName]; ok {
-			continue
-		} else {
-			deployment.Metrics["cpu_throttling"][podName] = containerMetrics
-		}
+		deployment.Metrics["cpu_throttling"][podName] = containerMetrics
 	}
 
 	memoryUsage, err := j.processor.prometheusProvider.GetMemoryMetricsForPodOwnerPrefix(ctx, deployment.Namespace, deployment.CurrentReplicaSetName, j.processor.observabilityDays, kaytuPrometheus.PodSuffixModeRandom)
@@ -80,11 +72,7 @@ func (j *GetDeploymentPodMetricsJob) Run(ctx context.Context) error {
 		if deployment.Metrics["memory_usage"] == nil {
 			deployment.Metrics["memory_usage"] = make(map[string]map[string][]kaytuPrometheus.PromDatapoint)
 		}
-		if _, ok := deployment.Metrics["memory_usage"][podName]; ok {
-			continue
-		} else {
-			deployment.Metrics["memory_usage"][podName] = containerMetrics
-		}
+		deployment.Metrics["memory_usage"][podName] = containerMetrics
 	}
 
 	for _, replicaSetName := range deployment.HistoricalReplicaSetNames {
