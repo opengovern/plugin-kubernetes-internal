@@ -51,11 +51,21 @@ func (p *Processor) publishOptimizationItemFunc(item *golang.ChartOptimizationIt
 	p.publishOptimizationItem(item)
 }
 
+func (p *Processor) publishResultSummaryFunc(summary *golang.ResultSummary) {
+	//DO NOTHING
+}
+
+func (p *Processor) publishResultSummaryTableFunc(summary *golang.ResultSummaryTable) {
+	//DO NOTHING
+}
+
 func (p *Processor) initDaemonsetProcessor(processorConf shared.Configuration) *daemonsets.Processor {
 	daemonSetPublisher := func(item *golang.ChartOptimizationItem) {
 		p.publishOptimizationItemFunc(item, "daemonset")
 	}
 	processorConf.PublishOptimizationItem = daemonSetPublisher
+	processorConf.PublishResultSummary = p.publishResultSummaryFunc
+	processorConf.PublishResultSummaryTable = p.publishResultSummaryTableFunc
 	return daemonsets.NewProcessor(processorConf)
 }
 
@@ -64,6 +74,8 @@ func (p *Processor) initDeploymentProcessor(processorConf shared.Configuration) 
 		p.publishOptimizationItemFunc(item, "deployment")
 	}
 	processorConf.PublishOptimizationItem = deploymentPublisher
+	processorConf.PublishResultSummary = p.publishResultSummaryFunc
+	processorConf.PublishResultSummaryTable = p.publishResultSummaryTableFunc
 	return deployments.NewProcessor(processorConf)
 }
 
@@ -72,6 +84,8 @@ func (p *Processor) initStatefulsetProcessor(processorConf shared.Configuration)
 		p.publishOptimizationItemFunc(item, "statefulset")
 	}
 	processorConf.PublishOptimizationItem = statefulSetPublisher
+	processorConf.PublishResultSummary = p.publishResultSummaryFunc
+	processorConf.PublishResultSummaryTable = p.publishResultSummaryTableFunc
 	return statefulsets.NewProcessor(processorConf)
 }
 
@@ -80,6 +94,8 @@ func (p *Processor) initJobProcessor(processorConf shared.Configuration) *jobs.P
 		p.publishOptimizationItemFunc(item, "job")
 	}
 	processorConf.PublishOptimizationItem = jobsPublisher
+	processorConf.PublishResultSummary = p.publishResultSummaryFunc
+	processorConf.PublishResultSummaryTable = p.publishResultSummaryTableFunc
 	return jobs.NewProcessor(processorConf)
 }
 
@@ -88,6 +104,8 @@ func (p *Processor) initPodProcessor(processorConf shared.Configuration) *pods.P
 		p.publishOptimizationItemFunc(item, "pod")
 	}
 	processorConf.PublishOptimizationItem = podsPublisher
+	processorConf.PublishResultSummary = p.publishResultSummaryFunc
+	processorConf.PublishResultSummaryTable = p.publishResultSummaryTableFunc
 	return pods.NewProcessor(processorConf, pods.ProcessorModeOrphan)
 }
 
