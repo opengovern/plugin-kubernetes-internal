@@ -12,10 +12,10 @@ import (
 
 type DownloadKaytuAgentReportJob struct {
 	processor *Processor
-	nodes     []v1.Node
+	nodes     []shared.KubernetesNode
 }
 
-func NewDownloadKaytuAgentReportJob(processor *Processor, nodes []v1.Node) *DownloadKaytuAgentReportJob {
+func NewDownloadKaytuAgentReportJob(processor *Processor, nodes []shared.KubernetesNode) *DownloadKaytuAgentReportJob {
 	return &DownloadKaytuAgentReportJob{
 		processor: processor,
 		nodes:     nodes,

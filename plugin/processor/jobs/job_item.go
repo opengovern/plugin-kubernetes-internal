@@ -25,7 +25,7 @@ type JobItem struct {
 	SkipReason            string
 	Metrics               map[string]map[string]map[string][]kaytuPrometheus.PromDatapoint // Metric -> Pod -> Container -> Datapoints
 	Wastage               *golang2.KubernetesJobOptimizationResponse
-	Nodes                 []corev1.Node
+	Nodes                 []shared.KubernetesNode
 	ObservabilityDuration time.Duration
 }
 

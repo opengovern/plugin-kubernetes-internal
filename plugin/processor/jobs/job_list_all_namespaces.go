@@ -3,15 +3,15 @@ package jobs
 import (
 	"context"
 	"github.com/kaytu-io/kaytu/pkg/plugin/sdk"
-	corev1 "k8s.io/api/core/v1"
+	"github.com/kaytu-io/plugin-kubernetes-internal/plugin/processor/shared"
 )
 
 type ListAllNamespacesJob struct {
 	processor *Processor
-	nodes     []corev1.Node
+	nodes     []shared.KubernetesNode
 }
 
-func NewListAllNamespacesJob(processor *Processor, nodes []corev1.Node) *ListAllNamespacesJob {
+func NewListAllNamespacesJob(processor *Processor, nodes []shared.KubernetesNode) *ListAllNamespacesJob {
 	return &ListAllNamespacesJob{
 		processor: processor,
 		nodes:     nodes,

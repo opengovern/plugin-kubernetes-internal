@@ -3,6 +3,7 @@ package statefulsets
 import (
 	"context"
 	"github.com/kaytu-io/kaytu/pkg/plugin/sdk"
+	"github.com/kaytu-io/plugin-kubernetes-internal/plugin/processor/shared"
 )
 
 type ListAllNodesJob struct {
@@ -28,10 +29,18 @@ func (j *ListAllNodesJob) Run(ctx context.Context) error {
 		return err
 	}
 
+	var knodes []shared.KubernetesNode
+	for _, node := range nodes {
+		knodes = append(knodes, shared.KubernetesNode{
+			Name: node.Name,
+			Cost: nil,
+		})
+	}
+
 	if j.processor.kaytuClient.IsEnabled() {
-		j.processor.jobQueue.Push(NewDownloadKaytuAgentReportJob(j.processor, nodes))
+		j.processor.jobQueue.Push(NewDownloadKaytuAgentReportJob(j.processor, knodes))
 	} else {
-		j.processor.jobQueue.Push(NewListAllNamespacesJob(j.processor, nodes))
+		j.processor.jobQueue.Push(NewListAllNamespacesJob(j.processor, knodes))
 	}
 	return nil
 }

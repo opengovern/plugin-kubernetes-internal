@@ -24,7 +24,7 @@ type PodItem struct {
 	Metrics               map[string]map[string][]kaytuPrometheus.PromDatapoint // Metric -> Container -> Datapoints
 	ObservabilityDuration time.Duration
 	Wastage               *golang2.KubernetesPodOptimizationResponse
-	Nodes                 []corev1.Node
+	Nodes                 []shared.KubernetesNode
 }
 
 func (i PodItem) GetID() string {
