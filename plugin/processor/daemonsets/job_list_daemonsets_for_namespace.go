@@ -5,16 +5,16 @@ import (
 	"fmt"
 	"github.com/kaytu-io/kaytu/pkg/plugin/sdk"
 	"github.com/kaytu-io/plugin-kubernetes-internal/plugin/preferences"
-	corev1 "k8s.io/api/core/v1"
+	"github.com/kaytu-io/plugin-kubernetes-internal/plugin/processor/shared"
 )
 
 type ListDaemonsetsForNamespaceJob struct {
 	processor *Processor
 	namespace string
-	nodes     []corev1.Node
+	nodes     []shared.KubernetesNode
 }
 
-func NewListDaemonsetsForNamespaceJob(processor *Processor, namespace string, nodes []corev1.Node) *ListDaemonsetsForNamespaceJob {
+func NewListDaemonsetsForNamespaceJob(processor *Processor, namespace string, nodes []shared.KubernetesNode) *ListDaemonsetsForNamespaceJob {
 	return &ListDaemonsetsForNamespaceJob{
 		processor: processor,
 		namespace: namespace,

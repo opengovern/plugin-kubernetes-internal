@@ -124,6 +124,12 @@ func (p *KubernetesPlugin) GetConfig(_ context.Context) golang.RegisterConfig {
 			Description: "Disable agent",
 			Required:    false,
 		},
+		{
+			Name:        "aws-cli-profile",
+			Default:     "",
+			Description: "AWS profile for authentication",
+			Required:    false,
+		},
 	}
 	return golang.RegisterConfig{
 		Name:     "kaytu-io/plugin-kubernetes",

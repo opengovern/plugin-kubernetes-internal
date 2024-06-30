@@ -16,9 +16,9 @@ func LabelFilter(labelSelector string, labels map[string]string) bool {
 	return selector.Matches(labels2.Set(labels))
 }
 
-func PodsInNodes(pods []corev1.Pod, nodes []corev1.Node) bool {
+func PodsInNodes(pods []corev1.Pod, nodes []KubernetesNode) bool {
 	for _, pod := range pods {
-		var selectedNode *corev1.Node
+		var selectedNode *KubernetesNode
 		for _, node := range nodes {
 			if node.Name == pod.Spec.NodeName {
 				selectedNode = &node

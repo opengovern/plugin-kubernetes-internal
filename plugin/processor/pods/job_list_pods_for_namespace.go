@@ -11,10 +11,10 @@ import (
 type ListPodsForNamespaceJob struct {
 	processor *Processor
 	namespace string
-	nodes     []v1.Node
+	nodes     []shared.KubernetesNode
 }
 
-func NewListPodsForNamespaceJob(processor *Processor, namespace string, nodes []v1.Node) *ListPodsForNamespaceJob {
+func NewListPodsForNamespaceJob(processor *Processor, namespace string, nodes []shared.KubernetesNode) *ListPodsForNamespaceJob {
 	return &ListPodsForNamespaceJob{
 		processor: processor,
 		namespace: namespace,
