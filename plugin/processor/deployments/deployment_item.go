@@ -17,6 +17,7 @@ import (
 type DeploymentItem struct {
 	Deployment                appv1.Deployment
 	Pods                      []corev1.Pod
+	CurrentReplicaSetName     string
 	HistoricalReplicaSetNames []string
 	Namespace                 string
 	OptimizationLoading       bool
