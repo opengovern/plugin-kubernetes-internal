@@ -41,7 +41,7 @@ func (j *ListDeploymentsForNamespaceJob) Run(ctx context.Context) error {
 			Deployment:          deployment,
 			Namespace:           j.namespace,
 			OptimizationLoading: true,
-			Preferences:         preferences.DefaultDeploymentsPreferences,
+			Preferences:         preferences.DefaultKubernetesPreferences,
 			Skipped:             false,
 			LazyLoadingEnabled:  false,
 			Nodes:               j.nodes,

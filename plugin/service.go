@@ -10,6 +10,7 @@ import (
 	kaytuKubernetes "github.com/kaytu-io/plugin-kubernetes-internal/plugin/kubernetes"
 	"github.com/kaytu-io/plugin-kubernetes-internal/plugin/preferences"
 	"github.com/kaytu-io/plugin-kubernetes-internal/plugin/processor"
+	"github.com/kaytu-io/plugin-kubernetes-internal/plugin/processor/all"
 	"github.com/kaytu-io/plugin-kubernetes-internal/plugin/processor/daemonsets"
 	"github.com/kaytu-io/plugin-kubernetes-internal/plugin/processor/deployments"
 	"github.com/kaytu-io/plugin-kubernetes-internal/plugin/processor/jobs"
@@ -27,6 +28,7 @@ import (
 	"math"
 	"strconv"
 	"strings"
+	"sync/atomic"
 )
 
 type KubernetesPlugin struct {
@@ -140,42 +142,42 @@ func (p *KubernetesPlugin) GetConfig(_ context.Context) golang.RegisterConfig {
 				Name:               "kubernetes-pods",
 				Description:        "Get optimization suggestions for your Kubernetes Pods",
 				Flags:              commonFlags,
-				DefaultPreferences: preferences.DefaultPodsPreferences,
+				DefaultPreferences: preferences.DefaultKubernetesPreferences,
 				LoginRequired:      true,
 			},
 			{
 				Name:               "kubernetes-deployments",
 				Description:        "Get optimization suggestions for your Kubernetes Deployments",
 				Flags:              commonFlags,
-				DefaultPreferences: preferences.DefaultDeploymentsPreferences,
+				DefaultPreferences: preferences.DefaultKubernetesPreferences,
 				LoginRequired:      true,
 			},
 			{
 				Name:               "kubernetes-statefulsets",
 				Description:        "Get optimization suggestions for your Kubernetes Statefulsets",
 				Flags:              commonFlags,
-				DefaultPreferences: preferences.DefaultStatefulsetsPreferences,
+				DefaultPreferences: preferences.DefaultKubernetesPreferences,
 				LoginRequired:      true,
 			},
 			{
 				Name:               "kubernetes-daemonsets",
 				Description:        "Get optimization suggestions for your Kubernetes Daemonsets",
 				Flags:              commonFlags,
-				DefaultPreferences: preferences.DefaultStatefulsetsPreferences,
+				DefaultPreferences: preferences.DefaultKubernetesPreferences,
 				LoginRequired:      true,
 			},
 			{
 				Name:               "kubernetes-jobs",
 				Description:        "Get optimization suggestions for your Kubernetes Jobs",
 				Flags:              commonFlags,
-				DefaultPreferences: preferences.DefaultStatefulsetsPreferences,
+				DefaultPreferences: preferences.DefaultKubernetesPreferences,
 				LoginRequired:      true,
 			},
 			{
 				Name:               "kubernetes-all",
 				Description:        "Get optimization suggestions for all Kubernetes resources",
 				Flags:              commonFlags,
-				DefaultPreferences: preferences.DefaultAllPreferences,
+				DefaultPreferences: preferences.DefaultKubernetesPreferences,
 				LoginRequired:      true,
 			},
 		},
@@ -457,6 +459,7 @@ func (p *KubernetesPlugin) StartProcess(ctx context.Context, command string, fla
 		PublishOptimizationItem:   publishOptimizationItem,
 		PublishResultSummary:      publishResultSummary,
 		PublishResultSummaryTable: publishResultSummaryTable,
+		LazyloadCounter:           &atomic.Uint32{},
 		JobQueue:                  jobQueue,
 		Configuration:             configurations,
 		Client:                    client,
@@ -737,7 +740,10 @@ func (p *KubernetesPlugin) StartProcess(ctx context.Context, command string, fla
 				},
 			},
 		})
-
+		if err != nil {
+			return err
+		}
+		p.processor = all.NewProcessor(processorConf)
 	}
 
 	jobQueue.SetOnFinish(func(ctx context.Context) {

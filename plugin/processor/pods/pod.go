@@ -7,7 +7,6 @@ import (
 	"github.com/kaytu-io/plugin-kubernetes-internal/plugin/kaytu"
 	kaytuAgent "github.com/kaytu-io/plugin-kubernetes-internal/plugin/kaytu-agent"
 	kaytuKubernetes "github.com/kaytu-io/plugin-kubernetes-internal/plugin/kubernetes"
-	"github.com/kaytu-io/plugin-kubernetes-internal/plugin/processor"
 	"github.com/kaytu-io/plugin-kubernetes-internal/plugin/processor/shared"
 	kaytuPrometheus "github.com/kaytu-io/plugin-kubernetes-internal/plugin/prometheus"
 	golang2 "github.com/kaytu-io/plugin-kubernetes-internal/plugin/proto/src/golang"
@@ -35,7 +34,7 @@ type Processor struct {
 	publishResultSummary      func(summary *golang.ResultSummary)
 	publishResultSummaryTable func(summary *golang.ResultSummaryTable)
 	jobQueue                  *sdk.JobQueue
-	lazyloadCounter           atomic.Uint32
+	lazyloadCounter           *atomic.Uint32
 	configuration             *kaytu.Configuration
 	client                    golang2.OptimizationClient
 	namespace                 *string
@@ -48,18 +47,18 @@ type Processor struct {
 	defaultPreferences []*golang.PreferenceItem
 }
 
-func NewProcessor(processorConf shared.Configuration, mode ProcessorMode) processor.Processor {
+func NewProcessor(processorConf shared.Configuration, mode ProcessorMode) *Processor {
 	r := &Processor{
 		mode:                      mode,
 		identification:            processorConf.Identification,
 		kubernetesProvider:        processorConf.KubernetesProvider,
 		prometheusProvider:        processorConf.PrometheusProvider,
-		items:                     util.NewMap[string, PodItem](),
+		items:                     util.NewConcurrentMap[string, PodItem](),
 		publishOptimizationItem:   processorConf.PublishOptimizationItem,
 		publishResultSummary:      processorConf.PublishResultSummary,
 		publishResultSummaryTable: processorConf.PublishResultSummaryTable,
 		jobQueue:                  processorConf.JobQueue,
-		lazyloadCounter:           atomic.Uint32{},
+		lazyloadCounter:           processorConf.LazyloadCounter,
 		configuration:             processorConf.Configuration,
 		client:                    processorConf.Client,
 		namespace:                 processorConf.Namespace,
@@ -69,7 +68,7 @@ func NewProcessor(processorConf shared.Configuration, mode ProcessorMode) proces
 		kaytuClient:               processorConf.KaytuClient,
 		defaultPreferences:        processorConf.DefaultPreferences,
 
-		summary: util.NewMap[string, PodSummary](),
+		summary: util.NewConcurrentMap[string, PodSummary](),
 	}
 
 	processorConf.JobQueue.Push(NewListAllNodesJob(r))

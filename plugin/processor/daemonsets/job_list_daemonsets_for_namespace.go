@@ -40,7 +40,7 @@ func (j *ListDaemonsetsForNamespaceJob) Run(ctx context.Context) error {
 			Daemonset:           daemonset,
 			Namespace:           j.namespace,
 			OptimizationLoading: true,
-			Preferences:         preferences.DefaultDaemonsetsPreferences,
+			Preferences:         preferences.DefaultKubernetesPreferences,
 			Skipped:             false,
 			LazyLoadingEnabled:  false,
 			Nodes:               j.nodes,
