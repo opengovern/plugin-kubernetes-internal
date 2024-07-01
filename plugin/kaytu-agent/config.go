@@ -14,7 +14,7 @@ type Config struct {
 	reconnectWait sync.Mutex
 }
 
-func GetConfig(address *string, agentDisabled bool, client *kaytuKubernetes.Kubernetes) (*Config, error) {
+func GetConfig(ctx context.Context, address *string, agentDisabled bool, client *kaytuKubernetes.Kubernetes) (*Config, error) {
 	cfg := Config{
 		reconnectWait: sync.Mutex{},
 	}
@@ -24,7 +24,7 @@ func GetConfig(address *string, agentDisabled bool, client *kaytuKubernetes.Kube
 	}
 
 	if cfg.Address == "" && !agentDisabled {
-		_, addr, err := client.DiscoverAndPortForwardKaytuAgent(context.Background(), &cfg.reconnectWait)
+		_, addr, err := client.DiscoverAndPortForwardKaytuAgent(ctx, &cfg.reconnectWait)
 		if err != nil {
 			if errors.Is(err, kaytuKubernetes.KaytuNotFoundErr) {
 				return &cfg, nil

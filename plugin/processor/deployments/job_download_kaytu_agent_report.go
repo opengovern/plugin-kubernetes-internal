@@ -27,7 +27,7 @@ func (j *DownloadKaytuAgentReportJob) Properties() sdk.JobProperties {
 	}
 }
 func (j *DownloadKaytuAgentReportJob) Run(ctx context.Context) error {
-	report, err := j.processor.kaytuClient.DownloadReport("kubernetes-deployments")
+	report, err := j.processor.kaytuClient.DownloadReport(ctx, "kubernetes-deployments")
 	if err != nil {
 		return err
 	}

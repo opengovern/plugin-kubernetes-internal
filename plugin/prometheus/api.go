@@ -103,7 +103,7 @@ func (p PodSuffixMode) Regex() string {
 	}
 }
 
-func NewPrometheus(cfg *Config) (*Prometheus, error) {
+func NewPrometheus(ctx context.Context, cfg *Config) (*Prometheus, error) {
 	promCfg := promapi.Config{
 		Address:      cfg.Address,
 		RoundTripper: promapi.DefaultRoundTripper,
@@ -133,7 +133,7 @@ func NewPrometheus(cfg *Config) (*Prometheus, error) {
 		scrapeInterval: defaultScrapeInterval,
 	}
 
-	scrapeInterval, err := prom.calculateScrapeInterval()
+	scrapeInterval, err := prom.calculateScrapeInterval(ctx)
 	if err == nil {
 		prom.scrapeInterval = scrapeInterval
 	}
@@ -141,7 +141,7 @@ func NewPrometheus(cfg *Config) (*Prometheus, error) {
 	return &prom, nil
 }
 
-func (p *Prometheus) calculateScrapeInterval() (time.Duration, error) {
+func (p *Prometheus) calculateScrapeInterval(ctx context.Context) (time.Duration, error) {
 	sampleDuration := 24 * time.Hour
 	minV := math.MaxInt
 
@@ -152,7 +152,7 @@ func (p *Prometheus) calculateScrapeInterval() (time.Duration, error) {
 	metrics = append(metrics, memoryUsageMetrics...)
 
 	for _, metric := range metrics {
-		value, _, err := p.api.Query(context.Background(), fmt.Sprintf("scalar(max(count_over_time(%s[%s])))", metric, model.Duration(sampleDuration).String()), time.Now())
+		value, _, err := p.api.Query(ctx, fmt.Sprintf("scalar(max(count_over_time(%s[%s])))", metric, model.Duration(sampleDuration).String()), time.Now())
 		if err != nil {
 			return 0, err
 		}

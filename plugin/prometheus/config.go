@@ -33,7 +33,7 @@ type Config struct {
 	reconnectWait sync.Mutex
 }
 
-func GetConfig(address, basicUsername, basicPassword, oAuth2ClientID, oAuth2ClientSecret, oAuth2TokenURL *string, oAuth2Scopes []string, client *kaytuKubernetes.Kubernetes) (*Config, error) {
+func GetConfig(ctx context.Context, address, basicUsername, basicPassword, oAuth2ClientID, oAuth2ClientSecret, oAuth2TokenURL *string, oAuth2Scopes []string, client *kaytuKubernetes.Kubernetes) (*Config, error) {
 	cfg := Config{
 		AuthType:      PromAuthTypeNone,
 		reconnectWait: sync.Mutex{},
@@ -44,7 +44,7 @@ func GetConfig(address, basicUsername, basicPassword, oAuth2ClientID, oAuth2Clie
 	}
 
 	if cfg.Address == "" {
-		_, addr, err := client.DiscoverAndPortForwardPrometheusCompatible(context.Background(), &cfg.reconnectWait)
+		_, addr, err := client.DiscoverAndPortForwardPrometheusCompatible(ctx, &cfg.reconnectWait)
 		if err != nil {
 			return nil, err
 		}
