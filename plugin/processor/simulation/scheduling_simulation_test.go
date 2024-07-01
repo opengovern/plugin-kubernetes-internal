@@ -1,7 +1,8 @@
-package shared
+package simulation
 
 import (
 	"fmt"
+	"github.com/kaytu-io/plugin-kubernetes-internal/plugin/processor/shared"
 	v12 "k8s.io/api/batch/v1"
 	"k8s.io/apimachinery/pkg/api/resource"
 	"k8s.io/apimachinery/pkg/util/intstr"
@@ -14,7 +15,7 @@ import (
 )
 
 func TestSchedulePodWithStrategy(t *testing.T) {
-	nodes := []KubernetesNode{
+	nodes := []shared.KubernetesNode{
 		{
 			Name:         "node1",
 			VCores:       4,
@@ -72,7 +73,7 @@ func TestSchedulePodWithStrategy(t *testing.T) {
 }
 
 func TestCanRemoveNode(t *testing.T) {
-	nodes := []KubernetesNode{
+	nodes := []shared.KubernetesNode{
 		{
 			Name:         "node1",
 			VCores:       4,
@@ -147,7 +148,7 @@ func TestCanRemoveNode(t *testing.T) {
 }
 
 func TestTolerates(t *testing.T) {
-	scheduler := New([]KubernetesNode{})
+	scheduler := New([]shared.KubernetesNode{})
 
 	nodeTaints := []v13.Taint{
 		{
@@ -179,7 +180,7 @@ func TestTolerates(t *testing.T) {
 }
 
 func TestSatisfiesNodeAffinity(t *testing.T) {
-	scheduler := New([]KubernetesNode{})
+	scheduler := New([]shared.KubernetesNode{})
 
 	nodeLabels := map[string]string{
 		"zone": "us-west1",
@@ -219,7 +220,7 @@ func TestSatisfiesNodeAffinity(t *testing.T) {
 }
 
 func TestIntegration(t *testing.T) {
-	nodes := []KubernetesNode{
+	nodes := []shared.KubernetesNode{
 		{
 			Name:         "node1",
 			VCores:       4,
@@ -315,7 +316,7 @@ func TestIntegration(t *testing.T) {
 }
 
 func TestSchedulePodWithStrategyEdgeCases(t *testing.T) {
-	nodes := []KubernetesNode{
+	nodes := []shared.KubernetesNode{
 		{
 			Name:         "node1",
 			VCores:       4,
@@ -399,7 +400,7 @@ func TestSchedulePodWithStrategyEdgeCases(t *testing.T) {
 }
 
 func TestAddDaemonSet(t *testing.T) {
-	nodes := []KubernetesNode{
+	nodes := []shared.KubernetesNode{
 		{
 			Name:         "node1",
 			VCores:       4,
@@ -460,7 +461,7 @@ func TestAddDaemonSet(t *testing.T) {
 }
 
 func TestAddJob(t *testing.T) {
-	nodes := []KubernetesNode{
+	nodes := []shared.KubernetesNode{
 		{
 			Name:         "node1",
 			VCores:       4,
@@ -516,7 +517,7 @@ func TestAddJob(t *testing.T) {
 }
 
 func TestGetNodeUtilization(t *testing.T) {
-	nodes := []KubernetesNode{
+	nodes := []shared.KubernetesNode{
 		{
 			Name:         "node1",
 			VCores:       4,
@@ -565,7 +566,7 @@ func TestGetNodeUtilization(t *testing.T) {
 }
 
 func TestCanRemoveNodeWithPDBs(t *testing.T) {
-	nodes := []KubernetesNode{
+	nodes := []shared.KubernetesNode{
 		{
 			Name:         "node1",
 			VCores:       4,
@@ -896,7 +897,7 @@ func TestNodeConditions(t *testing.T) {
 
 func TestAffinityAndAntiAffinity(t *testing.T) {
 	t.Run("Pod with node affinity that matches one node", func(t *testing.T) {
-		nodes := []KubernetesNode{
+		nodes := []shared.KubernetesNode{
 			{Name: "node1", Labels: map[string]string{"zone": "us-east-1a"}, MaxPodCount: 10},
 			{Name: "node2", Labels: map[string]string{"zone": "us-east-1b"}, MaxPodCount: 10},
 		}
@@ -914,7 +915,7 @@ func TestAffinityAndAntiAffinity(t *testing.T) {
 	})
 
 	t.Run("Pod with node affinity that doesn't match any nodes", func(t *testing.T) {
-		nodes := []KubernetesNode{
+		nodes := []shared.KubernetesNode{
 			{Name: "node1", Labels: map[string]string{"zone": "us-east-1a"}, MaxPodCount: 10},
 			{Name: "node2", Labels: map[string]string{"zone": "us-east-1b"}, MaxPodCount: 10},
 		}
@@ -929,7 +930,7 @@ func TestAffinityAndAntiAffinity(t *testing.T) {
 	})
 
 	t.Run("Pod with pod affinity that can be satisfied", func(t *testing.T) {
-		nodes := []KubernetesNode{
+		nodes := []shared.KubernetesNode{
 			{Name: "node1", Labels: map[string]string{"zone": "us-east-1a"}, MaxPodCount: 10},
 			{Name: "node2", Labels: map[string]string{"zone": "us-east-1a"}, MaxPodCount: 10},
 		}
@@ -948,7 +949,7 @@ func TestAffinityAndAntiAffinity(t *testing.T) {
 	})
 
 	t.Run("Pod with pod anti-affinity that prevents scheduling", func(t *testing.T) {
-		nodes := []KubernetesNode{
+		nodes := []shared.KubernetesNode{
 			{Name: "node1", Labels: map[string]string{"zone": "us-east-1a"}, MaxPodCount: 10},
 		}
 		scheduler := New(nodes)
@@ -966,7 +967,7 @@ func TestAffinityAndAntiAffinity(t *testing.T) {
 	})
 
 	t.Run("Complex affinity rules involving multiple pods", func(t *testing.T) {
-		nodes := []KubernetesNode{
+		nodes := []shared.KubernetesNode{
 			{Name: "node1", Labels: map[string]string{"zone": "us-east-1a", "disk": "ssd"}, MaxPodCount: 10},
 			{Name: "node2", Labels: map[string]string{"zone": "us-east-1b", "disk": "hdd"}, MaxPodCount: 10},
 			{Name: "node3", Labels: map[string]string{"zone": "us-east-1a", "disk": "hdd"}, MaxPodCount: 10},
@@ -1031,7 +1032,7 @@ func TestAffinityAndAntiAffinity(t *testing.T) {
 
 func TestTaintsAndTolerations(t *testing.T) {
 	t.Run("Pod with no tolerations on a tainted node", func(t *testing.T) {
-		nodes := []KubernetesNode{
+		nodes := []shared.KubernetesNode{
 			{
 				Name: "tainted-node",
 				Taints: []v13.Taint{
@@ -1054,7 +1055,7 @@ func TestTaintsAndTolerations(t *testing.T) {
 	})
 
 	t.Run("Pod with matching toleration on a tainted node", func(t *testing.T) {
-		nodes := []KubernetesNode{
+		nodes := []shared.KubernetesNode{
 			{
 				Name: "tainted-node",
 				Taints: []v13.Taint{
@@ -1081,7 +1082,7 @@ func TestTaintsAndTolerations(t *testing.T) {
 	})
 
 	t.Run("Pod with non-matching toleration on a tainted node", func(t *testing.T) {
-		nodes := []KubernetesNode{
+		nodes := []shared.KubernetesNode{
 			{
 				Name: "tainted-node",
 				Taints: []v13.Taint{
@@ -1105,7 +1106,7 @@ func TestTaintsAndTolerations(t *testing.T) {
 	})
 
 	t.Run("Pod with matching key but non-matching value toleration on a tainted node", func(t *testing.T) {
-		nodes := []KubernetesNode{
+		nodes := []shared.KubernetesNode{
 			{
 				Name: "tainted-node",
 				Taints: []v13.Taint{
@@ -1128,7 +1129,7 @@ func TestTaintsAndTolerations(t *testing.T) {
 	})
 
 	t.Run("Pod with matching key and effect but no value toleration on a tainted node", func(t *testing.T) {
-		nodes := []KubernetesNode{
+		nodes := []shared.KubernetesNode{
 			{
 				Name: "tainted-node",
 				Taints: []v13.Taint{
@@ -1157,7 +1158,7 @@ func TestTaintsAndTolerations(t *testing.T) {
 
 func TestSpecialPodTypes(t *testing.T) {
 	t.Run("DaemonSet pod scheduling on all nodes", func(t *testing.T) {
-		nodes := []KubernetesNode{
+		nodes := []shared.KubernetesNode{
 			{Name: "node1", MaxPodCount: 10},
 			{Name: "node2", MaxPodCount: 10},
 			{Name: "node3", MaxPodCount: 10},
@@ -1175,7 +1176,7 @@ func TestSpecialPodTypes(t *testing.T) {
 	})
 
 	t.Run("DaemonSet pod scheduling on nodes with matching node selector", func(t *testing.T) {
-		nodes := []KubernetesNode{
+		nodes := []shared.KubernetesNode{
 			{Name: "node1", Labels: map[string]string{"role": "worker"}, MaxPodCount: 10},
 			{Name: "node2", Labels: map[string]string{"role": "master"}, MaxPodCount: 10},
 			{Name: "node3", Labels: map[string]string{"role": "worker"}, MaxPodCount: 10},
@@ -1197,7 +1198,7 @@ func TestSpecialPodTypes(t *testing.T) {
 	})
 
 	t.Run("DaemonSet pod scheduling with node affinity", func(t *testing.T) {
-		nodes := []KubernetesNode{
+		nodes := []shared.KubernetesNode{
 			{Name: "node1", Labels: map[string]string{"zone": "us-east-1a"}, MaxPodCount: 10},
 			{Name: "node2", Labels: map[string]string{"zone": "us-east-1b"}, MaxPodCount: 10},
 			{Name: "node3", Labels: map[string]string{"zone": "us-east-1a"}, MaxPodCount: 10},
@@ -1233,7 +1234,7 @@ func TestSpecialPodTypes(t *testing.T) {
 	})
 
 	t.Run("DaemonSet pod scheduling with taints and tolerations", func(t *testing.T) {
-		nodes := []KubernetesNode{
+		nodes := []shared.KubernetesNode{
 			{Name: "node1", Taints: []v13.Taint{{Key: "key1", Value: "value1", Effect: v13.TaintEffectNoSchedule}}, MaxPodCount: 10},
 			{Name: "node2", MaxPodCount: 10},
 			{Name: "node3", Taints: []v13.Taint{{Key: "key2", Value: "value2", Effect: v13.TaintEffectNoSchedule}}, MaxPodCount: 10},

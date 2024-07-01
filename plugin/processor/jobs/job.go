@@ -1,12 +1,14 @@
 package jobs
 
 import (
+	"fmt"
 	"github.com/kaytu-io/kaytu/pkg/plugin/proto/src/golang"
 	"github.com/kaytu-io/kaytu/pkg/plugin/sdk"
 	"github.com/kaytu-io/plugin-kubernetes-internal/plugin/kaytu"
 	kaytuAgent "github.com/kaytu-io/plugin-kubernetes-internal/plugin/kaytu-agent"
 	kaytuKubernetes "github.com/kaytu-io/plugin-kubernetes-internal/plugin/kubernetes"
 	"github.com/kaytu-io/plugin-kubernetes-internal/plugin/processor/shared"
+	"github.com/kaytu-io/plugin-kubernetes-internal/plugin/processor/simulation"
 	kaytuPrometheus "github.com/kaytu-io/plugin-kubernetes-internal/plugin/prometheus"
 	golang2 "github.com/kaytu-io/plugin-kubernetes-internal/plugin/proto/src/golang"
 	util "github.com/kaytu-io/plugin-kubernetes-internal/utils"
@@ -32,6 +34,7 @@ type Processor struct {
 	nodeSelector              string
 	observabilityDays         int
 	defaultPreferences        []*golang.PreferenceItem
+	schedulingSim             *simulation.SchedulerService
 
 	summary util.ConcurrentMap[string, shared.ResourceSummary]
 }
@@ -131,9 +134,25 @@ func (m *Processor) UpdateSummary(itemId string) {
 		}
 
 		m.summary.Set(i.GetID(), js)
+		m.schedulingSim.AddJob(i)
+		nodes, err := m.schedulingSim.Simulate()
+		if err != nil {
+			fmt.Println("failed to simulate due to", err)
+		} else {
+			cpu, memory := 0.0, 0.0
+			for _, n := range nodes {
+				cpu += n.VCores
+				memory += n.Memory
+			}
+			fmt.Println("savings: cpu:", cpu, "memory:", memory)
+		}
 	}
 	rs, _ := shared.GetAggregatedResultsSummary(&m.summary)
 	m.publishResultSummary(rs)
 	rst, _ := shared.GetAggregatedResultsSummaryTable(&m.summary)
 	m.publishResultSummaryTable(rst)
+}
+
+func (m *Processor) SetSchedulingSim(sim *simulation.SchedulerService) {
+	m.schedulingSim = sim
 }

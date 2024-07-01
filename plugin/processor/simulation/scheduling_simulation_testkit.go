@@ -1,20 +1,21 @@
-package shared
+package simulation
 
 import (
+	"github.com/kaytu-io/plugin-kubernetes-internal/plugin/processor/shared"
 	v1 "k8s.io/api/apps/v1"
 	v13 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
-func setupSchedulerWithOneNode(cpu float64, memoryMB float64, maxPods int) (*Scheduler, *KubernetesNode) {
-	node := KubernetesNode{
+func setupSchedulerWithOneNode(cpu float64, memoryMB float64, maxPods int) (*Scheduler, *shared.KubernetesNode) {
+	node := shared.KubernetesNode{
 		Name:        "test-node",
 		VCores:      cpu,
 		Memory:      memoryMB / 1024.0,
 		MaxPodCount: maxPods,
 	}
-	scheduler := New([]KubernetesNode{node})
+	scheduler := New([]shared.KubernetesNode{node})
 	return scheduler, &scheduler.nodes[0]
 }
 

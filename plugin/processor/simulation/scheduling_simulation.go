@@ -1,7 +1,8 @@
-package shared
+package simulation
 
 import (
 	"fmt"
+	"github.com/kaytu-io/plugin-kubernetes-internal/plugin/processor/shared"
 	"math"
 	"sort"
 
@@ -19,25 +20,12 @@ const (
 	GB                = 1024 * 1024 * 1024
 )
 
-type KubernetesNode struct {
-	Name         string
-	VCores       float64
-	Memory       float64
-	MaxPodCount  int
-	Taints       []corev1.Taint
-	Labels       map[string]string
-	AllocatedCPU float64
-	AllocatedMem float64
-	AllocatedPod int
-	Pods         []corev1.PodTemplateSpec
-}
-
 type Scheduler struct {
-	nodes []KubernetesNode
+	nodes []shared.KubernetesNode
 	pdbs  []policyv1.PodDisruptionBudget
 }
 
-func New(nodes []KubernetesNode) *Scheduler {
+func New(nodes []shared.KubernetesNode) *Scheduler {
 	return &Scheduler{
 		nodes: nodes,
 	}
@@ -103,7 +91,7 @@ func (s *Scheduler) GetNodeUtilization() map[string]map[string]float64 {
 }
 
 func (s *Scheduler) CanRemoveNode(nodeName string) (bool, error) {
-	var nodeToRemove *KubernetesNode
+	var nodeToRemove *shared.KubernetesNode
 	for i, node := range s.nodes {
 		if node.Name == nodeName {
 			nodeToRemove = &s.nodes[i]
@@ -121,7 +109,7 @@ func (s *Scheduler) CanRemoveNode(nodeName string) (bool, error) {
 	}
 
 	// Create a temporary scheduler for simulation
-	var tempNodes []KubernetesNode
+	var tempNodes []shared.KubernetesNode
 	for _, node := range s.nodes {
 		if node.Name != nodeName {
 			tempNodes = append(tempNodes, node)
@@ -163,7 +151,7 @@ func (s *Scheduler) schedulePodWithStrategy(podSpec corev1.PodTemplateSpec) bool
 	return false
 }
 
-func (s *Scheduler) canScheduleOnNode(podSpec corev1.PodSpec, node *KubernetesNode) bool {
+func (s *Scheduler) canScheduleOnNode(podSpec corev1.PodSpec, node *shared.KubernetesNode) bool {
 	// Check resources
 	if !s.hasEnoughResources(podSpec, node) {
 		return false
@@ -198,7 +186,7 @@ func (s *Scheduler) canScheduleOnNode(podSpec corev1.PodSpec, node *KubernetesNo
 	return true
 }
 
-func (s *Scheduler) satisfiesAffinityRules(podSpec corev1.PodSpec, node KubernetesNode) bool {
+func (s *Scheduler) satisfiesAffinityRules(podSpec corev1.PodSpec, node shared.KubernetesNode) bool {
 	if podSpec.Affinity == nil {
 		return true
 	}
@@ -222,7 +210,7 @@ func (s *Scheduler) satisfiesAffinityRules(podSpec corev1.PodSpec, node Kubernet
 	return true
 }
 
-func (s *Scheduler) satisfiesPodAffinityTerm(term corev1.PodAffinityTerm, node KubernetesNode) bool {
+func (s *Scheduler) satisfiesPodAffinityTerm(term corev1.PodAffinityTerm, node shared.KubernetesNode) bool {
 	selector, err := metav1.LabelSelectorAsSelector(term.LabelSelector)
 	if err != nil {
 		return false
@@ -248,7 +236,7 @@ func (s *Scheduler) satisfiesPodAffinityTerm(term corev1.PodAffinityTerm, node K
 	return false
 }
 
-func (s *Scheduler) hasEnoughResources(podSpec corev1.PodSpec, node *KubernetesNode) bool {
+func (s *Scheduler) hasEnoughResources(podSpec corev1.PodSpec, node *shared.KubernetesNode) bool {
 	cpuReq, memReq := s.getPodResourceRequests(podSpec)
 	return node.AllocatedCPU+cpuReq <= node.VCores*HeadroomFactor &&
 		node.AllocatedMem+memReq <= node.Memory*HeadroomFactor &&
@@ -398,7 +386,7 @@ func (s *Scheduler) countHealthyPods(pdb policyv1.PodDisruptionBudget) int {
 	return count
 }
 
-func (s *Scheduler) schedulePod(pod corev1.PodTemplateSpec, node *KubernetesNode) {
+func (s *Scheduler) schedulePod(pod corev1.PodTemplateSpec, node *shared.KubernetesNode) {
 	cpuReq, memReq := s.getPodResourceRequests(pod.Spec)
 	node.AllocatedCPU += cpuReq
 	node.AllocatedMem += memReq

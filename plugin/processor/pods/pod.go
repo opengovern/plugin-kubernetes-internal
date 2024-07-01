@@ -8,6 +8,7 @@ import (
 	kaytuAgent "github.com/kaytu-io/plugin-kubernetes-internal/plugin/kaytu-agent"
 	kaytuKubernetes "github.com/kaytu-io/plugin-kubernetes-internal/plugin/kubernetes"
 	"github.com/kaytu-io/plugin-kubernetes-internal/plugin/processor/shared"
+	"github.com/kaytu-io/plugin-kubernetes-internal/plugin/processor/simulation"
 	kaytuPrometheus "github.com/kaytu-io/plugin-kubernetes-internal/plugin/prometheus"
 	golang2 "github.com/kaytu-io/plugin-kubernetes-internal/plugin/proto/src/golang"
 	util "github.com/kaytu-io/plugin-kubernetes-internal/utils"
@@ -42,6 +43,7 @@ type Processor struct {
 	nodeSelector              string
 	observabilityDays         int
 	kaytuClient               *kaytuAgent.KaytuAgent
+	schedulingSim             *simulation.SchedulerService
 
 	summary            util.ConcurrentMap[string, shared.ResourceSummary]
 	defaultPreferences []*golang.PreferenceItem
@@ -258,9 +260,26 @@ func (m *Processor) UpdateSummary(itemId string) {
 			MemoryLimitChange:   memoryLimitChange,
 			TotalMemoryLimit:    totalMemoryLimit,
 		})
+		m.schedulingSim.AddPod(i)
+		nodes, err := m.schedulingSim.Simulate()
+		if err != nil {
+			fmt.Println("failed to simulate due to", err)
+		} else {
+			cpu, memory := 0.0, 0.0
+			for _, n := range nodes {
+				cpu += n.VCores
+				memory += n.Memory
+			}
+			fmt.Println("savings: cpu:", cpu, "memory:", memory)
+		}
+
 	}
 	rs, _ := shared.GetAggregatedResultsSummary(&m.summary)
 	m.publishResultSummary(rs)
 	rst, _ := shared.GetAggregatedResultsSummaryTable(&m.summary)
 	m.publishResultSummaryTable(rst)
+}
+
+func (m *Processor) SetSchedulingSim(sim *simulation.SchedulerService) {
+	m.schedulingSim = sim
 }

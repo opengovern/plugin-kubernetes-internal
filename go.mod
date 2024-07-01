@@ -17,6 +17,7 @@ require (
 	github.com/kaytu-io/kaytu-agent v0.0.0-20240615090533-caf550626941
 	github.com/prometheus/client_golang v1.19.1
 	github.com/prometheus/common v0.48.0
+	github.com/stretchr/testify v1.9.0
 	golang.org/x/net v0.25.0
 	golang.org/x/oauth2 v0.20.0
 	google.golang.org/grpc v1.64.0
@@ -107,6 +108,7 @@ require (
 	github.com/mwitkow/go-conntrack v0.0.0-20190716064945-2f068394615f // indirect
 	github.com/mxk/go-flowrate v0.0.0-20140419014527-cca7078d478f // indirect
 	github.com/pjbgf/sha1cd v0.3.0 // indirect
+	github.com/pmezard/go-difflib v1.0.0 // indirect
 	github.com/prometheus/client_model v0.5.0 // indirect
 	github.com/prometheus/procfs v0.12.0 // indirect
 	github.com/rivo/uniseg v0.4.7 // indirect
