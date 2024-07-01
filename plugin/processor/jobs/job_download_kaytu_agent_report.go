@@ -21,7 +21,7 @@ func NewDownloadKaytuAgentReportJob(processor *Processor, nodes []shared.Kuberne
 }
 func (j *DownloadKaytuAgentReportJob) Properties() sdk.JobProperties {
 	return sdk.JobProperties{
-		ID:          "download_kaytu_agent_report_job_kubernetes_daemonsets",
+		ID:          "download_kaytu_agent_report_job_kubernetes_jobs",
 		Description: "Downloading Kaytu Agent report (Kubernetes Jobs)",
 		MaxRetry:    0,
 	}
