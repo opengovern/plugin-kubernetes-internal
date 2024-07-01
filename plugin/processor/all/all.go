@@ -2,42 +2,21 @@ package all
 
 import (
 	"github.com/kaytu-io/kaytu/pkg/plugin/proto/src/golang"
-	"github.com/kaytu-io/kaytu/pkg/plugin/sdk"
-	"github.com/kaytu-io/plugin-kubernetes-internal/plugin/kaytu"
-	kaytuAgent "github.com/kaytu-io/plugin-kubernetes-internal/plugin/kaytu-agent"
-	kaytuKubernetes "github.com/kaytu-io/plugin-kubernetes-internal/plugin/kubernetes"
 	"github.com/kaytu-io/plugin-kubernetes-internal/plugin/processor/daemonsets"
 	"github.com/kaytu-io/plugin-kubernetes-internal/plugin/processor/deployments"
 	"github.com/kaytu-io/plugin-kubernetes-internal/plugin/processor/jobs"
 	"github.com/kaytu-io/plugin-kubernetes-internal/plugin/processor/pods"
 	"github.com/kaytu-io/plugin-kubernetes-internal/plugin/processor/shared"
 	"github.com/kaytu-io/plugin-kubernetes-internal/plugin/processor/statefulsets"
-	kaytuPrometheus "github.com/kaytu-io/plugin-kubernetes-internal/plugin/prometheus"
-	golang2 "github.com/kaytu-io/plugin-kubernetes-internal/plugin/proto/src/golang"
 	util "github.com/kaytu-io/plugin-kubernetes-internal/utils"
-	"sync/atomic"
 )
 
 type Processor struct {
-	identification            map[string]string
-	kubernetesProvider        *kaytuKubernetes.Kubernetes
-	prometheusProvider        *kaytuPrometheus.Prometheus
 	itemsToProcessor          util.ConcurrentMap[string, string]
 	publishOptimizationItem   func(item *golang.ChartOptimizationItem)
 	publishResultSummary      func(summary *golang.ResultSummary)
 	publishResultSummaryTable func(summary *golang.ResultSummaryTable)
-	jobQueue                  *sdk.JobQueue
-	lazyloadCounter           *atomic.Uint32
-	configuration             *kaytu.Configuration
-	client                    golang2.OptimizationClient
-	kaytuClient               *kaytuAgent.KaytuAgent
-	namespace                 *string
-	selector                  string
-	nodeSelector              string
-	observabilityDays         int
-	defaultPreferences        []*golang.PreferenceItem
-
-	summary util.ConcurrentMap[string, shared.ResourceSummary]
+	summary                   util.ConcurrentMap[string, shared.ResourceSummary]
 
 	daemonsetsProcessor   *daemonsets.Processor
 	deploymentsProcessor  *deployments.Processor
@@ -179,25 +158,11 @@ func (p *Processor) initPodProcessor(processorConf shared.Configuration) *pods.P
 }
 
 func NewProcessor(processorConf shared.Configuration) *Processor {
-	// TODO: implement specific interaction functions
 	p := &Processor{
-		identification:            processorConf.Identification,
-		kubernetesProvider:        processorConf.KubernetesProvider,
-		prometheusProvider:        processorConf.PrometheusProvider,
 		itemsToProcessor:          util.NewConcurrentMap[string, string](),
 		publishOptimizationItem:   processorConf.PublishOptimizationItem,
 		publishResultSummary:      processorConf.PublishResultSummary,
 		publishResultSummaryTable: processorConf.PublishResultSummaryTable,
-		jobQueue:                  processorConf.JobQueue,
-		lazyloadCounter:           processorConf.LazyloadCounter,
-		configuration:             processorConf.Configuration,
-		client:                    processorConf.Client,
-		kaytuClient:               processorConf.KaytuClient,
-		namespace:                 processorConf.Namespace,
-		selector:                  processorConf.Selector,
-		nodeSelector:              processorConf.NodeSelector,
-		observabilityDays:         processorConf.ObservabilityDays,
-		defaultPreferences:        processorConf.DefaultPreferences,
 		summary:                   util.NewConcurrentMap[string, shared.ResourceSummary](),
 	}
 
