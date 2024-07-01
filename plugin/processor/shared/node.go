@@ -6,7 +6,7 @@ type KubernetesNode struct {
 	Name         string
 	VCores       float64
 	Memory       float64
-	MaxPodCount  int
+	MaxPodCount  int64
 	Taints       []corev1.Taint
 	Labels       map[string]string
 	AllocatedCPU float64

@@ -1,6 +1,7 @@
 package all
 
 import (
+	"fmt"
 	"github.com/kaytu-io/kaytu/pkg/plugin/proto/src/golang"
 	"github.com/kaytu-io/plugin-kubernetes-internal/plugin/processor/daemonsets"
 	"github.com/kaytu-io/plugin-kubernetes-internal/plugin/processor/deployments"
@@ -57,19 +58,24 @@ func (p *Processor) publishResultSummaryTableFunc(kuberType string) {
 	var resourceSummary *shared.ResourceSummary
 	switch kuberType {
 	case "daemonset":
-		_, resourceSummary = shared.GetAggregatedResultsSummaryTable(p.daemonsetsProcessor.GetSummaryMap())
+		_, resourceSummary = shared.GetAggregatedResultsSummaryTable(p.daemonsetsProcessor.GetSummaryMap(), nil, nil)
 	case "deployment":
-		_, resourceSummary = shared.GetAggregatedResultsSummaryTable(p.deploymentsProcessor.GetSummaryMap())
+		_, resourceSummary = shared.GetAggregatedResultsSummaryTable(p.deploymentsProcessor.GetSummaryMap(), nil, nil)
 	case "statefulset":
-		_, resourceSummary = shared.GetAggregatedResultsSummaryTable(p.statefulsetsProcessor.GetSummaryMap())
+		_, resourceSummary = shared.GetAggregatedResultsSummaryTable(p.statefulsetsProcessor.GetSummaryMap(), nil, nil)
 	case "job":
-		_, resourceSummary = shared.GetAggregatedResultsSummaryTable(p.jobsProcessor.GetSummaryMap())
+		_, resourceSummary = shared.GetAggregatedResultsSummaryTable(p.jobsProcessor.GetSummaryMap(), nil, nil)
 	case "pod":
-		_, resourceSummary = shared.GetAggregatedResultsSummaryTable(p.podsProcessor.GetSummaryMap())
+		_, resourceSummary = shared.GetAggregatedResultsSummaryTable(p.podsProcessor.GetSummaryMap(), nil, nil)
 	}
 	if resourceSummary != nil {
 		p.summary.Set(kuberType, *resourceSummary)
-		rs, _ := shared.GetAggregatedResultsSummaryTable(&p.summary)
+		nodes, err := p.schedulingSim.Simulate()
+		if err != nil {
+			fmt.Println("failed to simulate due to", err)
+		}
+
+		rs, _ := shared.GetAggregatedResultsSummaryTable(&p.summary, p.podsProcessor.ClusterNodes(), nodes)
 		p.publishResultSummaryTable(rs)
 	}
 }

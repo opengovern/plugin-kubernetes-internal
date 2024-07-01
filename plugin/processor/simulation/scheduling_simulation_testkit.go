@@ -8,7 +8,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
-func setupSchedulerWithOneNode(cpu float64, memoryMB float64, maxPods int) (*Scheduler, *shared.KubernetesNode) {
+func setupSchedulerWithOneNode(cpu float64, memoryMB float64, maxPods int64) (*Scheduler, *shared.KubernetesNode) {
 	node := shared.KubernetesNode{
 		Name:        "test-node",
 		VCores:      cpu,

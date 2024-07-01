@@ -1,8 +1,6 @@
 package simulation
 
 import (
-	"github.com/kaytu-io/plugin-kubernetes-internal/plugin/processor/daemonsets"
-	"github.com/kaytu-io/plugin-kubernetes-internal/plugin/processor/deployments"
 	"github.com/kaytu-io/plugin-kubernetes-internal/plugin/processor/shared"
 	"github.com/stretchr/testify/assert"
 	"google.golang.org/protobuf/proto"
@@ -41,22 +39,20 @@ func TestServiceAddDaemonSet(t *testing.T) {
 	scheduler := NewSchedulerService(nodes)
 
 	memory := 0.2 * float64(GB)
-	daemonSet := daemonsets.DaemonsetItem{
-		Daemonset: v1.DaemonSet{
-			ObjectMeta: v12.ObjectMeta{
-				Name:      "daemonset-1",
-				Namespace: "ns-1",
-			},
-			Spec: v1.DaemonSetSpec{
-				Template: v13.PodTemplateSpec{
-					Spec: v13.PodSpec{
-						Containers: []v13.Container{
-							{
-								Resources: v13.ResourceRequirements{
-									Requests: v13.ResourceList{
-										v13.ResourceCPU:    *resource.NewMilliQuantity(100, resource.DecimalSI),
-										v13.ResourceMemory: *resource.NewQuantity(int64(memory), resource.BinarySI),
-									},
+	daemonSet := v1.DaemonSet{
+		ObjectMeta: v12.ObjectMeta{
+			Name:      "daemonset-1",
+			Namespace: "ns-1",
+		},
+		Spec: v1.DaemonSetSpec{
+			Template: v13.PodTemplateSpec{
+				Spec: v13.PodSpec{
+					Containers: []v13.Container{
+						{
+							Resources: v13.ResourceRequirements{
+								Requests: v13.ResourceList{
+									v13.ResourceCPU:    *resource.NewMilliQuantity(100, resource.DecimalSI),
+									v13.ResourceMemory: *resource.NewQuantity(int64(memory), resource.BinarySI),
 								},
 							},
 						},
@@ -68,23 +64,21 @@ func TestServiceAddDaemonSet(t *testing.T) {
 
 	scheduler.AddDaemonSet(daemonSet)
 
-	deployment := deployments.DeploymentItem{
-		Deployment: v1.Deployment{
-			ObjectMeta: v12.ObjectMeta{
-				Name:      "deployment-1",
-				Namespace: "ns-1",
-			},
-			Spec: v1.DeploymentSpec{
-				Replicas: proto.Int32(2),
-				Template: v13.PodTemplateSpec{
-					Spec: v13.PodSpec{
-						Containers: []v13.Container{
-							{
-								Resources: v13.ResourceRequirements{
-									Requests: v13.ResourceList{
-										v13.ResourceCPU:    *resource.NewMilliQuantity(1000, resource.DecimalSI),
-										v13.ResourceMemory: *resource.NewQuantity(int64(memory), resource.BinarySI),
-									},
+	deployment := v1.Deployment{
+		ObjectMeta: v12.ObjectMeta{
+			Name:      "deployment-1",
+			Namespace: "ns-1",
+		},
+		Spec: v1.DeploymentSpec{
+			Replicas: proto.Int32(2),
+			Template: v13.PodTemplateSpec{
+				Spec: v13.PodSpec{
+					Containers: []v13.Container{
+						{
+							Resources: v13.ResourceRequirements{
+								Requests: v13.ResourceList{
+									v13.ResourceCPU:    *resource.NewMilliQuantity(1000, resource.DecimalSI),
+									v13.ResourceMemory: *resource.NewQuantity(int64(memory), resource.BinarySI),
 								},
 							},
 						},
@@ -103,8 +97,8 @@ func TestServiceAddDaemonSet(t *testing.T) {
 	assert.NoError(t, err)
 	assert.Len(t, removed, 1)
 
-	deployment.Deployment.ObjectMeta.Name = "deployment-2"
-	deployment.Deployment.Spec.Replicas = proto.Int32(2)
+	deployment.ObjectMeta.Name = "deployment-2"
+	deployment.Spec.Replicas = proto.Int32(2)
 	scheduler.AddDeployment(deployment)
 	removed, err = scheduler.Simulate()
 	assert.NoError(t, err)

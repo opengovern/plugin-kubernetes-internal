@@ -44,6 +44,7 @@ type Processor struct {
 	observabilityDays         int
 	kaytuClient               *kaytuAgent.KaytuAgent
 	schedulingSim             *simulation.SchedulerService
+	clusterNodes              []shared.KubernetesNode
 
 	summary            util.ConcurrentMap[string, shared.ResourceSummary]
 	defaultPreferences []*golang.PreferenceItem
@@ -75,6 +76,10 @@ func NewProcessor(processorConf shared.Configuration, mode ProcessorMode) *Proce
 
 	processorConf.JobQueue.Push(NewListAllNodesJob(r))
 	return r
+}
+
+func (m *Processor) ClusterNodes() []shared.KubernetesNode {
+	return m.clusterNodes
 }
 
 func (m *Processor) ReEvaluate(id string, items []*golang.PreferenceItem) {
@@ -215,6 +220,7 @@ func (m *Processor) GetSummaryMap() *util.ConcurrentMap[string, shared.ResourceS
 }
 
 func (m *Processor) UpdateSummary(itemId string) {
+	var removableNodes []shared.KubernetesNode
 	i, ok := m.items.Get(itemId)
 	if ok && i.Wastage != nil {
 		cpuRequestChange, totalCpuRequest := 0.0, 0.0
@@ -260,23 +266,19 @@ func (m *Processor) UpdateSummary(itemId string) {
 			MemoryLimitChange:   memoryLimitChange,
 			TotalMemoryLimit:    totalMemoryLimit,
 		})
-		m.schedulingSim.AddPod(i)
-		nodes, err := m.schedulingSim.Simulate()
-		if err != nil {
-			fmt.Println("failed to simulate due to", err)
-		} else {
-			cpu, memory := 0.0, 0.0
-			for _, n := range nodes {
-				cpu += n.VCores
-				memory += n.Memory
+		if m.schedulingSim != nil {
+			m.schedulingSim.AddPod(i.Pod)
+			nodes, err := m.schedulingSim.Simulate()
+			if err != nil {
+				fmt.Println("failed to simulate due to", err)
+			} else {
+				removableNodes = nodes
 			}
-			fmt.Println("savings: cpu:", cpu, "memory:", memory)
 		}
-
 	}
 	rs, _ := shared.GetAggregatedResultsSummary(&m.summary)
 	m.publishResultSummary(rs)
-	rst, _ := shared.GetAggregatedResultsSummaryTable(&m.summary)
+	rst, _ := shared.GetAggregatedResultsSummaryTable(&m.summary, m.clusterNodes, removableNodes)
 	m.publishResultSummaryTable(rst)
 }
 

@@ -35,6 +35,7 @@ type Processor struct {
 	observabilityDays         int
 	defaultPreferences        []*golang.PreferenceItem
 	schedulingSim             *simulation.SchedulerService
+	clusterNodes              []shared.KubernetesNode
 
 	summary util.ConcurrentMap[string, shared.ResourceSummary]
 }
@@ -84,6 +85,8 @@ func (m *Processor) GetSummaryMap() *util.ConcurrentMap[string, shared.ResourceS
 }
 
 func (m *Processor) UpdateSummary(itemId string) {
+	var removableNodes []shared.KubernetesNode
+
 	i, ok := m.items.Get(itemId)
 	if ok && i.Wastage != nil {
 		cpuRequestChange, totalCpuRequest := 0.0, 0.0
@@ -131,22 +134,19 @@ func (m *Processor) UpdateSummary(itemId string) {
 		}
 
 		m.summary.Set(i.GetID(), ds)
-		m.schedulingSim.AddDaemonSet(i)
-		nodes, err := m.schedulingSim.Simulate()
-		if err != nil {
-			fmt.Println("failed to simulate due to", err)
-		} else {
-			cpu, memory := 0.0, 0.0
-			for _, n := range nodes {
-				cpu += n.VCores
-				memory += n.Memory
+		if m.schedulingSim != nil {
+			m.schedulingSim.AddDaemonSet(i.Daemonset)
+			nodes, err := m.schedulingSim.Simulate()
+			if err != nil {
+				fmt.Println("failed to simulate due to", err)
+			} else {
+				removableNodes = nodes
 			}
-			fmt.Println("savings: cpu:", cpu, "memory:", memory)
 		}
 	}
 	rs, _ := shared.GetAggregatedResultsSummary(&m.summary)
 	m.publishResultSummary(rs)
-	rst, _ := shared.GetAggregatedResultsSummaryTable(&m.summary)
+	rst, _ := shared.GetAggregatedResultsSummaryTable(&m.summary, m.clusterNodes, removableNodes)
 	m.publishResultSummaryTable(rst)
 }
 

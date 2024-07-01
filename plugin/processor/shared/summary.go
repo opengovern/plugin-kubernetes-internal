@@ -51,7 +51,7 @@ func GetAggregatedResultsSummary(processorSummary *util.ConcurrentMap[string, Re
 	return summary, &resourceSummary
 }
 
-func GetAggregatedResultsSummaryTable(processorSummary *util.ConcurrentMap[string, ResourceSummary]) (*golang.ResultSummaryTable, *ResourceSummary) {
+func GetAggregatedResultsSummaryTable(processorSummary *util.ConcurrentMap[string, ResourceSummary], cluster, removableNodes []KubernetesNode) (*golang.ResultSummaryTable, *ResourceSummary) {
 	summaryTable := &golang.ResultSummaryTable{}
 	var cpuRequestChanges, cpuLimitChanges, memoryRequestChanges, memoryLimitChanges float64
 	var totalCpuRequest, totalCpuLimit, totalMemoryRequest, totalMemoryLimit float64
@@ -103,6 +103,33 @@ func GetAggregatedResultsSummaryTable(processorSummary *util.ConcurrentMap[strin
 			SizeByte64(totalMemoryLimit + memoryLimitChanges),
 			SizeByte64(memoryLimitChanges),
 			fmt.Sprintf("%.2f%%", memoryLimitChanges/totalMemoryLimit*100.0),
+		},
+	})
+	var clusterCPU, clusterMemory, reducedCPU, reducedMemory float64
+	for _, c := range cluster {
+		clusterCPU += c.VCores
+		clusterMemory += c.Memory
+	}
+	for _, n := range removableNodes {
+		reducedCPU += n.VCores
+		reducedMemory += n.Memory
+	}
+	summaryTable.Message = append(summaryTable.Message, &golang.ResultSummaryTableRow{
+		Cells: []string{
+			"Cluster (CPU)",
+			fmt.Sprintf("%.2f Cores", clusterCPU),
+			fmt.Sprintf("%.2f Cores", clusterCPU-reducedCPU),
+			fmt.Sprintf("%.2f Cores", -reducedCPU),
+			fmt.Sprintf("%.2f%%", -reducedCPU/clusterCPU*100.0),
+		},
+	})
+	summaryTable.Message = append(summaryTable.Message, &golang.ResultSummaryTableRow{
+		Cells: []string{
+			"Cluster (Memory)",
+			SizeByte64(clusterMemory),
+			SizeByte64(clusterMemory - reducedMemory),
+			SizeByte64(-reducedMemory),
+			fmt.Sprintf("%.2f%%", -reducedMemory/clusterMemory*100.0),
 		},
 	})
 	resourceSummary := ResourceSummary{

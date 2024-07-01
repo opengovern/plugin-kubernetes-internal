@@ -2,34 +2,33 @@ package simulation
 
 import (
 	"fmt"
-	"github.com/kaytu-io/plugin-kubernetes-internal/plugin/processor/daemonsets"
-	"github.com/kaytu-io/plugin-kubernetes-internal/plugin/processor/deployments"
-	"github.com/kaytu-io/plugin-kubernetes-internal/plugin/processor/jobs"
-	"github.com/kaytu-io/plugin-kubernetes-internal/plugin/processor/pods"
 	"github.com/kaytu-io/plugin-kubernetes-internal/plugin/processor/shared"
-	"github.com/kaytu-io/plugin-kubernetes-internal/plugin/processor/statefulsets"
+	util "github.com/kaytu-io/plugin-kubernetes-internal/utils"
+	appv1 "k8s.io/api/apps/v1"
+	v1 "k8s.io/api/batch/v1"
+	corev1 "k8s.io/api/core/v1"
 	policyv1 "k8s.io/api/policy/v1"
 )
 
 type SchedulerService struct {
 	nodes        []shared.KubernetesNode
 	pdbs         []policyv1.PodDisruptionBudget
-	daemonSets   map[string]daemonsets.DaemonsetItem
-	deployments  map[string]deployments.DeploymentItem
-	jobs         map[string]jobs.JobItem
-	statefulsets map[string]statefulsets.StatefulsetItem
-	pods         map[string]pods.PodItem
+	daemonSets   util.ConcurrentMap[string, appv1.DaemonSet]
+	deployments  util.ConcurrentMap[string, appv1.Deployment]
+	jobs         util.ConcurrentMap[string, v1.Job]
+	statefulsets util.ConcurrentMap[string, appv1.StatefulSet]
+	pods         util.ConcurrentMap[string, corev1.Pod]
 }
 
 func NewSchedulerService(nodes []shared.KubernetesNode) *SchedulerService {
 	return &SchedulerService{
 		nodes:        nodes,
 		pdbs:         nil,
-		daemonSets:   map[string]daemonsets.DaemonsetItem{},
-		deployments:  map[string]deployments.DeploymentItem{},
-		jobs:         map[string]jobs.JobItem{},
-		statefulsets: map[string]statefulsets.StatefulsetItem{},
-		pods:         map[string]pods.PodItem{},
+		daemonSets:   util.NewConcurrentMap[string, appv1.DaemonSet](),
+		deployments:  util.NewConcurrentMap[string, appv1.Deployment](),
+		jobs:         util.NewConcurrentMap[string, v1.Job](),
+		statefulsets: util.NewConcurrentMap[string, appv1.StatefulSet](),
+		pods:         util.NewConcurrentMap[string, corev1.Pod](),
 	}
 }
 
@@ -37,24 +36,24 @@ func (s *SchedulerService) AddPodDisruptionBudget(pdb policyv1.PodDisruptionBudg
 	s.pdbs = append(s.pdbs, pdb)
 }
 
-func (s *SchedulerService) AddDaemonSet(item daemonsets.DaemonsetItem) {
-	s.daemonSets[item.GetID()] = item
+func (s *SchedulerService) AddDaemonSet(item appv1.DaemonSet) {
+	s.daemonSets.Set(fmt.Sprintf("appv1.DaemonSet/%s/%s", item.Namespace, item.Name), item)
 }
 
-func (s *SchedulerService) AddDeployment(item deployments.DeploymentItem) {
-	s.deployments[item.GetID()] = item
+func (s *SchedulerService) AddDeployment(item appv1.Deployment) {
+	s.deployments.Set(fmt.Sprintf("appv1.Deployment/%s/%s", item.Namespace, item.Name), item)
 }
 
-func (s *SchedulerService) AddJob(item jobs.JobItem) {
-	s.jobs[item.GetID()] = item
+func (s *SchedulerService) AddJob(item v1.Job) {
+	s.jobs.Set(fmt.Sprintf("v1.Job/%s/%s", item.Namespace, item.Name), item)
 }
 
-func (s *SchedulerService) AddStatefulSet(item statefulsets.StatefulsetItem) {
-	s.statefulsets[item.GetID()] = item
+func (s *SchedulerService) AddStatefulSet(item appv1.StatefulSet) {
+	s.statefulsets.Set(fmt.Sprintf("appv1.StatefulSet/%s/%s", item.Namespace, item.Name), item)
 }
 
-func (s *SchedulerService) AddPod(item pods.PodItem) {
-	s.pods[item.GetID()] = item
+func (s *SchedulerService) AddPod(item corev1.Pod) {
+	s.pods.Set(fmt.Sprintf("corev1.Pod/%s/%s", item.Namespace, item.Name), item)
 }
 
 func (s *SchedulerService) Simulate() ([]shared.KubernetesNode, error) {
@@ -76,30 +75,55 @@ func (s *SchedulerService) simulate(nodes []shared.KubernetesNode) ([]shared.Kub
 		scheduler.AddPodDisruptionBudget(pb)
 	}
 
-	for _, r := range s.daemonSets {
-		if !scheduler.AddDaemonSet(r.Daemonset) {
-			return nil, fmt.Errorf("failed to add daemonSet %s", r.GetID())
+	var err error
+	s.daemonSets.Range(func(_ string, r appv1.DaemonSet) bool {
+		if ok, reason := scheduler.AddDaemonSet(r); !ok {
+			err = fmt.Errorf("failed to add daemonSet %s due to: %s", r.Name+"/"+r.Namespace, reason)
 		}
+		return true
+	})
+	if err != nil {
+		return nil, err
 	}
-	for _, r := range s.deployments {
-		if !scheduler.AddDeployment(r.Deployment) {
-			return nil, fmt.Errorf("failed to add deployment %s", r.GetID())
+
+	s.deployments.Range(func(_ string, r appv1.Deployment) bool {
+		if ok, reason := scheduler.AddDeployment(r); !ok {
+			err = fmt.Errorf("failed to add deployment %s due to: %s", r.Name+"/"+r.Namespace, reason)
 		}
+		return true
+	})
+	if err != nil {
+		return nil, err
 	}
-	for _, r := range s.jobs {
-		if !scheduler.AddJob(r.Job) {
-			return nil, fmt.Errorf("failed to add job %s", r.GetID())
+
+	s.jobs.Range(func(_ string, r v1.Job) bool {
+		if ok, reason := scheduler.AddJob(r); !ok {
+			err = fmt.Errorf("failed to add job %s due to: %s", r.Name+"/"+r.Namespace, reason)
 		}
+		return true
+	})
+	if err != nil {
+		return nil, err
 	}
-	for _, r := range s.statefulsets {
-		if !scheduler.AddStatefulSet(r.Statefulset) {
-			return nil, fmt.Errorf("failed to add statefulset %s", r.GetID())
+
+	s.statefulsets.Range(func(_ string, r appv1.StatefulSet) bool {
+		if ok, reason := scheduler.AddStatefulSet(r); !ok {
+			err = fmt.Errorf("failed to add statefulset %s due to: %s", r.Name+"/"+r.Namespace, reason)
 		}
+		return true
+	})
+	if err != nil {
+		return nil, err
 	}
-	for _, r := range s.pods {
-		if !scheduler.AddPod(r.Pod) {
-			return nil, fmt.Errorf("failed to add pod %s", r.GetID())
+
+	s.pods.Range(func(_ string, r corev1.Pod) bool {
+		if ok, reason := scheduler.AddPod(r); !ok {
+			err = fmt.Errorf("failed to add pod %s due to: %s", r.Name+"/"+r.Namespace, reason)
 		}
+		return true
+	})
+	if err != nil {
+		return nil, err
 	}
 
 	var removed []shared.KubernetesNode
@@ -132,4 +156,8 @@ func (s *SchedulerService) simulate(nodes []shared.KubernetesNode) ([]shared.Kub
 	}
 
 	return append(removed, res...), nil
+}
+
+func (s *SchedulerService) SetNodes(knodes []shared.KubernetesNode) {
+	s.nodes = knodes
 }

@@ -53,7 +53,7 @@ func TestSchedulePodWithStrategy(t *testing.T) {
 		},
 	}
 
-	success := scheduler.schedulePodWithStrategy(pod)
+	success, _ := scheduler.schedulePodWithStrategy(pod)
 
 	if !success {
 		t.Errorf("Failed to schedule pod")
@@ -356,7 +356,7 @@ func TestSchedulePodWithStrategyEdgeCases(t *testing.T) {
 		},
 	}
 
-	success := scheduler.schedulePodWithStrategy(pod1)
+	success, _ := scheduler.schedulePodWithStrategy(pod1)
 	if !success {
 		t.Errorf("Failed to schedule pod1 that barely fits")
 	}
@@ -377,7 +377,7 @@ func TestSchedulePodWithStrategyEdgeCases(t *testing.T) {
 		},
 	}
 
-	success = scheduler.schedulePodWithStrategy(pod2)
+	success, _ = scheduler.schedulePodWithStrategy(pod2)
 	if success {
 		t.Errorf("Unexpectedly scheduled pod2 that shouldn't fit anywhere")
 	}
@@ -393,7 +393,7 @@ func TestSchedulePodWithStrategyEdgeCases(t *testing.T) {
 		},
 	}
 
-	success = scheduler.schedulePodWithStrategy(pod3)
+	success, _ = scheduler.schedulePodWithStrategy(pod3)
 	if !success {
 		t.Errorf("Failed to schedule pod3 with no resource requests")
 	}
@@ -723,7 +723,7 @@ func TestPodScheduling(t *testing.T) {
 		scheduler, node := setupSchedulerWithOneNode(1, 1024, 10)
 		pod := createPod("no-resource-pod", 0, 0)
 
-		success := scheduler.AddPod(pod)
+		success, _ := scheduler.AddPod(pod)
 
 		if !success {
 			t.Errorf("Failed to schedule pod with no resource requests")
@@ -737,7 +737,7 @@ func TestPodScheduling(t *testing.T) {
 		scheduler, node := setupSchedulerWithOneNode(1, 1024, 10)
 		pod := createPod("barely-fits-pod", 0.84, 870)
 
-		success := scheduler.AddPod(pod)
+		success, _ := scheduler.AddPod(pod)
 
 		if !success {
 			t.Errorf("Failed to schedule pod that barely fits")
@@ -751,7 +751,7 @@ func TestPodScheduling(t *testing.T) {
 		scheduler, node := setupSchedulerWithOneNode(1, 1024, 10)
 		pod := createPod("exceeds-capacity-pod", 2, 2048)
 
-		success := scheduler.AddPod(pod)
+		success, _ := scheduler.AddPod(pod)
 
 		if success {
 			t.Errorf("Incorrectly scheduled pod that exceeds node capacity")
@@ -765,7 +765,7 @@ func TestPodScheduling(t *testing.T) {
 		scheduler, node := setupSchedulerWithOneNode(8, 16384, 100)
 		pod := createPod("large-resource-pod", 6, 12288)
 
-		success := scheduler.AddPod(pod)
+		success, _ := scheduler.AddPod(pod)
 
 		if !success {
 			t.Errorf("Failed to schedule pod with large resource requests")
@@ -781,9 +781,9 @@ func TestPodScheduling(t *testing.T) {
 		pod2 := createPod("fill-pod-2", 0.3, 300)
 		pod3 := createPod("fill-pod-3", 0.15, 170)
 
-		success1 := scheduler.AddPod(pod1)
-		success2 := scheduler.AddPod(pod2)
-		success3 := scheduler.AddPod(pod3)
+		success1, _ := scheduler.AddPod(pod1)
+		success2, _ := scheduler.AddPod(pod2)
+		success3, _ := scheduler.AddPod(pod3)
 
 		if !success1 || !success2 || !success3 {
 			t.Errorf("Failed to schedule pods filling up the node")
@@ -794,7 +794,7 @@ func TestPodScheduling(t *testing.T) {
 
 		// Try to add one more pod that should not fit
 		podExcess := createPod("excess-pod", 0.01, 1)
-		successExcess := scheduler.AddPod(podExcess)
+		successExcess, _ := scheduler.AddPod(podExcess)
 
 		if successExcess {
 			t.Errorf("Incorrectly scheduled pod exceeding node capacity")
@@ -820,7 +820,7 @@ func TestNodeConditions(t *testing.T) {
 		}
 
 		pod := createPod("test-pod", 1, 1024)
-		success := scheduler.AddPod(pod)
+		success, _ := scheduler.AddPod(pod)
 
 		if !success {
 			t.Errorf("Failed to schedule pod on empty node")
@@ -845,7 +845,7 @@ func TestNodeConditions(t *testing.T) {
 
 		// Try to add a pod that fits
 		smallPod := createPod("small-pod", 0.2, 400)
-		successSmall := scheduler.AddPod(smallPod)
+		successSmall, _ := scheduler.AddPod(smallPod)
 
 		if !successSmall {
 			t.Errorf("Failed to schedule small pod on nearly full node")
@@ -853,7 +853,7 @@ func TestNodeConditions(t *testing.T) {
 
 		// Try to add a pod that doesn't fit
 		largePod := createPod("large-pod", 1, 2000)
-		successLarge := scheduler.AddPod(largePod)
+		successLarge, _ := scheduler.AddPod(largePod)
 
 		if successLarge {
 			t.Errorf("Incorrectly scheduled large pod on nearly full node")
@@ -875,7 +875,7 @@ func TestNodeConditions(t *testing.T) {
 
 		// Try to add a pod that fits
 		fitPod := createPod("fit-pod", 0.34, 690)
-		successFit := scheduler.AddPod(fitPod)
+		successFit, _ := scheduler.AddPod(fitPod)
 
 		if !successFit {
 			t.Errorf("Failed to schedule pod that should fit in last spot")
@@ -887,7 +887,7 @@ func TestNodeConditions(t *testing.T) {
 
 		// Try to add one more pod that should not fit
 		extraPod := createPod("extra-pod", 0.1, 100)
-		successExtra := scheduler.AddPod(extraPod)
+		successExtra, _ := scheduler.AddPod(extraPod)
 
 		if successExtra {
 			t.Errorf("Incorrectly scheduled pod when node was already full")
@@ -904,7 +904,7 @@ func TestAffinityAndAntiAffinity(t *testing.T) {
 		scheduler := New(nodes)
 
 		pod := createPodWithNodeAffinity("test-pod", "zone", []string{"us-east-1a"})
-		success := scheduler.AddPod(pod)
+		success, _ := scheduler.AddPod(pod)
 
 		if !success {
 			t.Errorf("Failed to schedule pod with matching node affinity")
@@ -922,7 +922,7 @@ func TestAffinityAndAntiAffinity(t *testing.T) {
 		scheduler := New(nodes)
 
 		pod := createPodWithNodeAffinity("test-pod", "zone", []string{"us-west-1a"})
-		success := scheduler.AddPod(pod)
+		success, _ := scheduler.AddPod(pod)
 
 		if success {
 			t.Errorf("Incorrectly scheduled pod with non-matching node affinity")
@@ -941,7 +941,7 @@ func TestAffinityAndAntiAffinity(t *testing.T) {
 		scheduler.AddPod(existingPod)
 
 		pod := createPodWithPodAffinity("test-pod", "app", "web", "zone")
-		success := scheduler.AddPod(pod)
+		success, _ := scheduler.AddPod(pod)
 
 		if !success {
 			t.Errorf("Failed to schedule pod with satisfiable pod affinity")
@@ -959,7 +959,7 @@ func TestAffinityAndAntiAffinity(t *testing.T) {
 		scheduler.AddPod(existingPod)
 
 		pod := createPodWithPodAntiAffinity("test-pod", "app", "web", "zone")
-		success := scheduler.AddPod(pod)
+		success, _ := scheduler.AddPod(pod)
 
 		if success {
 			t.Errorf("Incorrectly scheduled pod with unsatisfiable pod anti-affinity")
@@ -1022,7 +1022,7 @@ func TestAffinityAndAntiAffinity(t *testing.T) {
 			},
 		}
 
-		success := scheduler.AddPod(complexPod)
+		success, _ := scheduler.AddPod(complexPod)
 
 		if success {
 			t.Errorf("Schedule should fail with complex affinity rules")
@@ -1047,7 +1047,7 @@ func TestTaintsAndTolerations(t *testing.T) {
 		scheduler := New(nodes)
 
 		pod := createPod("test-pod", 1, 1024)
-		success := scheduler.AddPod(pod)
+		success, _ := scheduler.AddPod(pod)
 
 		if success {
 			t.Errorf("Incorrectly scheduled pod without tolerations on tainted node")
@@ -1071,7 +1071,7 @@ func TestTaintsAndTolerations(t *testing.T) {
 		scheduler := New(nodes)
 
 		pod := createPodWithToleration("test-pod", "key1", "value1", v13.TaintEffectNoSchedule)
-		success := scheduler.AddPod(pod)
+		success, _ := scheduler.AddPod(pod)
 
 		if !success {
 			t.Errorf("Failed to schedule pod with matching toleration on tainted node")
@@ -1098,7 +1098,7 @@ func TestTaintsAndTolerations(t *testing.T) {
 		scheduler := New(nodes)
 
 		pod := createPodWithToleration("test-pod", "key2", "value2", v13.TaintEffectNoSchedule)
-		success := scheduler.AddPod(pod)
+		success, _ := scheduler.AddPod(pod)
 
 		if success {
 			t.Errorf("Incorrectly scheduled pod with non-matching toleration on tainted node")
@@ -1121,7 +1121,7 @@ func TestTaintsAndTolerations(t *testing.T) {
 		scheduler := New(nodes)
 
 		pod := createPodWithToleration("test-pod", "key1", "value2", v13.TaintEffectNoSchedule)
-		success := scheduler.AddPod(pod)
+		success, _ := scheduler.AddPod(pod)
 
 		if success {
 			t.Errorf("Incorrectly scheduled pod with matching key but non-matching value toleration on tainted node")
@@ -1145,7 +1145,7 @@ func TestTaintsAndTolerations(t *testing.T) {
 		scheduler := New(nodes)
 
 		pod := createPodWithTolerationNoValue("test-pod", "key1", v13.TaintEffectNoSchedule)
-		success := scheduler.AddPod(pod)
+		success, _ := scheduler.AddPod(pod)
 
 		if !success {
 			t.Errorf("Failed to schedule pod with matching key and effect but no value toleration on tainted node")
@@ -1185,7 +1185,7 @@ func TestSpecialPodTypes(t *testing.T) {
 
 		nodeSelector := map[string]string{"role": "worker"}
 		daemonSet := createDaemonSet("test-daemonset", nodeSelector)
-		if !scheduler.AddDaemonSet(daemonSet) {
+		if ok, _ := scheduler.AddDaemonSet(daemonSet); !ok {
 			t.Errorf("Failed to add daemonset")
 		}
 
