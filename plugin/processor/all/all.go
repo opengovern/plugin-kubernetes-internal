@@ -37,7 +37,7 @@ type Processor struct {
 	observabilityDays         int
 	defaultPreferences        []*golang.PreferenceItem
 
-	summary util.ConcurrentMap[string, any]
+	summary util.ConcurrentMap[string, shared.ResourceSummary]
 
 	daemonsetsProcessor   *daemonsets.Processor
 	deploymentsProcessor  *deployments.Processor
@@ -51,61 +51,130 @@ func (p *Processor) publishOptimizationItemFunc(item *golang.ChartOptimizationIt
 	p.publishOptimizationItem(item)
 }
 
-func (p *Processor) publishResultSummaryFunc(summary *golang.ResultSummary) {
-	//DO NOTHING
+func (p *Processor) publishResultSummaryFunc(kuberType string) {
+	var resourceSummary *shared.ResourceSummary
+	switch kuberType {
+	case "daemonset":
+		_, resourceSummary = shared.GetAggregatedResultsSummary(p.daemonsetsProcessor.GetSummaryMap())
+	case "deployment":
+		_, resourceSummary = shared.GetAggregatedResultsSummary(p.deploymentsProcessor.GetSummaryMap())
+	case "statefulset":
+		_, resourceSummary = shared.GetAggregatedResultsSummary(p.statefulsetsProcessor.GetSummaryMap())
+	case "job":
+		_, resourceSummary = shared.GetAggregatedResultsSummary(p.jobsProcessor.GetSummaryMap())
+	case "pod":
+		_, resourceSummary = shared.GetAggregatedResultsSummary(p.podsProcessor.GetSummaryMap())
+	}
+	if resourceSummary != nil {
+		p.summary.Set(kuberType, *resourceSummary)
+		rs, _ := shared.GetAggregatedResultsSummary(&p.summary)
+		p.publishResultSummary(rs)
+	}
 }
 
-func (p *Processor) publishResultSummaryTableFunc(summary *golang.ResultSummaryTable) {
-	//DO NOTHING
+func (p *Processor) publishResultSummaryTableFunc(kuberType string) {
+	var resourceSummary *shared.ResourceSummary
+	switch kuberType {
+	case "daemonset":
+		_, resourceSummary = shared.GetAggregatedResultsSummaryTable(p.daemonsetsProcessor.GetSummaryMap())
+	case "deployment":
+		_, resourceSummary = shared.GetAggregatedResultsSummaryTable(p.deploymentsProcessor.GetSummaryMap())
+	case "statefulset":
+		_, resourceSummary = shared.GetAggregatedResultsSummaryTable(p.statefulsetsProcessor.GetSummaryMap())
+	case "job":
+		_, resourceSummary = shared.GetAggregatedResultsSummaryTable(p.jobsProcessor.GetSummaryMap())
+	case "pod":
+		_, resourceSummary = shared.GetAggregatedResultsSummaryTable(p.podsProcessor.GetSummaryMap())
+	}
+	if resourceSummary != nil {
+		p.summary.Set(kuberType, *resourceSummary)
+		rs, _ := shared.GetAggregatedResultsSummaryTable(&p.summary)
+		p.publishResultSummaryTable(rs)
+	}
 }
 
 func (p *Processor) initDaemonsetProcessor(processorConf shared.Configuration) *daemonsets.Processor {
-	daemonSetPublisher := func(item *golang.ChartOptimizationItem) {
+	publishOptimizationItem := func(item *golang.ChartOptimizationItem) {
 		p.publishOptimizationItemFunc(item, "daemonset")
 	}
-	processorConf.PublishOptimizationItem = daemonSetPublisher
-	processorConf.PublishResultSummary = p.publishResultSummaryFunc
-	processorConf.PublishResultSummaryTable = p.publishResultSummaryTableFunc
+	publishResultSummary := func(_ *golang.ResultSummary) {
+		p.publishResultSummaryFunc("daemonset")
+	}
+	publishResultSummaryTable := func(_ *golang.ResultSummaryTable) {
+		p.publishResultSummaryTableFunc("daemonset")
+	}
+
+	processorConf.PublishOptimizationItem = publishOptimizationItem
+	processorConf.PublishResultSummary = publishResultSummary
+	processorConf.PublishResultSummaryTable = publishResultSummaryTable
 	return daemonsets.NewProcessor(processorConf)
 }
 
 func (p *Processor) initDeploymentProcessor(processorConf shared.Configuration) *deployments.Processor {
-	deploymentPublisher := func(item *golang.ChartOptimizationItem) {
+	publishOptimizationItem := func(item *golang.ChartOptimizationItem) {
 		p.publishOptimizationItemFunc(item, "deployment")
 	}
-	processorConf.PublishOptimizationItem = deploymentPublisher
-	processorConf.PublishResultSummary = p.publishResultSummaryFunc
-	processorConf.PublishResultSummaryTable = p.publishResultSummaryTableFunc
+	publishResultSummary := func(_ *golang.ResultSummary) {
+		p.publishResultSummaryFunc("deployment")
+	}
+	publishResultSummaryTable := func(_ *golang.ResultSummaryTable) {
+		p.publishResultSummaryTableFunc("deployment")
+	}
+
+	processorConf.PublishOptimizationItem = publishOptimizationItem
+	processorConf.PublishResultSummary = publishResultSummary
+	processorConf.PublishResultSummaryTable = publishResultSummaryTable
 	return deployments.NewProcessor(processorConf)
 }
 
 func (p *Processor) initStatefulsetProcessor(processorConf shared.Configuration) *statefulsets.Processor {
-	statefulSetPublisher := func(item *golang.ChartOptimizationItem) {
+	publishOptimizationItem := func(item *golang.ChartOptimizationItem) {
 		p.publishOptimizationItemFunc(item, "statefulset")
 	}
-	processorConf.PublishOptimizationItem = statefulSetPublisher
-	processorConf.PublishResultSummary = p.publishResultSummaryFunc
-	processorConf.PublishResultSummaryTable = p.publishResultSummaryTableFunc
+	publishResultSummary := func(_ *golang.ResultSummary) {
+		p.publishResultSummaryFunc("statefulset")
+	}
+	publishResultSummaryTable := func(_ *golang.ResultSummaryTable) {
+		p.publishResultSummaryTableFunc("statefulset")
+	}
+
+	processorConf.PublishOptimizationItem = publishOptimizationItem
+	processorConf.PublishResultSummary = publishResultSummary
+	processorConf.PublishResultSummaryTable = publishResultSummaryTable
 	return statefulsets.NewProcessor(processorConf)
 }
 
 func (p *Processor) initJobProcessor(processorConf shared.Configuration) *jobs.Processor {
-	jobsPublisher := func(item *golang.ChartOptimizationItem) {
+	publishOptimizationItem := func(item *golang.ChartOptimizationItem) {
 		p.publishOptimizationItemFunc(item, "job")
 	}
-	processorConf.PublishOptimizationItem = jobsPublisher
-	processorConf.PublishResultSummary = p.publishResultSummaryFunc
-	processorConf.PublishResultSummaryTable = p.publishResultSummaryTableFunc
+	publishResultSummary := func(_ *golang.ResultSummary) {
+		p.publishResultSummaryFunc("job")
+	}
+	publishResultSummaryTable := func(_ *golang.ResultSummaryTable) {
+		p.publishResultSummaryTableFunc("job")
+	}
+
+	processorConf.PublishOptimizationItem = publishOptimizationItem
+	processorConf.PublishResultSummary = publishResultSummary
+	processorConf.PublishResultSummaryTable = publishResultSummaryTable
 	return jobs.NewProcessor(processorConf)
 }
 
 func (p *Processor) initPodProcessor(processorConf shared.Configuration) *pods.Processor {
-	podsPublisher := func(item *golang.ChartOptimizationItem) {
+	publishOptimizationItem := func(item *golang.ChartOptimizationItem) {
 		p.publishOptimizationItemFunc(item, "pod")
 	}
-	processorConf.PublishOptimizationItem = podsPublisher
-	processorConf.PublishResultSummary = p.publishResultSummaryFunc
-	processorConf.PublishResultSummaryTable = p.publishResultSummaryTableFunc
+	publishResultSummary := func(_ *golang.ResultSummary) {
+		p.publishResultSummaryFunc("pod")
+	}
+	publishResultSummaryTable := func(summary *golang.ResultSummaryTable) {
+		p.publishResultSummaryTableFunc("pod")
+	}
+
+	processorConf.PublishOptimizationItem = publishOptimizationItem
+	processorConf.PublishResultSummary = publishResultSummary
+	processorConf.PublishResultSummaryTable = publishResultSummaryTable
 	return pods.NewProcessor(processorConf, pods.ProcessorModeOrphan)
 }
 
@@ -129,7 +198,7 @@ func NewProcessor(processorConf shared.Configuration) *Processor {
 		nodeSelector:              processorConf.NodeSelector,
 		observabilityDays:         processorConf.ObservabilityDays,
 		defaultPreferences:        processorConf.DefaultPreferences,
-		summary:                   util.NewConcurrentMap[string, any](),
+		summary:                   util.NewConcurrentMap[string, shared.ResourceSummary](),
 	}
 
 	p.daemonsetsProcessor = p.initDaemonsetProcessor(processorConf)

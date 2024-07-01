@@ -43,7 +43,7 @@ type Processor struct {
 	observabilityDays         int
 	kaytuClient               *kaytuAgent.KaytuAgent
 
-	summary            util.ConcurrentMap[string, PodSummary]
+	summary            util.ConcurrentMap[string, shared.ResourceSummary]
 	defaultPreferences []*golang.PreferenceItem
 }
 
@@ -68,7 +68,7 @@ func NewProcessor(processorConf shared.Configuration, mode ProcessorMode) *Proce
 		kaytuClient:               processorConf.KaytuClient,
 		defaultPreferences:        processorConf.DefaultPreferences,
 
-		summary: util.NewConcurrentMap[string, PodSummary](),
+		summary: util.NewConcurrentMap[string, shared.ResourceSummary](),
 	}
 
 	processorConf.JobQueue.Push(NewListAllNodesJob(r))
@@ -102,7 +102,7 @@ func (m *Processor) exportCsv() []*golang.CSVRow {
 	var rows []*golang.CSVRow
 	rows = append(rows, &golang.CSVRow{Row: headers})
 
-	m.summary.Range(func(name string, value PodSummary) bool {
+	m.summary.Range(func(name string, value shared.ResourceSummary) bool {
 		pod, ok := m.items.Get(name)
 		if !ok {
 			return true
@@ -208,84 +208,8 @@ func (m *Processor) exportCsv() []*golang.CSVRow {
 	return rows
 }
 
-func (m *Processor) ResultsSummary() *golang.ResultSummary {
-	summary := &golang.ResultSummary{}
-	var cpuRequestChanges, cpuLimitChanges, memoryRequestChanges, memoryLimitChanges float64
-	var totalCpuRequest, totalCpuLimit, totalMemoryRequest, totalMemoryLimit float64
-
-	m.summary.Range(func(key string, item PodSummary) bool {
-		cpuRequestChanges += item.CPURequestChange
-		cpuLimitChanges += item.CPULimitChange
-		memoryRequestChanges += item.MemoryRequestChange
-		memoryLimitChanges += item.MemoryLimitChange
-
-		totalCpuRequest += item.TotalCPURequest
-		totalCpuLimit += item.TotalCPULimit
-		totalMemoryRequest += item.TotalMemoryRequest
-		totalMemoryLimit += item.TotalMemoryLimit
-
-		return true
-	})
-
-	summary.Message = fmt.Sprintf("Overall changes: CPU request: %.2f of %.2f core, CPU limit: %.2f of %.2f core, Memory request: %s of %s, Memory limit: %s of %s", cpuRequestChanges, totalCpuRequest, cpuLimitChanges, totalCpuLimit, shared.SizeByte64(memoryRequestChanges), shared.SizeByte64(totalMemoryRequest), shared.SizeByte64(memoryLimitChanges), shared.SizeByte64(totalMemoryLimit))
-	return summary
-}
-
-func (m *Processor) ResultsSummaryTable() *golang.ResultSummaryTable {
-	summaryTable := &golang.ResultSummaryTable{}
-	var cpuRequestChanges, cpuLimitChanges, memoryRequestChanges, memoryLimitChanges float64
-	var totalCpuRequest, totalCpuLimit, totalMemoryRequest, totalMemoryLimit float64
-	m.summary.Range(func(key string, item PodSummary) bool {
-		cpuRequestChanges += item.CPURequestChange
-		cpuLimitChanges += item.CPULimitChange
-		memoryRequestChanges += item.MemoryRequestChange
-		memoryLimitChanges += item.MemoryLimitChange
-
-		totalCpuRequest += item.TotalCPURequest
-		totalCpuLimit += item.TotalCPULimit
-		totalMemoryRequest += item.TotalMemoryRequest
-		totalMemoryLimit += item.TotalMemoryLimit
-
-		return true
-	})
-	summaryTable.Headers = []string{"Summary", "Current", "Recommended", "Net Impact", "Change"}
-	summaryTable.Message = append(summaryTable.Message, &golang.ResultSummaryTableRow{
-		Cells: []string{
-			"CPU Request (Cores)",
-			fmt.Sprintf("%.2f Cores", totalCpuRequest),
-			fmt.Sprintf("%.2f Cores", totalCpuRequest+cpuRequestChanges),
-			fmt.Sprintf("%.2f Cores", cpuRequestChanges),
-			fmt.Sprintf("%.2f%%", cpuRequestChanges/totalCpuRequest*100.0),
-		},
-	})
-	summaryTable.Message = append(summaryTable.Message, &golang.ResultSummaryTableRow{
-		Cells: []string{
-			"CPU Limit (Cores)",
-			fmt.Sprintf("%.2f Cores", totalCpuLimit),
-			fmt.Sprintf("%.2f Cores", totalCpuLimit+cpuLimitChanges),
-			fmt.Sprintf("%.2f Cores", cpuLimitChanges),
-			fmt.Sprintf("%.2f%%", cpuLimitChanges/totalCpuLimit*100.0),
-		},
-	})
-	summaryTable.Message = append(summaryTable.Message, &golang.ResultSummaryTableRow{
-		Cells: []string{
-			"Memory Request",
-			shared.SizeByte64(totalMemoryRequest),
-			shared.SizeByte64(totalMemoryRequest + memoryRequestChanges),
-			shared.SizeByte64(memoryRequestChanges),
-			fmt.Sprintf("%.2f%%", memoryRequestChanges/totalMemoryRequest*100.0),
-		},
-	})
-	summaryTable.Message = append(summaryTable.Message, &golang.ResultSummaryTableRow{
-		Cells: []string{
-			"Memory Limit",
-			shared.SizeByte64(totalMemoryLimit),
-			shared.SizeByte64(totalMemoryLimit + memoryLimitChanges),
-			shared.SizeByte64(memoryLimitChanges),
-			fmt.Sprintf("%.2f%%", memoryLimitChanges/totalMemoryLimit*100.0),
-		},
-	})
-	return summaryTable
+func (m *Processor) GetSummaryMap() *util.ConcurrentMap[string, shared.ResourceSummary] {
+	return &m.summary
 }
 
 func (m *Processor) UpdateSummary(itemId string) {
@@ -323,7 +247,8 @@ func (m *Processor) UpdateSummary(itemId string) {
 			}
 		}
 
-		m.summary.Set(i.GetID(), PodSummary{
+		m.summary.Set(i.GetID(), shared.ResourceSummary{
+			ReplicaCount:        1,
 			CPURequestChange:    cpuRequestChange,
 			TotalCPURequest:     totalCpuRequest,
 			CPULimitChange:      cpuLimitChange,
@@ -334,6 +259,8 @@ func (m *Processor) UpdateSummary(itemId string) {
 			TotalMemoryLimit:    totalMemoryLimit,
 		})
 	}
-	m.publishResultSummary(m.ResultsSummary())
-	m.publishResultSummaryTable(m.ResultsSummaryTable())
+	rs, _ := shared.GetAggregatedResultsSummary(&m.summary)
+	m.publishResultSummary(rs)
+	rst, _ := shared.GetAggregatedResultsSummaryTable(&m.summary)
+	m.publishResultSummaryTable(rst)
 }
