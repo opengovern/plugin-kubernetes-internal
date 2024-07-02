@@ -115,7 +115,20 @@ func (i DeploymentItem) Devices() ([]*golang.ChartRow, map[string]*golang.Proper
 			if rightSizing.CpuTrimmedMean != nil {
 				cpuRequestProperty.Average = fmt.Sprintf("%.2f", rightSizing.CpuTrimmedMean.Value)
 			}
-			cpuLimitProperty.Recommended = fmt.Sprintf("%.2f", rightSizing.Recommended.CpuLimit)
+
+			var leaveCPULimitEmpty bool
+			for _, i := range i.Preferences {
+				if i.Key == "LeaveCPULimitEmpty" {
+					f, err := strconv.ParseBool(i.Value.GetValue())
+					if err == nil {
+						leaveCPULimitEmpty = f
+					}
+				}
+			}
+			if !leaveCPULimitEmpty {
+				cpuLimitProperty.Recommended = fmt.Sprintf("%.2f", rightSizing.Recommended.CpuLimit)
+			}
+
 			if rightSizing.CpuMax != nil {
 				cpuLimitProperty.Average = fmt.Sprintf("%.2f", rightSizing.CpuMax.Value)
 			}

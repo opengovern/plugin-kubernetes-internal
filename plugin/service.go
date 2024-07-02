@@ -174,7 +174,7 @@ func (p *KubernetesPlugin) GetConfig(_ context.Context) golang.RegisterConfig {
 				LoginRequired:      true,
 			},
 			{
-				Name:               "kubernetes-all",
+				Name:               "kubernetes",
 				Description:        "Get optimization suggestions for all Kubernetes resources",
 				Flags:              commonFlags,
 				DefaultPreferences: preferences.DefaultKubernetesPreferences,
@@ -685,7 +685,7 @@ func (p *KubernetesPlugin) StartProcess(ctx context.Context, command string, fla
 			return err
 		}
 		p.processor = jobs.NewProcessor(processorConf)
-	case "kubernetes-all":
+	case "kubernetes":
 		err = p.stream.Send(&golang.PluginMessage{
 			PluginMessage: &golang.PluginMessage_UpdateChart{
 				UpdateChart: &golang.UpdateChartDefinition{
