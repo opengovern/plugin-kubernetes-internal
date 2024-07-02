@@ -139,15 +139,30 @@ func GetAggregatedResultsSummaryTable(processorSummary *util.ConcurrentMap[strin
 			fmt.Sprintf("%.2f%%", (memoryLimitUpSizing+memoryLimitDownSizing)/totalMemoryLimit*100.0),
 		},
 	})
-	var clusterCPU, clusterMemory, reducedCPU, reducedMemory float64
+	var clusterCPU, clusterMemory, clusterCost, reducedCPU, reducedMemory, reducedCost float64
+	var hasCost = false
 	for _, c := range cluster {
 		clusterCPU += c.VCores
 		clusterMemory += c.Memory * 1024 * 1024 * 1024
+		if c.Cost != nil {
+			clusterCost += *c.Cost
+			hasCost = true
+		}
+	}
+	nodes := make(map[string]KubernetesNode)
+	if hasCost {
+		for _, n := range cluster {
+			nodes[n.Name] = n
+		}
 	}
 	for _, n := range removableNodes {
 		reducedCPU += n.VCores
 		reducedMemory += n.Memory * 1024 * 1024 * 1024
+		if v := nodes[n.Name]; v.Cost != nil {
+			reducedCost += *v.Cost
+		}
 	}
+
 	summaryTable.Message = append(summaryTable.Message, &golang.ResultSummaryTableRow{
 		Cells: []string{
 			"Cluster (CPU)",
@@ -170,6 +185,19 @@ func GetAggregatedResultsSummaryTable(processorSummary *util.ConcurrentMap[strin
 			fmt.Sprintf("%.2f%%", -reducedMemory/clusterMemory*100.0),
 		},
 	})
+	if hasCost {
+		summaryTable.Message = append(summaryTable.Message, &golang.ResultSummaryTableRow{
+			Cells: []string{
+				"Cluster (Cost)",
+				fmt.Sprintf("$%.2f", clusterCost),
+				fmt.Sprintf("$%.2f", clusterCost-reducedCost),
+				fmt.Sprintf("-$%.2f", reducedCost),
+				fmt.Sprintf("$0.00"),
+				fmt.Sprintf("-$%.2f", reducedCost),
+				fmt.Sprintf("%.2f%%", -reducedCost/clusterCost*100.0),
+			},
+		})
+	}
 	resourceSummary := ResourceSummary{
 		ReplicaCount:            1,
 		CPURequestUpSizing:      cpuRequestUpSizing,

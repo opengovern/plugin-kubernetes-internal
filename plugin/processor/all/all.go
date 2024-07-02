@@ -6,6 +6,7 @@ import (
 	"github.com/kaytu-io/plugin-kubernetes-internal/plugin/processor/daemonsets"
 	"github.com/kaytu-io/plugin-kubernetes-internal/plugin/processor/deployments"
 	"github.com/kaytu-io/plugin-kubernetes-internal/plugin/processor/jobs"
+	"github.com/kaytu-io/plugin-kubernetes-internal/plugin/processor/nodes"
 	"github.com/kaytu-io/plugin-kubernetes-internal/plugin/processor/pods"
 	"github.com/kaytu-io/plugin-kubernetes-internal/plugin/processor/shared"
 	"github.com/kaytu-io/plugin-kubernetes-internal/plugin/processor/simulation"
@@ -21,6 +22,7 @@ type Processor struct {
 	publishResultSummaryTable func(summary *golang.ResultSummaryTable)
 	summary                   util.ConcurrentMap[string, shared.ResourceSummary]
 
+	nodesProcessor        *nodes.Processor
 	daemonsetsProcessor   *daemonsets.Processor
 	deploymentsProcessor  *deployments.Processor
 	statefulsetsProcessor *statefulsets.Processor
@@ -76,7 +78,7 @@ func (p *Processor) publishResultSummaryTableFunc(kuberType string) {
 			fmt.Println("failed to simulate due to", err)
 		}
 
-		rs, _ := shared.GetAggregatedResultsSummaryTable(&p.summary, p.podsProcessor.ClusterNodes(), nodes)
+		rs, _ := shared.GetAggregatedResultsSummaryTable(&p.summary, p.nodesProcessor.GetKubernetesNodes(), nodes)
 		p.publishResultSummaryTable(rs)
 	}
 }
@@ -176,7 +178,7 @@ func (p *Processor) initPodProcessor(processorConf shared.Configuration) *pods.P
 	return pi
 }
 
-func NewProcessor(processorConf shared.Configuration) *Processor {
+func NewProcessor(processorConf shared.Configuration, nodesProcessor *nodes.Processor) *Processor {
 	p := &Processor{
 		itemsToProcessor:          util.NewConcurrentMap[string, string](),
 		publishOptimizationItem:   processorConf.PublishOptimizationItem,
@@ -184,6 +186,7 @@ func NewProcessor(processorConf shared.Configuration) *Processor {
 		publishResultSummaryTable: processorConf.PublishResultSummaryTable,
 		summary:                   util.NewConcurrentMap[string, shared.ResourceSummary](),
 		schedulingSim:             simulation.NewSchedulerService(nil),
+		nodesProcessor:            nodesProcessor,
 	}
 
 	p.daemonsetsProcessor = p.initDaemonsetProcessor(processorConf)

@@ -25,6 +25,7 @@ func (j *ListAllNodesJob) Properties() sdk.JobProperties {
 }
 
 func (j *ListAllNodesJob) Run(ctx context.Context) error {
+	defer j.processor.nodesReady.Done()
 	nodes, err := j.processor.kubernetesProvider.ListAllNodes(ctx, j.processor.nodeSelector)
 	if err != nil {
 		return err

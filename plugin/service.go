@@ -14,6 +14,7 @@ import (
 	"github.com/kaytu-io/plugin-kubernetes-internal/plugin/processor/daemonsets"
 	"github.com/kaytu-io/plugin-kubernetes-internal/plugin/processor/deployments"
 	"github.com/kaytu-io/plugin-kubernetes-internal/plugin/processor/jobs"
+	"github.com/kaytu-io/plugin-kubernetes-internal/plugin/processor/nodes"
 	"github.com/kaytu-io/plugin-kubernetes-internal/plugin/processor/pods"
 	"github.com/kaytu-io/plugin-kubernetes-internal/plugin/processor/shared"
 	"github.com/kaytu-io/plugin-kubernetes-internal/plugin/processor/statefulsets"
@@ -686,6 +687,7 @@ func (p *KubernetesPlugin) StartProcess(ctx context.Context, command string, fla
 		}
 		p.processor = jobs.NewProcessor(processorConf)
 	case "kubernetes":
+		nodeProcessor := nodes.NewProcessor(processorConf)
 		err = p.stream.Send(&golang.PluginMessage{
 			PluginMessage: &golang.PluginMessage_UpdateChart{
 				UpdateChart: &golang.UpdateChartDefinition{
@@ -743,7 +745,7 @@ func (p *KubernetesPlugin) StartProcess(ctx context.Context, command string, fla
 		if err != nil {
 			return err
 		}
-		p.processor = all.NewProcessor(processorConf)
+		p.processor = all.NewProcessor(processorConf, nodeProcessor)
 	}
 
 	jobQueue.SetOnFinish(func(ctx context.Context) {

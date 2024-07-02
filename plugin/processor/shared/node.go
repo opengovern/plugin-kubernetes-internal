@@ -13,4 +13,6 @@ type KubernetesNode struct {
 	AllocatedMem float64
 	AllocatedPod int
 	Pods         []corev1.PodTemplateSpec
+
+	Cost *float64
 }
