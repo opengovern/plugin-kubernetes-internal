@@ -13,6 +13,7 @@ import (
 	golang2 "github.com/kaytu-io/plugin-kubernetes-internal/plugin/proto/src/golang"
 	util "github.com/kaytu-io/plugin-kubernetes-internal/utils"
 	corev1 "k8s.io/api/core/v1"
+	"k8s.io/apimachinery/pkg/api/resource"
 	"strings"
 	"sync/atomic"
 )
@@ -267,6 +268,32 @@ func (m *Processor) UpdateSummary(itemId string) {
 			TotalMemoryLimit:    totalMemoryLimit,
 		})
 		if m.schedulingSim != nil {
+			for idx, c := range i.Pod.Spec.Containers {
+				for _, container := range i.Wastage.Rightsizing.ContainerResizing {
+					if container.Name != c.Name {
+						continue
+					}
+					if container.Recommended != nil {
+						c.Resources.Requests = map[corev1.ResourceName]resource.Quantity{}
+						c.Resources.Limits = map[corev1.ResourceName]resource.Quantity{}
+
+						c.Resources.Requests[corev1.ResourceCPU] = resource.Quantity{}
+						c.Resources.Requests.Cpu().SetMilli(int64(container.Recommended.CpuRequest * 1000))
+
+						c.Resources.Limits[corev1.ResourceCPU] = resource.Quantity{}
+						c.Resources.Limits.Cpu().SetMilli(int64(container.Recommended.CpuLimit * 1000))
+
+						c.Resources.Requests[corev1.ResourceMemory] = resource.Quantity{}
+						c.Resources.Requests.Memory().Set(int64(container.Recommended.MemoryRequest))
+
+						c.Resources.Limits[corev1.ResourceMemory] = resource.Quantity{}
+						c.Resources.Limits.Memory().Set(int64(container.Recommended.MemoryLimit))
+
+						i.Pod.Spec.Containers[idx] = c
+					}
+				}
+			}
+
 			m.schedulingSim.AddPod(i.Pod)
 			nodes, err := m.schedulingSim.Simulate()
 			if err != nil {

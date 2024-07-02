@@ -150,6 +150,12 @@ func (s *SchedulerService) simulate(nodes []shared.KubernetesNode) ([]shared.Kub
 		return removed, nil
 	}
 
+	for idx, r := range remaining {
+		r.AllocatedCPU = 0
+		r.AllocatedMem = 0
+		r.AllocatedPod = 0
+		remaining[idx] = r
+	}
 	res, err := s.simulate(remaining)
 	if err != nil {
 		return nil, err
