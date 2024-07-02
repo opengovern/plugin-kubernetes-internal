@@ -166,8 +166,8 @@ github.com/jpillora/backoff v1.0.0/go.mod h1:J/6gKK9jxlEcS3zixgDgUAsiuZ7yrSoa/FX
 github.com/json-iterator/go v1.1.12 h1:PV8peI4a0ysnczrg+LtxykD8LfKY9ML6u2jnxaEnrnM=
 github.com/json-iterator/go v1.1.12/go.mod h1:e30LSqwooZae/UwlEbR2852Gd8hjQvJoHmT4TnhNGBo=
 github.com/k0kubun/go-ansi v0.0.0-20180517002512-3bf9e2903213/go.mod h1:vNUNkEQ1e29fT/6vq2aBdFsgNPmy8qMdSay1npru+Sw=
-github.com/kaytu-io/kaytu v0.16.3-rc.1.0.20240702140559-c5073945663d h1:rBoOUb3qVMaWPMJtWFDgUNtjGOVaEXQ0R9zpgItoiEg=
-github.com/kaytu-io/kaytu v0.16.3-rc.1.0.20240702140559-c5073945663d/go.mod h1:nQyzQiNDH4pPZBENaevC85kdvZSdhECHRIfo7ZVVF1c=
+github.com/kaytu-io/kaytu v0.14.3 h1:aaSPEajmJclm05UDUh5xKpmjcU3HK9ccwjS4mWw2/AU=
+github.com/kaytu-io/kaytu v0.14.3/go.mod h1:nQyzQiNDH4pPZBENaevC85kdvZSdhECHRIfo7ZVVF1c=
 github.com/kaytu-io/kaytu-agent v0.0.0-20240615090533-caf550626941 h1:m6duwoHIaQQRz4xjNMa4RX3AcEaCoe5CU0ZyS4BOY3Y=
 github.com/kaytu-io/kaytu-agent v0.0.0-20240615090533-caf550626941/go.mod h1:BE7S6c0jyBxGN6qaaRJ4gFBqP8gGM296SdrdsZGbqZo=
 github.com/kevinburke/ssh_config v1.2.0 h1:x584FjTGwHzMwvHx18PXxbBVzfnxogHaAReU4gf13a4=

@@ -13,7 +13,7 @@ require (
 	github.com/aws/aws-sdk-go-v2/service/sts v1.30.1
 	github.com/charmbracelet/lipgloss v0.11.0
 	github.com/google/uuid v1.6.0
-	github.com/kaytu-io/kaytu v0.16.3-rc.1.0.20240702140559-c5073945663d
+	github.com/kaytu-io/kaytu v0.14.3
 	github.com/kaytu-io/kaytu-agent v0.0.0-20240615090533-caf550626941
 	github.com/muesli/termenv v0.15.2
 	github.com/prometheus/client_golang v1.19.1
