@@ -31,12 +31,12 @@ func NewKaytuAgent(cfg *Config, agentDisabled bool) (*KaytuAgent, error) {
 }
 
 func (a KaytuAgent) Ping(ctx context.Context) error {
-	_, err := a.client.Ping(context.Background(), &kaytuAgent.PingMessage{})
+	_, err := a.client.Ping(ctx, &kaytuAgent.PingMessage{})
 	return err
 }
 
-func (a KaytuAgent) DownloadReport(cmd string) ([]byte, error) {
-	resp, err := a.client.GetReport(context.Background(), &kaytuAgent.GetReportRequest{
+func (a KaytuAgent) DownloadReport(ctx context.Context, cmd string) ([]byte, error) {
+	resp, err := a.client.GetReport(ctx, &kaytuAgent.GetReportRequest{
 		Command: cmd,
 	})
 	if err != nil {

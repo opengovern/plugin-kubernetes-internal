@@ -43,6 +43,28 @@ message KubernetesJob {
   repeated KubernetesContainer containers = 3;
 }
 
+message NodeSystemInfo {
+  string machineID = 1;
+  string systemUUID = 2;
+  string bootID = 3;
+  string kernelVersion = 4;
+  string osImage = 5;
+  string containerRuntimeVersion = 6;
+  string kubeletVersion = 7;
+  string kubeProxyVersion = 8;
+  string operatingSystem = 9;
+  string architecture = 10;
+}
+
+message KubernetesNode {
+  string id = 1;
+  string name = 2;
+  map<string,string> annotations = 3;
+  map<string,string> labels = 4;
+  map<string,int64> capacity = 5;
+  NodeSystemInfo node_system_info = 6;
+}
+
 message KubernetesPodMetrics {
   map<string, KubernetesContainerMetrics> metrics = 1;
 }
@@ -105,6 +127,13 @@ message KubernetesJobOptimizationRequest {
   map<string,google.protobuf.StringValue> preferences = 6;
   map<string,KubernetesPodMetrics> metrics = 7;
   bool loading = 8;
+}
+
+message KubernetesNodeGetCostRequest {
+  google.protobuf.StringValue request_id = 1;
+  google.protobuf.StringValue cli_version = 2;
+  map<string,string> identification = 3;
+  KubernetesNode node = 4;
 }
 
 // Responses
@@ -176,10 +205,15 @@ message KubernetesJobOptimizationResponse {
   KubernetesJobRightsizingRecommendation rightsizing = 1;
 }
 
+message KubernetesNodeGetCostResponse {
+  google.protobuf.DoubleValue cost = 1;
+}
+
 service Optimization {
   rpc KubernetesPodOptimization(KubernetesPodOptimizationRequest) returns (KubernetesPodOptimizationResponse);
   rpc KubernetesDeploymentOptimization(KubernetesDeploymentOptimizationRequest) returns (KubernetesDeploymentOptimizationResponse);
   rpc KubernetesStatefulsetOptimization(KubernetesStatefulsetOptimizationRequest) returns (KubernetesStatefulsetOptimizationResponse);
   rpc KubernetesDaemonsetOptimization(KubernetesDaemonsetOptimizationRequest) returns (KubernetesDaemonsetOptimizationResponse);
   rpc KubernetesJobOptimization(KubernetesJobOptimizationRequest) returns (KubernetesJobOptimizationResponse);
+  rpc KubernetesNodeGetCost(KubernetesNodeGetCostRequest) returns (KubernetesNodeGetCostResponse);
 }

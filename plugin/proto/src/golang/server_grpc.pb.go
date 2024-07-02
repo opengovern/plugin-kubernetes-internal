@@ -27,6 +27,7 @@ type OptimizationClient interface {
 	KubernetesStatefulsetOptimization(ctx context.Context, in *KubernetesStatefulsetOptimizationRequest, opts ...grpc.CallOption) (*KubernetesStatefulsetOptimizationResponse, error)
 	KubernetesDaemonsetOptimization(ctx context.Context, in *KubernetesDaemonsetOptimizationRequest, opts ...grpc.CallOption) (*KubernetesDaemonsetOptimizationResponse, error)
 	KubernetesJobOptimization(ctx context.Context, in *KubernetesJobOptimizationRequest, opts ...grpc.CallOption) (*KubernetesJobOptimizationResponse, error)
+	KubernetesNodeGetCost(ctx context.Context, in *KubernetesNodeGetCostRequest, opts ...grpc.CallOption) (*KubernetesNodeGetCostResponse, error)
 }
 
 type optimizationClient struct {
@@ -82,6 +83,15 @@ func (c *optimizationClient) KubernetesJobOptimization(ctx context.Context, in *
 	return out, nil
 }
 
+func (c *optimizationClient) KubernetesNodeGetCost(ctx context.Context, in *KubernetesNodeGetCostRequest, opts ...grpc.CallOption) (*KubernetesNodeGetCostResponse, error) {
+	out := new(KubernetesNodeGetCostResponse)
+	err := c.cc.Invoke(ctx, "/pluginkubernetes.optimization.v1.Optimization/KubernetesNodeGetCost", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // OptimizationServer is the server API for Optimization service.
 // All implementations must embed UnimplementedOptimizationServer
 // for forward compatibility
@@ -91,6 +101,7 @@ type OptimizationServer interface {
 	KubernetesStatefulsetOptimization(context.Context, *KubernetesStatefulsetOptimizationRequest) (*KubernetesStatefulsetOptimizationResponse, error)
 	KubernetesDaemonsetOptimization(context.Context, *KubernetesDaemonsetOptimizationRequest) (*KubernetesDaemonsetOptimizationResponse, error)
 	KubernetesJobOptimization(context.Context, *KubernetesJobOptimizationRequest) (*KubernetesJobOptimizationResponse, error)
+	KubernetesNodeGetCost(context.Context, *KubernetesNodeGetCostRequest) (*KubernetesNodeGetCostResponse, error)
 	mustEmbedUnimplementedOptimizationServer()
 }
 
@@ -112,6 +123,9 @@ func (UnimplementedOptimizationServer) KubernetesDaemonsetOptimization(context.C
 }
 func (UnimplementedOptimizationServer) KubernetesJobOptimization(context.Context, *KubernetesJobOptimizationRequest) (*KubernetesJobOptimizationResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method KubernetesJobOptimization not implemented")
+}
+func (UnimplementedOptimizationServer) KubernetesNodeGetCost(context.Context, *KubernetesNodeGetCostRequest) (*KubernetesNodeGetCostResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method KubernetesNodeGetCost not implemented")
 }
 func (UnimplementedOptimizationServer) mustEmbedUnimplementedOptimizationServer() {}
 
@@ -216,6 +230,24 @@ func _Optimization_KubernetesJobOptimization_Handler(srv interface{}, ctx contex
 	return interceptor(ctx, in, info, handler)
 }
 
+func _Optimization_KubernetesNodeGetCost_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(KubernetesNodeGetCostRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(OptimizationServer).KubernetesNodeGetCost(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/pluginkubernetes.optimization.v1.Optimization/KubernetesNodeGetCost",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(OptimizationServer).KubernetesNodeGetCost(ctx, req.(*KubernetesNodeGetCostRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // Optimization_ServiceDesc is the grpc.ServiceDesc for Optimization service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -242,6 +274,10 @@ var Optimization_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "KubernetesJobOptimization",
 			Handler:    _Optimization_KubernetesJobOptimization_Handler,
+		},
+		{
+			MethodName: "KubernetesNodeGetCost",
+			Handler:    _Optimization_KubernetesNodeGetCost_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},

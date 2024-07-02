@@ -315,7 +315,7 @@ func (p *KubernetesPlugin) StartProcess(ctx context.Context, command string, fla
 			return err
 		}
 	}
-	kaytuAgentCfg, err := kaytuAgent.GetConfig(agentAddress, agentDisabled, kubeClient)
+	kaytuAgentCfg, err := kaytuAgent.GetConfig(ctx, agentAddress, agentDisabled, kubeClient)
 	if err != nil {
 		return err
 	}
@@ -346,11 +346,11 @@ func (p *KubernetesPlugin) StartProcess(ctx context.Context, command string, fla
 
 	var promClient *kaytuPrometheus.Prometheus
 	if !kaytuClient.IsEnabled() {
-		promCfg, err := kaytuPrometheus.GetConfig(promAddress, promUsername, promPassword, promClientId, promClientSecret, promTokenUrl, promScopes, kubeClient)
+		promCfg, err := kaytuPrometheus.GetConfig(ctx, promAddress, promUsername, promPassword, promClientId, promClientSecret, promTokenUrl, promScopes, kubeClient)
 		if err != nil {
 			return err
 		}
-		promClient, err = kaytuPrometheus.NewPrometheus(promCfg)
+		promClient, err = kaytuPrometheus.NewPrometheus(ctx, promCfg)
 		if err != nil {
 			return err
 		}
