@@ -15,10 +15,14 @@ import (
 	"k8s.io/apimachinery/pkg/labels"
 )
 
+var (
+	CPUHeadroomFactor    = 0.85
+	MemoryHeadroomFactor = 0.85
+	PodHeadroomFactor    = 0.95
+)
+
 const (
-	HeadroomFactor    = 0.85
-	PodHeadroomFactor = 0.95
-	GB                = 1024 * 1024 * 1024
+	GB = 1024 * 1024 * 1024
 )
 
 type Scheduler struct {
@@ -277,10 +281,10 @@ func (s *Scheduler) satisfiesPodAffinityTerm(term corev1.PodAffinityTerm, node s
 func (s *Scheduler) hasEnoughResources(podSpec corev1.PodSpec, node *shared.KubernetesNode) (bool, string) {
 	cpuReq, memReq := s.getPodResourceRequests(podSpec)
 
-	if node.AllocatedCPU+cpuReq > node.VCores*HeadroomFactor {
+	if node.AllocatedCPU+cpuReq > node.VCores*CPUHeadroomFactor {
 		return false, SchedulingReason_NotEnoughCPU
 	}
-	if node.AllocatedMem+memReq > node.Memory*HeadroomFactor {
+	if node.AllocatedMem+memReq > node.Memory*MemoryHeadroomFactor {
 		return false, SchedulingReason_NotEnoughMemory
 	}
 	if node.AllocatedPod+1 > int(float64(node.MaxPodCount)*PodHeadroomFactor) {

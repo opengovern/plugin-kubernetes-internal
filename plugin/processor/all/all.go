@@ -11,6 +11,7 @@ import (
 	"github.com/kaytu-io/plugin-kubernetes-internal/plugin/processor/simulation"
 	"github.com/kaytu-io/plugin-kubernetes-internal/plugin/processor/statefulsets"
 	util "github.com/kaytu-io/plugin-kubernetes-internal/utils"
+	"strconv"
 )
 
 type Processor struct {
@@ -195,6 +196,31 @@ func NewProcessor(processorConf shared.Configuration) *Processor {
 }
 
 func (p *Processor) ReEvaluate(id string, items []*golang.PreferenceItem) {
+	nodeCpuBreathingRoom, nodeMemoryBreathingRoom, nodePodCountBreathingRoom := "", "", ""
+	for _, i := range items {
+		if i.Key == "NodeCPUBreathingRoom" {
+			nodeCpuBreathingRoom = i.Value.GetValue()
+			f, err := strconv.ParseFloat(nodeCpuBreathingRoom, 64)
+			if err == nil {
+				simulation.CPUHeadroomFactor = 1.0 - (f / 100.0)
+			}
+		}
+		if i.Key == "NodeMemoryBreathingRoom" {
+			nodeMemoryBreathingRoom = i.Value.GetValue()
+			f, err := strconv.ParseFloat(nodeMemoryBreathingRoom, 64)
+			if err == nil {
+				simulation.MemoryHeadroomFactor = 1.0 - (f / 100.0)
+			}
+		}
+		if i.Key == "NodePodCountBreathingRoom" {
+			nodePodCountBreathingRoom = i.Value.GetValue()
+			f, err := strconv.ParseFloat(nodePodCountBreathingRoom, 64)
+			if err == nil {
+				simulation.PodHeadroomFactor = 1.0 - (f / 100.0)
+			}
+		}
+	}
+
 	processorName, ok := p.itemsToProcessor.Get(id)
 	if !ok {
 		return
