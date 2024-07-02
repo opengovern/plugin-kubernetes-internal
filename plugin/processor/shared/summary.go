@@ -108,11 +108,11 @@ func GetAggregatedResultsSummaryTable(processorSummary *util.ConcurrentMap[strin
 	var clusterCPU, clusterMemory, reducedCPU, reducedMemory float64
 	for _, c := range cluster {
 		clusterCPU += c.VCores
-		clusterMemory += c.Memory
+		clusterMemory += c.Memory * 1024 * 1024 * 1024
 	}
 	for _, n := range removableNodes {
 		reducedCPU += n.VCores
-		reducedMemory += n.Memory
+		reducedMemory += n.Memory * 1024 * 1024 * 1024
 	}
 	summaryTable.Message = append(summaryTable.Message, &golang.ResultSummaryTableRow{
 		Cells: []string{
