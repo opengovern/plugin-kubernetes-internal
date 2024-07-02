@@ -58,6 +58,10 @@ func (j *GetNodeCostJob) Run(ctx context.Context) error {
 			Architecture:            item.Node.Status.NodeInfo.Architecture,
 		},
 	}
+	for k, v := range item.Node.Status.Capacity {
+		node.Capacity[fmt.Sprintf("%v", k)] = v.Value()
+	}
+
 	var request = &golang.KubernetesNodeGetCostRequest{
 		RequestId:      wrapperspb.String(uuid.New().String()),
 		CliVersion:     wrapperspb.String(version.VERSION),
