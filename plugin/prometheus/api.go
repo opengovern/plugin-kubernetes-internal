@@ -395,7 +395,11 @@ func (p *Prometheus) GetCpuMetricsForPodOwnerPrefix(ctx context.Context, namespa
 
 	var result map[string]map[string][]PromDatapoint
 	for _, metric := range cpuUsageMetrics {
-		query := fmt.Sprintf(`sum(rate(%s{namespace="%s", pod=~"%s-%s$", container!=""}[%s])) by (pod, container)`, metric, namespace, podOwnerPrefix, suffixMode.Regex(), model.Duration(step).String())
+		pattern := podOwnerPrefix + "-"
+		if len(pattern) > 58 {
+			pattern = pattern[:58]
+		}
+		query := fmt.Sprintf(`sum(rate(%s{namespace="%s", pod=~"%s%s$", container!=""}[%s])) by (pod, container)`, metric, namespace, pattern, suffixMode.Regex(), model.Duration(step).String())
 		promDims, err := p.parseMultiDimensionalQueryRange(ctx, query,
 			time.Now().Add(time.Duration(observabilityDays)*-24*time.Hour).Truncate(step),
 			time.Now().Truncate(step),
@@ -483,7 +487,12 @@ func (p *Prometheus) GetMemoryMetricsForPodOwnerPrefix(ctx context.Context, name
 
 	var result map[string]map[string][]PromDatapoint
 	for _, metric := range memoryUsageMetrics {
-		query := fmt.Sprintf(`max(%s{namespace="%s", pod=~"%s-%s$", container!=""}) by (pod, container)`, metric, namespace, podPrefix, suffixMode.Regex())
+		pattern := podPrefix + "-"
+		if len(pattern) > 58 {
+			pattern = pattern[:58]
+		}
+
+		query := fmt.Sprintf(`max(%s{namespace="%s", pod=~"%s%s$", container!=""}) by (pod, container)`, metric, namespace, pattern, suffixMode.Regex())
 		promDims, err := p.parseMultiDimensionalQueryRange(ctx, query,
 			time.Now().Add(time.Duration(observabilityDays)*-24*time.Hour).Truncate(step),
 			time.Now().Truncate(step),
@@ -569,7 +578,12 @@ func (p *Prometheus) GetCpuThrottlingMetricsForPodOwnerPrefix(ctx context.Contex
 	step := time.Duration(math.Max(float64(time.Minute), float64(4*p.scrapeInterval)))
 	var result map[string]map[string][]PromDatapoint
 	for i, metric := range cpuThrottlingThrottledPeriodsMetrics {
-		query := fmt.Sprintf(`sum(increase(%[5]s{namespace="%[1]s", pod=~"%[2]s-%[3]s$", container!=""}[%[4]s])) by (pod, container) / sum(increase(%[6]s{namespace="%[1]s", pod=~"%[2]s-%[3]s", container!=""}[%[4]s])) by (pod, container)`, namespace, podPrefix, suffixMode.Regex(), model.Duration(step).String(), metric, cpuThrottlingPeriodsMetrics[i])
+		pattern := podPrefix + "-"
+		if len(pattern) > 58 {
+			pattern = pattern[:58]
+		}
+
+		query := fmt.Sprintf(`sum(increase(%[5]s{namespace="%[1]s", pod=~"%[2]s%[3]s$", container!=""}[%[4]s])) by (pod, container) / sum(increase(%[6]s{namespace="%[1]s", pod=~"%[2]s%[3]s", container!=""}[%[4]s])) by (pod, container)`, namespace, pattern, suffixMode.Regex(), model.Duration(step).String(), metric, cpuThrottlingPeriodsMetrics[i])
 		promDims, err := p.parseMultiDimensionalQueryRange(ctx, query,
 			time.Now().Add(time.Duration(observabilityDays)*-24*time.Hour).Truncate(step),
 			time.Now().Truncate(step),
