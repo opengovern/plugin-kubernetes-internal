@@ -9,7 +9,9 @@ import (
 	"github.com/kaytu-io/plugin-kubernetes-internal/plugin/processor/shared"
 	"github.com/kaytu-io/plugin-kubernetes-internal/plugin/proto/src/golang"
 	"github.com/kaytu-io/plugin-kubernetes-internal/plugin/version"
+	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/metadata"
+	"google.golang.org/grpc/status"
 	"google.golang.org/protobuf/types/known/wrapperspb"
 )
 
@@ -73,7 +75,11 @@ func (j *GetNodeCostJob) Run(ctx context.Context) error {
 	defer cancel()
 	response, err := j.processor.client.KubernetesNodeGetCost(grpcCtx, request)
 	if err != nil {
-		return err
+		if grpcErr, ok := status.FromError(err); ok && grpcErr.Code() == codes.InvalidArgument {
+			return nil
+		} else {
+			return err
+		}
 	}
 
 	item.CostResponse = response
