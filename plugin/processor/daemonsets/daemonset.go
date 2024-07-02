@@ -123,15 +123,19 @@ func (m *Processor) UpdateSummary(itemId string) {
 		}
 
 		ds := shared.ResourceSummary{
-			ReplicaCount:        i.Daemonset.Status.CurrentNumberScheduled,
-			CPURequestChange:    cpuRequestChange,
-			TotalCPURequest:     totalCpuRequest,
-			CPULimitChange:      cpuLimitChange,
-			TotalCPULimit:       totalCpuLimit,
-			MemoryRequestChange: memoryRequestChange,
-			TotalMemoryRequest:  totalMemoryRequest,
-			MemoryLimitChange:   memoryLimitChange,
-			TotalMemoryLimit:    totalMemoryLimit,
+			ReplicaCount:            i.Daemonset.Status.CurrentNumberScheduled,
+			CPURequestDownSizing:    min(0, cpuRequestChange),
+			CPURequestUpSizing:      max(0, cpuRequestChange),
+			TotalCPURequest:         totalCpuRequest,
+			CPULimitDownSizing:      min(0, cpuLimitChange),
+			CPULimitUpSizing:        max(0, cpuLimitChange),
+			TotalCPULimit:           totalCpuLimit,
+			MemoryRequestUpSizing:   max(0, memoryRequestChange),
+			MemoryRequestDownSizing: min(0, memoryRequestChange),
+			TotalMemoryRequest:      totalMemoryRequest,
+			MemoryLimitUpSizing:     max(0, memoryLimitChange),
+			MemoryLimitDownSizing:   min(0, memoryLimitChange),
+			TotalMemoryLimit:        totalMemoryLimit,
 		}
 
 		m.summary.Set(i.GetID(), ds)

@@ -257,15 +257,19 @@ func (m *Processor) UpdateSummary(itemId string) {
 		}
 
 		m.summary.Set(i.GetID(), shared.ResourceSummary{
-			ReplicaCount:        1,
-			CPURequestChange:    cpuRequestChange,
-			TotalCPURequest:     totalCpuRequest,
-			CPULimitChange:      cpuLimitChange,
-			TotalCPULimit:       totalCpuLimit,
-			MemoryRequestChange: memoryRequestChange,
-			TotalMemoryRequest:  totalMemoryRequest,
-			MemoryLimitChange:   memoryLimitChange,
-			TotalMemoryLimit:    totalMemoryLimit,
+			ReplicaCount:            1,
+			CPURequestDownSizing:    min(0, cpuRequestChange),
+			CPURequestUpSizing:      max(0, cpuRequestChange),
+			TotalCPURequest:         totalCpuRequest,
+			CPULimitDownSizing:      min(0, cpuLimitChange),
+			CPULimitUpSizing:        max(0, cpuLimitChange),
+			TotalCPULimit:           totalCpuLimit,
+			MemoryRequestUpSizing:   max(0, memoryRequestChange),
+			MemoryRequestDownSizing: min(0, memoryRequestChange),
+			TotalMemoryRequest:      totalMemoryRequest,
+			MemoryLimitUpSizing:     max(0, memoryLimitChange),
+			MemoryLimitDownSizing:   min(0, memoryLimitChange),
+			TotalMemoryLimit:        totalMemoryLimit,
 		})
 		if m.schedulingSim != nil {
 			for idx, c := range i.Pod.Spec.Containers {
