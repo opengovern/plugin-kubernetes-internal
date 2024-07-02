@@ -3,14 +3,17 @@ package shared
 import (
 	"fmt"
 	"github.com/charmbracelet/lipgloss"
+	"github.com/muesli/termenv"
+	"os"
 	"strings"
 )
 
 var (
-	unchangedStyle     = lipgloss.NewStyle().Background(lipgloss.Color("0")).Foreground(lipgloss.Color("#eeeeee"))
-	increaseStyle      = lipgloss.NewStyle().Background(lipgloss.Color("0")).Foreground(lipgloss.Color("#ee0000"))
-	decreaseStyle      = lipgloss.NewStyle().Background(lipgloss.Color("0")).Foreground(lipgloss.Color("#00ee00"))
-	notConfiguredStyle = lipgloss.NewStyle().Background(lipgloss.Color("0")).Foreground(lipgloss.Color("#eeee00"))
+	renderer           = lipgloss.NewRenderer(os.Stdout, termenv.WithTTY(true))
+	unchangedStyle     = lipgloss.NewStyle().Renderer(renderer).Background(lipgloss.Color("0")).Foreground(lipgloss.Color("#eeeeee"))
+	increaseStyle      = lipgloss.NewStyle().Renderer(renderer).Background(lipgloss.Color("0")).Foreground(lipgloss.Color("#ee0000"))
+	decreaseStyle      = lipgloss.NewStyle().Renderer(renderer).Background(lipgloss.Color("0")).Foreground(lipgloss.Color("#00ee00"))
+	notConfiguredStyle = lipgloss.NewStyle().Renderer(renderer).Background(lipgloss.Color("0")).Foreground(lipgloss.Color("#eeee00"))
 )
 
 func SprintfWithStyle(format string, value float64, notConfigured bool) string {
