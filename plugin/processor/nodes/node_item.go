@@ -2,6 +2,7 @@ package nodes
 
 import (
 	"fmt"
+	"github.com/kaytu-io/plugin-kubernetes-internal/plugin/proto/src/golang"
 	corev1 "k8s.io/api/core/v1"
 )
 
@@ -21,6 +22,8 @@ type NodeItem struct {
 	Skipped            bool
 	SkipReason         string
 	LazyLoadingEnabled bool
+
+	CostResponse *golang.KubernetesNodeGetCostResponse
 }
 
 func (i NodeItem) GetID() string {

@@ -53,11 +53,8 @@ func (j *ListAllNodesJob) Run(ctx context.Context) error {
 		j.processor.items.Set(item.GetID(), item)
 
 		switch item.ClusterType {
-		case ClusterTypeAwsEks:
-			j.processor.jobQueue.Push(NewGetEksNodeCost(j.processor, item.GetID()))
-		case ClusterTypeAzureAks:
-			// TODO Calculate Azure AKS cost
-			// TODO @Arta Calculate GCP Cost
+		case ClusterTypeAwsEks, ClusterTypeAzureAks, ClusterTypeGoogleGke:
+			j.processor.jobQueue.Push(NewGetNodeCostJob(j.processor, item.GetID()))
 		default:
 			item.Skipped = true
 			item.SkipReason = "Unknown cluster type"
