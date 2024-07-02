@@ -1,16 +1,19 @@
 package deployments
 
 import (
+	"fmt"
 	"github.com/kaytu-io/kaytu/pkg/plugin/proto/src/golang"
 	"github.com/kaytu-io/kaytu/pkg/plugin/sdk"
 	"github.com/kaytu-io/plugin-kubernetes-internal/plugin/kaytu"
 	kaytuAgent "github.com/kaytu-io/plugin-kubernetes-internal/plugin/kaytu-agent"
 	kaytuKubernetes "github.com/kaytu-io/plugin-kubernetes-internal/plugin/kubernetes"
 	"github.com/kaytu-io/plugin-kubernetes-internal/plugin/processor/shared"
+	"github.com/kaytu-io/plugin-kubernetes-internal/plugin/processor/simulation"
 	kaytuPrometheus "github.com/kaytu-io/plugin-kubernetes-internal/plugin/prometheus"
 	golang2 "github.com/kaytu-io/plugin-kubernetes-internal/plugin/proto/src/golang"
 	util "github.com/kaytu-io/plugin-kubernetes-internal/utils"
 	corev1 "k8s.io/api/core/v1"
+	"k8s.io/apimachinery/pkg/api/resource"
 	"sync/atomic"
 )
 
@@ -33,6 +36,8 @@ type Processor struct {
 	nodeSelector              string
 	observabilityDays         int
 	defaultPreferences        []*golang.PreferenceItem
+	schedulingSim             *simulation.SchedulerService
+	clusterNodes              []shared.KubernetesNode
 
 	summary util.ConcurrentMap[string, shared.ResourceSummary]
 }
@@ -83,6 +88,7 @@ func (m *Processor) GetSummaryMap() *util.ConcurrentMap[string, shared.ResourceS
 }
 
 func (m *Processor) UpdateSummary(itemId string) {
+	var removableNodes []shared.KubernetesNode
 	i, ok := m.items.Get(itemId)
 	if ok && i.Wastage != nil {
 		cpuRequestChange, totalCpuRequest := 0.0, 0.0
@@ -118,24 +124,68 @@ func (m *Processor) UpdateSummary(itemId string) {
 		}
 
 		ds := shared.ResourceSummary{
-			ReplicaCount:        1,
-			CPURequestChange:    cpuRequestChange,
-			TotalCPURequest:     totalCpuRequest,
-			CPULimitChange:      cpuLimitChange,
-			TotalCPULimit:       totalCpuLimit,
-			MemoryRequestChange: memoryRequestChange,
-			TotalMemoryRequest:  totalMemoryRequest,
-			MemoryLimitChange:   memoryLimitChange,
-			TotalMemoryLimit:    totalMemoryLimit,
+			ReplicaCount:            1,
+			CPURequestDownSizing:    min(0, cpuRequestChange),
+			CPURequestUpSizing:      max(0, cpuRequestChange),
+			TotalCPURequest:         totalCpuRequest,
+			CPULimitDownSizing:      min(0, cpuLimitChange),
+			CPULimitUpSizing:        max(0, cpuLimitChange),
+			TotalCPULimit:           totalCpuLimit,
+			MemoryRequestUpSizing:   max(0, memoryRequestChange),
+			MemoryRequestDownSizing: min(0, memoryRequestChange),
+			TotalMemoryRequest:      totalMemoryRequest,
+			MemoryLimitUpSizing:     max(0, memoryLimitChange),
+			MemoryLimitDownSizing:   min(0, memoryLimitChange),
+			TotalMemoryLimit:        totalMemoryLimit,
 		}
 		if i.Deployment.Spec.Replicas != nil {
 			ds.ReplicaCount = *i.Deployment.Spec.Replicas
 		}
 
 		m.summary.Set(i.GetID(), ds)
+		if m.schedulingSim != nil {
+			for idx, c := range i.Deployment.Spec.Template.Spec.Containers {
+				for _, container := range i.Wastage.Rightsizing.ContainerResizing {
+					if container.Name != c.Name {
+						continue
+					}
+					if container.Recommended != nil {
+						c.Resources.Requests = map[corev1.ResourceName]resource.Quantity{}
+						c.Resources.Limits = map[corev1.ResourceName]resource.Quantity{}
+
+						c.Resources.Requests[corev1.ResourceCPU] = resource.Quantity{}
+						c.Resources.Requests.Cpu().SetMilli(int64(container.Recommended.CpuRequest * 1000))
+
+						c.Resources.Limits[corev1.ResourceCPU] = resource.Quantity{}
+						c.Resources.Limits.Cpu().SetMilli(int64(container.Recommended.CpuLimit * 1000))
+
+						c.Resources.Requests[corev1.ResourceMemory] = resource.Quantity{}
+						c.Resources.Requests.Memory().Set(int64(container.Recommended.MemoryRequest))
+
+						c.Resources.Limits[corev1.ResourceMemory] = resource.Quantity{}
+						c.Resources.Limits.Memory().Set(int64(container.Recommended.MemoryLimit))
+
+						i.Deployment.Spec.Template.Spec.Containers[idx] = c
+					}
+				}
+			}
+
+			m.schedulingSim.AddDeployment(i.Deployment)
+			nodes, err := m.schedulingSim.Simulate()
+			if err != nil {
+				fmt.Println("failed to simulate due to", err)
+			} else {
+				removableNodes = nodes
+			}
+		}
+
 	}
 	rs, _ := shared.GetAggregatedResultsSummary(&m.summary)
 	m.publishResultSummary(rs)
-	rst, _ := shared.GetAggregatedResultsSummaryTable(&m.summary)
+	rst, _ := shared.GetAggregatedResultsSummaryTable(&m.summary, m.clusterNodes, removableNodes)
 	m.publishResultSummaryTable(rst)
+}
+
+func (m *Processor) SetSchedulingSim(sim *simulation.SchedulerService) {
+	m.schedulingSim = sim
 }
