@@ -11,6 +11,7 @@ import (
 	"github.com/kaytu-io/plugin-kubernetes-internal/plugin/version"
 	"google.golang.org/grpc/metadata"
 	"google.golang.org/protobuf/types/known/wrapperspb"
+	v1 "k8s.io/api/core/v1"
 )
 
 type GetNodeCostJob struct {
@@ -39,6 +40,10 @@ func (j *GetNodeCostJob) Run(ctx context.Context) error {
 		return errors.New("node item not found")
 	}
 
+	var taints []*v1.Taint
+	for _, t := range item.Node.Spec.Taints {
+		taints = append(taints, &t)
+	}
 	node := golang.KubernetesNode{
 		Id:          item.GetID(),
 		Name:        item.Node.Name,
@@ -57,6 +62,7 @@ func (j *GetNodeCostJob) Run(ctx context.Context) error {
 			OperatingSystem:         item.Node.Status.NodeInfo.OperatingSystem,
 			Architecture:            item.Node.Status.NodeInfo.Architecture,
 		},
+		Taints: taints,
 	}
 	for k, v := range item.Node.Status.Capacity {
 		node.Capacity[fmt.Sprintf("%v", k)] = v.Value()
