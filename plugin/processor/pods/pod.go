@@ -272,6 +272,7 @@ func (m *Processor) UpdateSummary(itemId string) {
 			TotalMemoryLimit:        totalMemoryLimit,
 		})
 		if m.schedulingSim != nil {
+			i.Pod = *i.Pod.DeepCopy()
 			for idx, c := range i.Pod.Spec.Containers {
 				for _, container := range i.Wastage.Rightsizing.ContainerResizing {
 					if container.Name != c.Name {
