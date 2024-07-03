@@ -3,6 +3,7 @@ syntax = "proto3";
 package pluginkubernetes.optimization.v1;
 option go_package="github.com/kaytu-io/plugin-kubernetes-internal/plugin/proto/src/golang";
 import "google/protobuf/wrappers.proto";
+import "k8s.io/api/core/v1/generated.proto";
 
 // Requests
 message KubernetesContainer{
@@ -17,30 +18,48 @@ message KubernetesPod {
   string id = 1;
   string name = 2;
   repeated KubernetesContainer containers = 3;
+  k8s.io.api.core.v1.Affinity affinity = 5;
+  map<string,string> node_selector = 6;
+  repeated k8s.io.api.core.v1.Toleration tolerations = 7;
 }
 
 message KubernetesDeployment {
   string id = 1;
   string name = 2;
   repeated KubernetesContainer containers = 3;
+  int32 replicas = 4;
+  k8s.io.api.core.v1.Affinity affinity = 5;
+  map<string,string> node_selector = 6;
+  repeated k8s.io.api.core.v1.Toleration tolerations = 7;
 }
 
 message KubernetesStatefulset {
   string id = 1;
   string name = 2;
   repeated KubernetesContainer containers = 3;
+  int32 replicas = 4;
+  k8s.io.api.core.v1.Affinity affinity = 5;
+  map<string,string> node_selector = 6;
+  repeated k8s.io.api.core.v1.Toleration tolerations = 7;
 }
 
 message KubernetesDaemonset {
   string id = 1;
   string name = 2;
   repeated KubernetesContainer containers = 3;
+  k8s.io.api.core.v1.Affinity affinity = 5;
+  map<string,string> node_selector = 6;
+  repeated k8s.io.api.core.v1.Toleration tolerations = 7;
 }
 
 message KubernetesJob {
   string id = 1;
   string name = 2;
   repeated KubernetesContainer containers = 3;
+  int32 completions = 4;
+  k8s.io.api.core.v1.Affinity affinity = 5;
+  map<string,string> node_selector = 6;
+  repeated k8s.io.api.core.v1.Toleration tolerations = 7;
 }
 
 message NodeSystemInfo {
@@ -63,6 +82,7 @@ message KubernetesNode {
   map<string,string> labels = 4;
   map<string,int64> capacity = 5;
   NodeSystemInfo node_system_info = 6;
+  repeated k8s.io.api.core.v1.Taint taints = 7;
 }
 
 message KubernetesPodMetrics {

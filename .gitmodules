@@ -1,0 +1,6 @@
+[submodule "third-party/k8s.io/apimachinery"]
+	path = third-party/k8s.io/apimachinery
+	url = https://github.com/kubernetes/apimachinery
+[submodule "third-party/k8s.io/api"]
+	path = third-party/k8s.io/api
+	url = https://github.com/kubernetes/api

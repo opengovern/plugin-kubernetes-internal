@@ -12,6 +12,7 @@ import (
 	"github.com/kaytu-io/plugin-kubernetes-internal/plugin/version"
 	"google.golang.org/grpc/metadata"
 	"google.golang.org/protobuf/types/known/wrapperspb"
+	v1 "k8s.io/api/core/v1"
 )
 
 type OptimizeDaemonsetJob struct {
@@ -46,10 +47,17 @@ func (j *OptimizeDaemonsetJob) Run(ctx context.Context) error {
 
 	reqID := uuid.New().String()
 
+	var tolerations []*v1.Toleration
+	for _, t := range item.Daemonset.Spec.Template.Spec.Tolerations {
+		tolerations = append(tolerations, &t)
+	}
 	daemonset := golang.KubernetesDaemonset{
-		Id:         item.GetID(),
-		Name:       item.Daemonset.Name,
-		Containers: nil,
+		Id:           item.GetID(),
+		Name:         item.Daemonset.Name,
+		Containers:   nil,
+		Affinity:     item.Daemonset.Spec.Template.Spec.Affinity,
+		NodeSelector: item.Daemonset.Spec.Template.Spec.NodeSelector,
+		Tolerations:  tolerations,
 	}
 	for _, container := range item.Daemonset.Spec.Template.Spec.Containers {
 		daemonset.Containers = append(daemonset.Containers, &golang.KubernetesContainer{

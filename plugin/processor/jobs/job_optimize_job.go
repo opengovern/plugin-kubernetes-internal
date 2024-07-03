@@ -12,6 +12,7 @@ import (
 	"github.com/kaytu-io/plugin-kubernetes-internal/plugin/version"
 	"google.golang.org/grpc/metadata"
 	"google.golang.org/protobuf/types/known/wrapperspb"
+	v1 "k8s.io/api/core/v1"
 )
 
 type OptimizeJobJob struct {
@@ -44,10 +45,18 @@ func (j *OptimizeJobJob) Run(ctx context.Context) error {
 
 	reqID := uuid.New().String()
 
+	var tolerations []*v1.Toleration
+	for _, t := range item.Job.Spec.Template.Spec.Tolerations {
+		tolerations = append(tolerations, &t)
+	}
 	job := golang.KubernetesJob{
-		Id:         item.GetID(),
-		Name:       item.Job.Name,
-		Containers: nil,
+		Id:           item.GetID(),
+		Name:         item.Job.Name,
+		Containers:   nil,
+		Completions:  *item.Job.Spec.Completions,
+		Affinity:     item.Job.Spec.Template.Spec.Affinity,
+		NodeSelector: item.Job.Spec.Template.Spec.NodeSelector,
+		Tolerations:  tolerations,
 	}
 	for _, container := range item.Job.Spec.Template.Spec.Containers {
 		job.Containers = append(job.Containers, &golang.KubernetesContainer{

@@ -12,6 +12,7 @@ import (
 	"github.com/kaytu-io/plugin-kubernetes-internal/plugin/version"
 	"google.golang.org/grpc/metadata"
 	"google.golang.org/protobuf/types/known/wrapperspb"
+	v1 "k8s.io/api/core/v1"
 )
 
 type OptimizeStatefulsetJob struct {
@@ -45,10 +46,18 @@ func (j *OptimizeStatefulsetJob) Run(ctx context.Context) error {
 
 	reqID := uuid.New().String()
 
+	var tolerations []*v1.Toleration
+	for _, t := range item.Statefulset.Spec.Template.Spec.Tolerations {
+		tolerations = append(tolerations, &t)
+	}
 	statefulset := golang.KubernetesStatefulset{
-		Id:         item.GetID(),
-		Name:       item.Statefulset.Name,
-		Containers: nil,
+		Id:           item.GetID(),
+		Name:         item.Statefulset.Name,
+		Containers:   nil,
+		Replicas:     *item.Statefulset.Spec.Replicas,
+		Affinity:     item.Statefulset.Spec.Template.Spec.Affinity,
+		NodeSelector: item.Statefulset.Spec.Template.Spec.NodeSelector,
+		Tolerations:  tolerations,
 	}
 	for _, container := range item.Statefulset.Spec.Template.Spec.Containers {
 		statefulset.Containers = append(statefulset.Containers, &golang.KubernetesContainer{
