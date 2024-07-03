@@ -21,6 +21,7 @@ message KubernetesPod {
   k8s.io.api.core.v1.Affinity affinity = 5;
   map<string,string> node_selector = 6;
   repeated k8s.io.api.core.v1.Toleration tolerations = 7;
+  map<string,string> labels = 8;
 }
 
 message KubernetesDeployment {
@@ -31,6 +32,7 @@ message KubernetesDeployment {
   k8s.io.api.core.v1.Affinity affinity = 5;
   map<string,string> node_selector = 6;
   repeated k8s.io.api.core.v1.Toleration tolerations = 7;
+  map<string,string> labels = 8;
 }
 
 message KubernetesStatefulset {
@@ -41,6 +43,7 @@ message KubernetesStatefulset {
   k8s.io.api.core.v1.Affinity affinity = 5;
   map<string,string> node_selector = 6;
   repeated k8s.io.api.core.v1.Toleration tolerations = 7;
+  map<string,string> labels = 8;
 }
 
 message KubernetesDaemonset {
@@ -50,6 +53,7 @@ message KubernetesDaemonset {
   k8s.io.api.core.v1.Affinity affinity = 5;
   map<string,string> node_selector = 6;
   repeated k8s.io.api.core.v1.Toleration tolerations = 7;
+  map<string,string> labels = 8;
 }
 
 message KubernetesJob {
@@ -60,6 +64,7 @@ message KubernetesJob {
   k8s.io.api.core.v1.Affinity affinity = 5;
   map<string,string> node_selector = 6;
   repeated k8s.io.api.core.v1.Toleration tolerations = 7;
+  map<string,string> labels = 8;
 }
 
 message NodeSystemInfo {
@@ -83,6 +88,7 @@ message KubernetesNode {
   map<string,int64> capacity = 5;
   NodeSystemInfo node_system_info = 6;
   repeated k8s.io.api.core.v1.Taint taints = 7;
+  int64 max_pod_count = 8;
 }
 
 message KubernetesPodMetrics {

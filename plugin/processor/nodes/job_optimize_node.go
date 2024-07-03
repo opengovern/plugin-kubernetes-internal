@@ -64,7 +64,8 @@ func (j *GetNodeCostJob) Run(ctx context.Context) error {
 			OperatingSystem:         item.Node.Status.NodeInfo.OperatingSystem,
 			Architecture:            item.Node.Status.NodeInfo.Architecture,
 		},
-		Taints: taints,
+		Taints:      taints,
+		MaxPodCount: item.Node.Status.Allocatable.Pods().Value(),
 	}
 	for k, v := range item.Node.Status.Capacity {
 		node.Capacity[fmt.Sprintf("%v", k)] = v.Value()
