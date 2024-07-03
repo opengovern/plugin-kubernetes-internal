@@ -58,6 +58,7 @@ func (j *OptimizeStatefulsetJob) Run(ctx context.Context) error {
 		Affinity:     item.Statefulset.Spec.Template.Spec.Affinity,
 		NodeSelector: item.Statefulset.Spec.Template.Spec.NodeSelector,
 		Tolerations:  tolerations,
+		Labels:       item.Statefulset.Labels,
 	}
 	for _, container := range item.Statefulset.Spec.Template.Spec.Containers {
 		statefulset.Containers = append(statefulset.Containers, &golang.KubernetesContainer{
