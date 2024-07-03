@@ -142,6 +142,7 @@ func (m *Processor) UpdateSummary(itemId string) {
 
 		m.summary.Set(i.GetID(), js)
 		if m.schedulingSim != nil {
+			i.Job = *i.Job.DeepCopy()
 			for idx, c := range i.Job.Spec.Template.Spec.Containers {
 				for _, container := range i.Wastage.Rightsizing.ContainerResizing {
 					if container.Name != c.Name {

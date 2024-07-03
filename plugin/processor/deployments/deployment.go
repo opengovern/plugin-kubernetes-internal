@@ -144,6 +144,7 @@ func (m *Processor) UpdateSummary(itemId string) {
 
 		m.summary.Set(i.GetID(), ds)
 		if m.schedulingSim != nil {
+			i.Deployment = *i.Deployment.DeepCopy()
 			for idx, c := range i.Deployment.Spec.Template.Spec.Containers {
 				for _, container := range i.Wastage.Rightsizing.ContainerResizing {
 					if container.Name != c.Name {
