@@ -50,6 +50,11 @@ func (j *OptimizePodJob) Run(ctx context.Context) error {
 	for _, t := range item.Pod.Spec.Tolerations {
 		tolerations = append(tolerations, &t)
 	}
+	var ownerRefs []string
+	for _, ow := range item.Pod.ObjectMeta.OwnerReferences {
+		ownerRefs = append(ownerRefs, ow.Kind)
+	}
+
 	pod := golang.KubernetesPod{
 		Id:           item.Pod.Name,
 		Name:         item.Pod.Name,
@@ -57,6 +62,8 @@ func (j *OptimizePodJob) Run(ctx context.Context) error {
 		Affinity:     item.Pod.Spec.Affinity,
 		NodeSelector: item.Pod.Spec.NodeSelector,
 		Tolerations:  tolerations,
+		Labels:       item.Pod.Labels,
+		OwnerKind:    ownerRefs,
 	}
 
 	for _, container := range item.Pod.Spec.Containers {

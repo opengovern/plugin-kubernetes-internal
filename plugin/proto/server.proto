@@ -22,6 +22,7 @@ message KubernetesPod {
   map<string,string> node_selector = 6;
   repeated k8s.io.api.core.v1.Toleration tolerations = 7;
   map<string,string> labels = 8;
+  repeated string owner_kind = 9;
 }
 
 message KubernetesDeployment {

@@ -59,6 +59,7 @@ func (j *OptimizeDeploymentJob) Run(ctx context.Context) error {
 		Affinity:     item.Deployment.Spec.Template.Spec.Affinity,
 		NodeSelector: item.Deployment.Spec.Template.Spec.NodeSelector,
 		Tolerations:  tolerations,
+		Labels:       item.Deployment.Labels,
 	}
 	for _, container := range item.Deployment.Spec.Template.Spec.Containers {
 		deployment.Containers = append(deployment.Containers, &golang.KubernetesContainer{

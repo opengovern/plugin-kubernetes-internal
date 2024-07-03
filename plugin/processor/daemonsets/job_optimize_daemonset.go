@@ -58,6 +58,7 @@ func (j *OptimizeDaemonsetJob) Run(ctx context.Context) error {
 		Affinity:     item.Daemonset.Spec.Template.Spec.Affinity,
 		NodeSelector: item.Daemonset.Spec.Template.Spec.NodeSelector,
 		Tolerations:  tolerations,
+		Labels:       item.Daemonset.Labels,
 	}
 	for _, container := range item.Daemonset.Spec.Template.Spec.Containers {
 		daemonset.Containers = append(daemonset.Containers, &golang.KubernetesContainer{
