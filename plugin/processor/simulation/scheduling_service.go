@@ -2,8 +2,8 @@ package simulation
 
 import (
 	"fmt"
+	"github.com/kaytu-io/kaytu/pkg/utils"
 	"github.com/kaytu-io/plugin-kubernetes-internal/plugin/processor/shared"
-	util "github.com/kaytu-io/plugin-kubernetes-internal/utils"
 	appv1 "k8s.io/api/apps/v1"
 	v1 "k8s.io/api/batch/v1"
 	corev1 "k8s.io/api/core/v1"
@@ -13,22 +13,22 @@ import (
 type SchedulerService struct {
 	nodes        []shared.KubernetesNode
 	pdbs         []policyv1.PodDisruptionBudget
-	daemonSets   util.ConcurrentMap[string, appv1.DaemonSet]
-	deployments  util.ConcurrentMap[string, appv1.Deployment]
-	jobs         util.ConcurrentMap[string, v1.Job]
-	statefulsets util.ConcurrentMap[string, appv1.StatefulSet]
-	pods         util.ConcurrentMap[string, corev1.Pod]
+	daemonSets   utils.ConcurrentMap[string, appv1.DaemonSet]
+	deployments  utils.ConcurrentMap[string, appv1.Deployment]
+	jobs         utils.ConcurrentMap[string, v1.Job]
+	statefulsets utils.ConcurrentMap[string, appv1.StatefulSet]
+	pods         utils.ConcurrentMap[string, corev1.Pod]
 }
 
 func NewSchedulerService(nodes []shared.KubernetesNode) *SchedulerService {
 	return &SchedulerService{
 		nodes:        nodes,
 		pdbs:         nil,
-		daemonSets:   util.NewConcurrentMap[string, appv1.DaemonSet](),
-		deployments:  util.NewConcurrentMap[string, appv1.Deployment](),
-		jobs:         util.NewConcurrentMap[string, v1.Job](),
-		statefulsets: util.NewConcurrentMap[string, appv1.StatefulSet](),
-		pods:         util.NewConcurrentMap[string, corev1.Pod](),
+		daemonSets:   utils.NewConcurrentMap[string, appv1.DaemonSet](),
+		deployments:  utils.NewConcurrentMap[string, appv1.Deployment](),
+		jobs:         utils.NewConcurrentMap[string, v1.Job](),
+		statefulsets: utils.NewConcurrentMap[string, appv1.StatefulSet](),
+		pods:         utils.NewConcurrentMap[string, corev1.Pod](),
 	}
 }
 

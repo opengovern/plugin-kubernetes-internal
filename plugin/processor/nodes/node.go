@@ -2,11 +2,11 @@ package nodes
 
 import (
 	"github.com/kaytu-io/kaytu/pkg/plugin/sdk"
+	"github.com/kaytu-io/kaytu/pkg/utils"
 	kaytuKubernetes "github.com/kaytu-io/plugin-kubernetes-internal/plugin/kubernetes"
 	"github.com/kaytu-io/plugin-kubernetes-internal/plugin/processor/shared"
 	"github.com/kaytu-io/plugin-kubernetes-internal/plugin/processor/simulation"
 	"github.com/kaytu-io/plugin-kubernetes-internal/plugin/proto/src/golang"
-	util "github.com/kaytu-io/plugin-kubernetes-internal/utils"
 	"sync"
 	"sync/atomic"
 )
@@ -16,7 +16,7 @@ type Processor struct {
 	kubernetesProvider *kaytuKubernetes.Kubernetes
 	client             golang.OptimizationClient
 	nodeSelector       string
-	items              util.ConcurrentMap[string, NodeItem]
+	items              utils.ConcurrentMap[string, NodeItem]
 	jobQueue           *sdk.JobQueue
 	lazyloadCounter    *atomic.Uint32
 	nodesReady         sync.WaitGroup
@@ -30,7 +30,7 @@ func NewProcessor(processorConf shared.Configuration) *Processor {
 		nodeSelector:       processorConf.NodeSelector,
 		jobQueue:           processorConf.JobQueue,
 		lazyloadCounter:    processorConf.LazyloadCounter,
-		items:              util.NewConcurrentMap[string, NodeItem](),
+		items:              utils.NewConcurrentMap[string, NodeItem](),
 		nodesReady:         sync.WaitGroup{},
 	}
 	p.nodesReady.Add(1)

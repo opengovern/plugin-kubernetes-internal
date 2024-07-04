@@ -3,6 +3,7 @@ package all
 import (
 	"fmt"
 	"github.com/kaytu-io/kaytu/pkg/plugin/proto/src/golang"
+	"github.com/kaytu-io/kaytu/pkg/utils"
 	"github.com/kaytu-io/plugin-kubernetes-internal/plugin/processor/daemonsets"
 	"github.com/kaytu-io/plugin-kubernetes-internal/plugin/processor/deployments"
 	"github.com/kaytu-io/plugin-kubernetes-internal/plugin/processor/jobs"
@@ -11,16 +12,15 @@ import (
 	"github.com/kaytu-io/plugin-kubernetes-internal/plugin/processor/shared"
 	"github.com/kaytu-io/plugin-kubernetes-internal/plugin/processor/simulation"
 	"github.com/kaytu-io/plugin-kubernetes-internal/plugin/processor/statefulsets"
-	util "github.com/kaytu-io/plugin-kubernetes-internal/utils"
 	"strconv"
 )
 
 type Processor struct {
-	itemsToProcessor          util.ConcurrentMap[string, string]
+	itemsToProcessor          utils.ConcurrentMap[string, string]
 	publishOptimizationItem   func(item *golang.ChartOptimizationItem)
 	publishResultSummary      func(summary *golang.ResultSummary)
 	publishResultSummaryTable func(summary *golang.ResultSummaryTable)
-	summary                   util.ConcurrentMap[string, shared.ResourceSummary]
+	summary                   utils.ConcurrentMap[string, shared.ResourceSummary]
 
 	nodesProcessor        *nodes.Processor
 	daemonsetsProcessor   *daemonsets.Processor
@@ -180,11 +180,11 @@ func (p *Processor) initPodProcessor(processorConf shared.Configuration) *pods.P
 
 func NewProcessor(processorConf shared.Configuration, nodesProcessor *nodes.Processor) *Processor {
 	p := &Processor{
-		itemsToProcessor:          util.NewConcurrentMap[string, string](),
+		itemsToProcessor:          utils.NewConcurrentMap[string, string](),
 		publishOptimizationItem:   processorConf.PublishOptimizationItem,
 		publishResultSummary:      processorConf.PublishResultSummary,
 		publishResultSummaryTable: processorConf.PublishResultSummaryTable,
-		summary:                   util.NewConcurrentMap[string, shared.ResourceSummary](),
+		summary:                   utils.NewConcurrentMap[string, shared.ResourceSummary](),
 		schedulingSim:             simulation.NewSchedulerService(nil),
 		nodesProcessor:            nodesProcessor,
 	}

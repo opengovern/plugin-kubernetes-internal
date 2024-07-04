@@ -3,7 +3,7 @@ package shared
 import (
 	"fmt"
 	"github.com/kaytu-io/kaytu/pkg/plugin/proto/src/golang"
-	util "github.com/kaytu-io/plugin-kubernetes-internal/utils"
+	"github.com/kaytu-io/kaytu/pkg/utils"
 )
 
 type ResourceSummary struct {
@@ -26,7 +26,7 @@ type ResourceSummary struct {
 	TotalMemoryLimit      float64
 }
 
-func GetAggregatedResultsSummary(processorSummary *util.ConcurrentMap[string, ResourceSummary]) (*golang.ResultSummary, *ResourceSummary) {
+func GetAggregatedResultsSummary(processorSummary *utils.ConcurrentMap[string, ResourceSummary]) (*golang.ResultSummary, *ResourceSummary) {
 	summary := &golang.ResultSummary{}
 
 	var cpuRequestDownSizing, cpuRequestUpSizing,
@@ -70,7 +70,7 @@ func GetAggregatedResultsSummary(processorSummary *util.ConcurrentMap[string, Re
 	return summary, &resourceSummary
 }
 
-func GetAggregatedResultsSummaryTable(processorSummary *util.ConcurrentMap[string, ResourceSummary], cluster, removableNodes []KubernetesNode) (*golang.ResultSummaryTable, *ResourceSummary) {
+func GetAggregatedResultsSummaryTable(processorSummary *utils.ConcurrentMap[string, ResourceSummary], cluster, removableNodes []KubernetesNode) (*golang.ResultSummaryTable, *ResourceSummary) {
 	summaryTable := &golang.ResultSummaryTable{}
 	var cpuRequestDownSizing, cpuRequestUpSizing,
 		cpuLimitDownSizing, cpuLimitUpSizing,
