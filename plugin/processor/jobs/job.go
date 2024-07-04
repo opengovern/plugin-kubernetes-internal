@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"github.com/kaytu-io/kaytu/pkg/plugin/proto/src/golang"
 	"github.com/kaytu-io/kaytu/pkg/plugin/sdk"
+	"github.com/kaytu-io/kaytu/pkg/utils"
 	"github.com/kaytu-io/plugin-kubernetes-internal/plugin/kaytu"
 	kaytuAgent "github.com/kaytu-io/plugin-kubernetes-internal/plugin/kaytu-agent"
 	kaytuKubernetes "github.com/kaytu-io/plugin-kubernetes-internal/plugin/kubernetes"
@@ -11,7 +12,6 @@ import (
 	"github.com/kaytu-io/plugin-kubernetes-internal/plugin/processor/simulation"
 	kaytuPrometheus "github.com/kaytu-io/plugin-kubernetes-internal/plugin/prometheus"
 	golang2 "github.com/kaytu-io/plugin-kubernetes-internal/plugin/proto/src/golang"
-	util "github.com/kaytu-io/plugin-kubernetes-internal/utils"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/resource"
 	"sync/atomic"
@@ -21,7 +21,7 @@ type Processor struct {
 	identification            map[string]string
 	kubernetesProvider        *kaytuKubernetes.Kubernetes
 	prometheusProvider        *kaytuPrometheus.Prometheus
-	items                     util.ConcurrentMap[string, JobItem]
+	items                     utils.ConcurrentMap[string, JobItem]
 	publishOptimizationItem   func(item *golang.ChartOptimizationItem)
 	publishResultSummary      func(summary *golang.ResultSummary)
 	publishResultSummaryTable func(summary *golang.ResultSummaryTable)
@@ -38,7 +38,7 @@ type Processor struct {
 	schedulingSim             *simulation.SchedulerService
 	clusterNodes              []shared.KubernetesNode
 
-	summary util.ConcurrentMap[string, shared.ResourceSummary]
+	summary utils.ConcurrentMap[string, shared.ResourceSummary]
 }
 
 func NewProcessor(processorConf shared.Configuration) *Processor {
@@ -46,7 +46,7 @@ func NewProcessor(processorConf shared.Configuration) *Processor {
 		identification:            processorConf.Identification,
 		kubernetesProvider:        processorConf.KubernetesProvider,
 		prometheusProvider:        processorConf.PrometheusProvider,
-		items:                     util.NewConcurrentMap[string, JobItem](),
+		items:                     utils.NewConcurrentMap[string, JobItem](),
 		publishOptimizationItem:   processorConf.PublishOptimizationItem,
 		publishResultSummary:      processorConf.PublishResultSummary,
 		publishResultSummaryTable: processorConf.PublishResultSummaryTable,
@@ -61,7 +61,7 @@ func NewProcessor(processorConf shared.Configuration) *Processor {
 		observabilityDays:         processorConf.ObservabilityDays,
 		defaultPreferences:        processorConf.DefaultPreferences,
 
-		summary: util.NewConcurrentMap[string, shared.ResourceSummary](),
+		summary: utils.NewConcurrentMap[string, shared.ResourceSummary](),
 	}
 	processorConf.JobQueue.Push(NewListAllNodesJob(r))
 	return r
@@ -81,7 +81,7 @@ func (m *Processor) ExportNonInteractive() *golang.NonInteractiveExport {
 	return nil
 }
 
-func (m *Processor) GetSummaryMap() *util.ConcurrentMap[string, shared.ResourceSummary] {
+func (m *Processor) GetSummaryMap() *utils.ConcurrentMap[string, shared.ResourceSummary] {
 	return &m.summary
 }
 
