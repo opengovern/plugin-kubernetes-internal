@@ -47,7 +47,9 @@ func (j *ListAllNodesJob) Run(ctx context.Context) error {
 			case strings.HasPrefix(labelKey, "kubernetes.azure.com/"):
 				item.ClusterType = ClusterTypeAzureAks
 				break clusterTypeLoop
-				// TODO @Arta GCP case
+			case strings.HasPrefix(labelKey, "cloud.google.com/"):
+				item.ClusterType = ClusterTypeGoogleGke
+				break clusterTypeLoop
 			}
 		}
 
