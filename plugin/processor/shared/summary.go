@@ -94,14 +94,12 @@ func GetAggregatedResultsSummaryTable(processorSummary *util.ConcurrentMap[strin
 
 		return true
 	})
-	summaryTable.Headers = []string{"Summary", "Current", "Recommended", "Net Impact (Downsizing)", "Net Impact (Upsizing)", "Net Impact (Total)", "Change"}
+	summaryTable.Headers = []string{"Summary", "Current", "Recommended", "Net Impact (Total)", "Change"}
 	summaryTable.Message = append(summaryTable.Message, &golang.ResultSummaryTableRow{
 		Cells: []string{
 			"CPU Request (Cores)",
 			fmt.Sprintf("%.2f Cores", totalCpuRequest),
 			fmt.Sprintf("%.2f Cores", totalCpuRequest+cpuRequestUpSizing+cpuRequestDownSizing),
-			fmt.Sprintf("%.2f Cores", cpuRequestDownSizing),
-			fmt.Sprintf("%.2f Cores", cpuRequestUpSizing),
 			fmt.Sprintf("%.2f Cores", cpuRequestUpSizing+cpuRequestDownSizing),
 			fmt.Sprintf("%.2f%%", (cpuRequestUpSizing+cpuRequestDownSizing)/totalCpuRequest*100.0),
 		},
@@ -111,8 +109,6 @@ func GetAggregatedResultsSummaryTable(processorSummary *util.ConcurrentMap[strin
 			"CPU Limit (Cores)",
 			fmt.Sprintf("%.2f Cores", totalCpuLimit),
 			fmt.Sprintf("%.2f Cores", totalCpuLimit+cpuLimitUpSizing+cpuLimitDownSizing),
-			fmt.Sprintf("%.2f Cores", cpuLimitDownSizing),
-			fmt.Sprintf("%.2f Cores", cpuLimitUpSizing),
 			fmt.Sprintf("%.2f Cores", cpuLimitUpSizing+cpuLimitDownSizing),
 			fmt.Sprintf("%.2f%%", (cpuLimitUpSizing+cpuLimitDownSizing)/totalCpuLimit*100.0),
 		},
@@ -122,8 +118,6 @@ func GetAggregatedResultsSummaryTable(processorSummary *util.ConcurrentMap[strin
 			"Memory Request",
 			SizeByte64(totalMemoryRequest),
 			SizeByte64(totalMemoryRequest + memoryRequestUpSizing + memoryRequestDownSizing),
-			SizeByte64(memoryRequestDownSizing),
-			SizeByte64(memoryRequestUpSizing),
 			SizeByte64(memoryRequestUpSizing + memoryRequestDownSizing),
 			fmt.Sprintf("%.2f%%", (memoryRequestUpSizing+memoryRequestDownSizing)/totalMemoryRequest*100.0),
 		},
@@ -133,8 +127,6 @@ func GetAggregatedResultsSummaryTable(processorSummary *util.ConcurrentMap[strin
 			"Memory Limit",
 			SizeByte64(totalMemoryLimit),
 			SizeByte64(totalMemoryLimit + memoryLimitUpSizing + memoryLimitDownSizing),
-			SizeByte64(memoryLimitDownSizing),
-			SizeByte64(memoryLimitUpSizing),
 			SizeByte64(memoryLimitUpSizing + memoryLimitDownSizing),
 			fmt.Sprintf("%.2f%%", (memoryLimitUpSizing+memoryLimitDownSizing)/totalMemoryLimit*100.0),
 		},
@@ -170,8 +162,6 @@ func GetAggregatedResultsSummaryTable(processorSummary *util.ConcurrentMap[strin
 				fmt.Sprintf("$%.2f (%d nodes)", clusterCost, len(cluster)),
 				fmt.Sprintf("$%.2f (%d nodes)", clusterCost-reducedCost, len(removableNodes)),
 				fmt.Sprintf("-$%.2f", reducedCost),
-				fmt.Sprintf("$0.00"),
-				fmt.Sprintf("-$%.2f", reducedCost),
 				fmt.Sprintf("%.2f%%", -reducedCost/clusterCost*100.0),
 			},
 		})
@@ -182,8 +172,6 @@ func GetAggregatedResultsSummaryTable(processorSummary *util.ConcurrentMap[strin
 				fmt.Sprintf("%.2f Cores (%d nodes)", clusterCPU, len(cluster)),
 				fmt.Sprintf("%.2f Cores (%d nodes)", clusterCPU-reducedCPU, len(removableNodes)),
 				fmt.Sprintf("%.2f Cores", -reducedCPU),
-				fmt.Sprintf("%.2f Cores", 0.0),
-				fmt.Sprintf("%.2f Cores", -reducedCPU),
 				fmt.Sprintf("%.2f%%", -reducedCPU/clusterCPU*100.0),
 			},
 		})
@@ -192,8 +180,6 @@ func GetAggregatedResultsSummaryTable(processorSummary *util.ConcurrentMap[strin
 				"Cluster (Memory)",
 				SizeByte64(clusterMemory),
 				SizeByte64(clusterMemory - reducedMemory),
-				SizeByte64(-reducedMemory),
-				SizeByte64(0.0),
 				SizeByte64(-reducedMemory),
 				fmt.Sprintf("%.2f%%", -reducedMemory/clusterMemory*100.0),
 			},
