@@ -9,5 +9,5 @@ import (
 
 func main() {
 	ctx := cmd.AppendSignalHandling(context.Background())
-	sdk.New(plugin.NewPlugin(), 10).Execute(ctx)
+	sdk.New(plugin.NewPlugin(), 5).Execute(ctx)
 }

@@ -30,7 +30,7 @@ func (j *OptimizeJobJob) Properties() sdk.JobProperties {
 	return sdk.JobProperties{
 		ID:          fmt.Sprintf("optimize_job_%s", j.itemId),
 		Description: fmt.Sprintf("optimize_job_%s", j.itemId),
-		MaxRetry:    3,
+		MaxRetry:    5,
 	}
 }
 func (j *OptimizeJobJob) Run(ctx context.Context) error {

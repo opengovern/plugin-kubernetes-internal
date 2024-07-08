@@ -32,7 +32,7 @@ func (j *GetNodeCostJob) Properties() sdk.JobProperties {
 	return sdk.JobProperties{
 		ID:          fmt.Sprintf("get_node_cost_for_%s", j.itemId),
 		Description: fmt.Sprintf("Getting node cost for %s", j.itemId),
-		MaxRetry:    3,
+		MaxRetry:    5,
 	}
 }
 

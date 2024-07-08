@@ -30,7 +30,7 @@ func (j *OptimizeStatefulsetJob) Properties() sdk.JobProperties {
 	return sdk.JobProperties{
 		ID:          fmt.Sprintf("optimize_statefulset_%s", j.itemId),
 		Description: fmt.Sprintf("Optimizing statefulset %s", j.itemId),
-		MaxRetry:    3,
+		MaxRetry:    5,
 	}
 }
 

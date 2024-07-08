@@ -24,7 +24,7 @@ func (j *GetJobPodMetricsJob) Properties() sdk.JobProperties {
 	return sdk.JobProperties{
 		ID:          fmt.Sprintf("get_job_pod_metrics_for_%s", j.itemId),
 		Description: fmt.Sprintf("Getting metrics for %s (Kubernetes Jobs)", j.itemId),
-		MaxRetry:    3,
+		MaxRetry:    5,
 	}
 }
 func (j *GetJobPodMetricsJob) Run(ctx context.Context) error {

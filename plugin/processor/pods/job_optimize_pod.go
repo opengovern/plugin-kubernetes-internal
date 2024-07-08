@@ -30,7 +30,7 @@ func (j *OptimizePodJob) Properties() sdk.JobProperties {
 	return sdk.JobProperties{
 		ID:          fmt.Sprintf("optimize_pod_cluster_%s", j.itemId),
 		Description: fmt.Sprintf("Optimizing pod %s", j.itemId),
-		MaxRetry:    3,
+		MaxRetry:    5,
 	}
 }
 
