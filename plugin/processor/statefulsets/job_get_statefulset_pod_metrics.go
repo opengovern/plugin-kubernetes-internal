@@ -25,7 +25,7 @@ func (j *GetStatefulsetPodMetricsJob) Properties() sdk.JobProperties {
 	return sdk.JobProperties{
 		ID:          fmt.Sprintf("get_statefulset_pod_metrics_for_%s", j.itemId),
 		Description: fmt.Sprintf("Getting metrics for %s (Kubernetes Statefulsets)", j.itemId),
-		MaxRetry:    3,
+		MaxRetry:    5,
 	}
 }
 

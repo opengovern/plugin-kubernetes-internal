@@ -31,7 +31,7 @@ func (j *OptimizeDeploymentJob) Properties() sdk.JobProperties {
 	return sdk.JobProperties{
 		ID:          fmt.Sprintf("optimize_deployment_%s", j.itemId),
 		Description: fmt.Sprintf("Optimizing deployment %s", j.itemId),
-		MaxRetry:    3,
+		MaxRetry:    5,
 	}
 }
 

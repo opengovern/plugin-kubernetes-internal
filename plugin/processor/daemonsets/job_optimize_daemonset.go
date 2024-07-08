@@ -31,7 +31,7 @@ func (j *OptimizeDaemonsetJob) Properties() sdk.JobProperties {
 	return sdk.JobProperties{
 		ID:          fmt.Sprintf("optimize_daemonset_%s", j.itemId),
 		Description: fmt.Sprintf("Optimizing daemonset %s", j.itemId),
-		MaxRetry:    3,
+		MaxRetry:    5,
 	}
 }
 
