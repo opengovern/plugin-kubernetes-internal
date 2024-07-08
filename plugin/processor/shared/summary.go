@@ -159,18 +159,27 @@ func GetAggregatedResultsSummaryTable(processorSummary *utils.ConcurrentMap[stri
 		summaryTable.Message = append(summaryTable.Message, &golang.ResultSummaryTableRow{
 			Cells: []string{
 				"Cluster (Cost)",
-				fmt.Sprintf("$%.2f (%d nodes)", clusterCost, len(cluster)),
-				fmt.Sprintf("$%.2f (%d nodes)", clusterCost-reducedCost, len(removableNodes)),
+				fmt.Sprintf("$%.2f", clusterCost),
+				fmt.Sprintf("$%.2f", clusterCost-reducedCost),
 				fmt.Sprintf("-$%.2f", reducedCost),
 				fmt.Sprintf("%.2f%%", -reducedCost/clusterCost*100.0),
+			},
+		})
+		summaryTable.Message = append(summaryTable.Message, &golang.ResultSummaryTableRow{
+			Cells: []string{
+				"Cluster (Nodes)",
+				fmt.Sprintf("%d", len(cluster)),
+				fmt.Sprintf("%d", len(cluster)-len(removableNodes)),
+				fmt.Sprintf("%d", len(removableNodes)),
+				fmt.Sprintf("%.2f%%", -float64(len(removableNodes))/float64(len(cluster))*100.0),
 			},
 		})
 	} else {
 		summaryTable.Message = append(summaryTable.Message, &golang.ResultSummaryTableRow{
 			Cells: []string{
 				"Cluster (CPU)",
-				fmt.Sprintf("%.2f Cores (%d nodes)", clusterCPU, len(cluster)),
-				fmt.Sprintf("%.2f Cores (%d nodes)", clusterCPU-reducedCPU, len(removableNodes)),
+				fmt.Sprintf("%.2f Cores", clusterCPU),
+				fmt.Sprintf("%.2f Cores", clusterCPU-reducedCPU),
 				fmt.Sprintf("%.2f Cores", -reducedCPU),
 				fmt.Sprintf("%.2f%%", -reducedCPU/clusterCPU*100.0),
 			},
@@ -182,6 +191,15 @@ func GetAggregatedResultsSummaryTable(processorSummary *utils.ConcurrentMap[stri
 				SizeByte64(clusterMemory - reducedMemory),
 				SizeByte64(-reducedMemory),
 				fmt.Sprintf("%.2f%%", -reducedMemory/clusterMemory*100.0),
+			},
+		})
+		summaryTable.Message = append(summaryTable.Message, &golang.ResultSummaryTableRow{
+			Cells: []string{
+				"Cluster (Nodes)",
+				fmt.Sprintf("%d", len(cluster)),
+				fmt.Sprintf("%d", len(cluster)-len(removableNodes)),
+				fmt.Sprintf("%d", len(removableNodes)),
+				fmt.Sprintf("%.2f%%", -float64(len(removableNodes))/float64(len(cluster))*100.0),
 			},
 		})
 	}
