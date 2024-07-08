@@ -37,8 +37,9 @@ func NewKubernetes(cfg *restclient.Config, kubeCfg *api.Config) (*Kubernetes, er
 
 func (s *Kubernetes) Identify() map[string]string {
 	result := make(map[string]string)
+	result["cluster_server"] = ""
 
-	if s.restClientCfg != nil {
+	if s.restClientCfg != nil && s.restClientCfg.Host != "" {
 		result["cluster_server"] = utils.HashString(s.restClientCfg.Host)
 	}
 
@@ -62,7 +63,10 @@ func (s *Kubernetes) Identify() map[string]string {
 	if currentCluster == nil {
 		return result
 	}
-	result["cluster_server"] = utils.HashString(currentCluster.Server)
+
+	if currentCluster.Server != "" {
+		result["cluster_server"] = utils.HashString(currentCluster.Server)
+	}
 
 	return result
 }
