@@ -4,6 +4,8 @@ import (
 	"fmt"
 	"github.com/kaytu-io/kaytu/pkg/plugin/proto/src/golang"
 	"github.com/kaytu-io/kaytu/pkg/utils"
+	v1 "k8s.io/api/core/v1"
+	"strings"
 )
 
 type ResourceSummary struct {
@@ -168,9 +170,9 @@ func GetAggregatedResultsSummaryTable(processorSummary *utils.ConcurrentMap[stri
 		summaryTable.Message = append(summaryTable.Message, &golang.ResultSummaryTableRow{
 			Cells: []string{
 				"Cluster (Nodes)",
-				fmt.Sprintf("%d", len(cluster)),
-				fmt.Sprintf("%d", len(cluster)-len(removableNodes)),
-				fmt.Sprintf("%d", len(removableNodes)),
+				nodeListToString(cluster, false),
+				nodeListToString(diff(cluster, removableNodes), false),
+				nodeListToString(removableNodes, true),
 				fmt.Sprintf("%.2f%%", -float64(len(removableNodes))/float64(len(cluster))*100.0),
 			},
 		})
@@ -196,9 +198,9 @@ func GetAggregatedResultsSummaryTable(processorSummary *utils.ConcurrentMap[stri
 		summaryTable.Message = append(summaryTable.Message, &golang.ResultSummaryTableRow{
 			Cells: []string{
 				"Cluster (Nodes)",
-				fmt.Sprintf("%d", len(cluster)),
-				fmt.Sprintf("%d", len(cluster)-len(removableNodes)),
-				fmt.Sprintf("%d", len(removableNodes)),
+				nodeListToString(cluster, false),
+				nodeListToString(diff(cluster, removableNodes), false),
+				nodeListToString(removableNodes, true),
 				fmt.Sprintf("%.2f%%", -float64(len(removableNodes))/float64(len(cluster))*100.0),
 			},
 		})
@@ -220,4 +222,42 @@ func GetAggregatedResultsSummaryTable(processorSummary *utils.ConcurrentMap[stri
 	}
 
 	return summaryTable, &resourceSummary
+}
+
+func diff(nodes, remove []KubernetesNode) []KubernetesNode {
+	var res []KubernetesNode
+	for _, n := range nodes {
+		shouldRemove := false
+		for _, r := range remove {
+			if n.Name == r.Name {
+				shouldRemove = true
+				break
+			}
+		}
+
+		if !shouldRemove {
+			res = append(res, n)
+		}
+	}
+	return res
+}
+
+func nodeListToString(nodes []KubernetesNode, removing bool) string {
+	nodeTypeCount := map[string]int{}
+	for _, c := range nodes {
+		if l, ok := c.Labels[v1.LabelInstanceType]; ok && len(l) > 0 {
+			nodeTypeCount[l]++
+		} else if l, ok := c.Labels[v1.LabelInstanceTypeStable]; ok && len(l) > 0 {
+			nodeTypeCount[l]++
+		}
+	}
+
+	var nodePool []string
+	for nodeType, count := range nodeTypeCount {
+		if removing {
+			count = -count
+		}
+		nodePool = append(nodePool, fmt.Sprintf("%d * %s", count, nodeType))
+	}
+	return strings.Join(nodePool, " + ")
 }
