@@ -39,10 +39,8 @@ func (s *Kubernetes) Identify() map[string]string {
 	result := make(map[string]string)
 	result["cluster_server"] = ""
 
-	if s.restClientCfg != nil {
-		if s.restClientCfg.Host != "" {
-			result["cluster_server"] = s.restClientCfg.Host
-		}
+	if s.restClientCfg != nil && s.restClientCfg.Host != "" {
+		result["cluster_server"] = utils.HashString(s.restClientCfg.Host)
 	}
 
 	if s.kubeCfg == nil {

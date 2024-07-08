@@ -294,7 +294,6 @@ func (p *KubernetesPlugin) StartProcess(ctx context.Context, command string, fla
 	}
 
 	identification := kubeClient.Identify()
-
 	conn, err := grpc.NewClient("gapi.kaytu.io:443",
 		grpc.WithTransportCredentials(credentials.NewTLS(nil)),
 		grpc.WithPerRPCCredentials(oauth.TokenSource{
