@@ -74,7 +74,7 @@ func (s *Scheduler) AddDeployment(item appv1.Deployment) (bool, string) {
 func (s *Scheduler) AddJob(item batchv1.Job) (bool, string) {
 	for i := 0; i < int(*item.Spec.Completions); i++ {
 		if ok, reason := s.schedulePodWithStrategy(item.Spec.Template); !ok {
-			return false, reason
+			return true, reason
 		}
 	}
 	return true, ""
