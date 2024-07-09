@@ -176,6 +176,17 @@ func GetAggregatedResultsSummaryTable(processorSummary *utils.ConcurrentMap[stri
 				fmt.Sprintf("%.2f%%", -float64(len(removableNodes))/float64(len(cluster))*100.0),
 			},
 		})
+		for _, n := range removableNodes {
+			summaryTable.Message = append(summaryTable.Message, &golang.ResultSummaryTableRow{
+				Cells: []string{
+					"Removable node",
+					n.Name,
+					"",
+					"",
+					"",
+				},
+			})
+		}
 	} else {
 		summaryTable.Message = append(summaryTable.Message, &golang.ResultSummaryTableRow{
 			Cells: []string{
@@ -204,6 +215,17 @@ func GetAggregatedResultsSummaryTable(processorSummary *utils.ConcurrentMap[stri
 				fmt.Sprintf("%.2f%%", -float64(len(removableNodes))/float64(len(cluster))*100.0),
 			},
 		})
+		for _, n := range removableNodes {
+			summaryTable.Message = append(summaryTable.Message, &golang.ResultSummaryTableRow{
+				Cells: []string{
+					"Removable node",
+					n.Name,
+					"",
+					"",
+					"",
+				},
+			})
+		}
 	}
 	resourceSummary := ResourceSummary{
 		ReplicaCount:            1,
