@@ -208,7 +208,9 @@ func (s *SchedulerService) simulate(nodes []shared.KubernetesNode) ([]shared.Kub
 	}
 	res, err := s.simulate(remaining)
 	if err != nil {
-		return nil, err
+		//cant remove it.
+		return removed, nil
+		//return nil, err
 	}
 
 	return append(removed, res...), nil
