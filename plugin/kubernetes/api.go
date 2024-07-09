@@ -13,6 +13,7 @@ import (
 	"k8s.io/client-go/kubernetes"
 	restclient "k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/clientcmd/api"
+	"math/rand"
 	"sort"
 	"strings"
 	"sync"
@@ -38,13 +39,10 @@ func NewKubernetes(cfg *restclient.Config, kubeCfg *api.Config) (*Kubernetes, er
 func (s *Kubernetes) Identify() map[string]string {
 	result := make(map[string]string)
 	result["cluster_server"] = ""
+	result["random_id"] = fmt.Sprintf("%d", rand.Int63())
 
-	if s.restClientCfg != nil {
-		if s.restClientCfg.Host != "" {
-			result["cluster_server"] = utils.HashString(s.restClientCfg.Host)
-		}
-		result["api_sub_path"] = s.restClientCfg.APIPath
-		result["uid"] = s.restClientCfg.Impersonate.UID
+	if s.restClientCfg != nil && s.restClientCfg.Host != "" {
+		result["cluster_server"] = utils.HashString(s.restClientCfg.Host)
 	}
 
 	if s.kubeCfg == nil {

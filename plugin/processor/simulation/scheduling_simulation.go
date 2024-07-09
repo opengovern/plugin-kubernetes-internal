@@ -189,11 +189,6 @@ const (
 )
 
 func (s *Scheduler) canScheduleOnNode(podSpec corev1.PodSpec, node *shared.KubernetesNode) (bool, string) {
-	// Check resources
-	if ok, reason := s.hasEnoughResources(podSpec, node); !ok {
-		return false, reason
-	}
-
 	// Check taints and tolerations
 	if !s.tolerates(podSpec, node.Taints) {
 		return false, SchedulingReason_NotTolerated
@@ -223,6 +218,11 @@ func (s *Scheduler) canScheduleOnNode(podSpec corev1.PodSpec, node *shared.Kuber
 				return false, SchedulingReason_NodeSelectorLabelMismatch
 			}
 		}
+	}
+
+	// Check resources
+	if ok, reason := s.hasEnoughResources(podSpec, node); !ok {
+		return false, reason
 	}
 
 	return true, ""
