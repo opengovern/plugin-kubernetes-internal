@@ -65,6 +65,33 @@ func (s *SchedulerService) Simulate() ([]shared.KubernetesNode, error) {
 	return s.simulate(nodes)
 }
 
+const (
+	ResourcePriority_PodAffinity  = "podAffinity"
+	ResourcePriority_NodeAffinity = "nodeAffinity"
+	ResourcePriority_Toleration   = "toleration"
+	ResourcePriority_NodeSelector = "nodeSelector"
+	ResourcePriority_None         = "none"
+)
+
+func resourcePriority(podSpec corev1.PodSpec) string {
+	if podSpec.Affinity != nil {
+		if podSpec.Affinity.PodAffinity != nil || podSpec.Affinity.PodAntiAffinity != nil {
+			return ResourcePriority_PodAffinity
+		} else if podSpec.Affinity.NodeAffinity != nil {
+			return ResourcePriority_NodeAffinity
+		}
+	}
+
+	if len(podSpec.Tolerations) > 0 {
+		return ResourcePriority_Toleration
+	}
+
+	if len(podSpec.NodeSelector) > 0 {
+		return ResourcePriority_NodeSelector
+	}
+	return ResourcePriority_None
+}
+
 func (s *SchedulerService) simulate(nodes []shared.KubernetesNode) ([]shared.KubernetesNode, error) {
 	if len(nodes) <= 1 {
 		return nil, nil
@@ -75,55 +102,78 @@ func (s *SchedulerService) simulate(nodes []shared.KubernetesNode) ([]shared.Kub
 		scheduler.AddPodDisruptionBudget(pb)
 	}
 
-	var err error
-	s.daemonSets.Range(func(_ string, r appv1.DaemonSet) bool {
-		if ok, reason := scheduler.AddDaemonSet(r); !ok {
-			err = fmt.Errorf("failed to add daemonSet %s due to: %s", r.Name+"/"+r.Namespace, reason)
-		}
-		return true
-	})
-	if err != nil {
-		return nil, err
-	}
+	for _, priority := range []string{ResourcePriority_PodAffinity, ResourcePriority_NodeAffinity,
+		ResourcePriority_Toleration, ResourcePriority_NodeSelector, ResourcePriority_None} {
+		var err error
+		s.daemonSets.Range(func(_ string, r appv1.DaemonSet) bool {
+			if resourcePriority(r.Spec.Template.Spec) != priority {
+				return true
+			}
 
-	s.deployments.Range(func(_ string, r appv1.Deployment) bool {
-		if ok, reason := scheduler.AddDeployment(r); !ok {
-			err = fmt.Errorf("failed to add deployment %s due to: %s", r.Name+"/"+r.Namespace, reason)
+			if ok, reason := scheduler.AddDaemonSet(r); !ok {
+				err = fmt.Errorf("failed to add daemonSet %s due to: %s", r.Name+"/"+r.Namespace, reason)
+			}
+			return true
+		})
+		if err != nil {
+			return nil, err
 		}
-		return true
-	})
-	if err != nil {
-		return nil, err
-	}
 
-	s.jobs.Range(func(_ string, r v1.Job) bool {
-		if ok, reason := scheduler.AddJob(r); !ok {
-			err = fmt.Errorf("failed to add job %s due to: %s", r.Name+"/"+r.Namespace, reason)
-		}
-		return true
-	})
-	if err != nil {
-		return nil, err
-	}
+		s.deployments.Range(func(_ string, r appv1.Deployment) bool {
+			if resourcePriority(r.Spec.Template.Spec) != priority {
+				return true
+			}
 
-	s.statefulsets.Range(func(_ string, r appv1.StatefulSet) bool {
-		if ok, reason := scheduler.AddStatefulSet(r); !ok {
-			err = fmt.Errorf("failed to add statefulset %s due to: %s", r.Name+"/"+r.Namespace, reason)
+			if ok, reason := scheduler.AddDeployment(r); !ok {
+				err = fmt.Errorf("failed to add deployment %s due to: %s", r.Name+"/"+r.Namespace, reason)
+			}
+			return true
+		})
+		if err != nil {
+			return nil, err
 		}
-		return true
-	})
-	if err != nil {
-		return nil, err
-	}
 
-	s.pods.Range(func(_ string, r corev1.Pod) bool {
-		if ok, reason := scheduler.AddPod(r); !ok {
-			err = fmt.Errorf("failed to add pod %s due to: %s", r.Name+"/"+r.Namespace, reason)
+		s.jobs.Range(func(_ string, r v1.Job) bool {
+			if resourcePriority(r.Spec.Template.Spec) != priority {
+				return true
+			}
+
+			if ok, reason := scheduler.AddJob(r); !ok {
+				err = fmt.Errorf("failed to add job %s due to: %s", r.Name+"/"+r.Namespace, reason)
+			}
+			return true
+		})
+		if err != nil {
+			return nil, err
 		}
-		return true
-	})
-	if err != nil {
-		return nil, err
+
+		s.statefulsets.Range(func(_ string, r appv1.StatefulSet) bool {
+			if resourcePriority(r.Spec.Template.Spec) != priority {
+				return true
+			}
+
+			if ok, reason := scheduler.AddStatefulSet(r); !ok {
+				err = fmt.Errorf("failed to add statefulset %s due to: %s", r.Name+"/"+r.Namespace, reason)
+			}
+			return true
+		})
+		if err != nil {
+			return nil, err
+		}
+
+		s.pods.Range(func(_ string, r corev1.Pod) bool {
+			if resourcePriority(r.Spec) != priority {
+				return true
+			}
+
+			if ok, reason := scheduler.AddPod(r); !ok {
+				err = fmt.Errorf("failed to add pod %s due to: %s", r.Name+"/"+r.Namespace, reason)
+			}
+			return true
+		})
+		if err != nil {
+			return nil, err
+		}
 	}
 
 	var removed []shared.KubernetesNode
