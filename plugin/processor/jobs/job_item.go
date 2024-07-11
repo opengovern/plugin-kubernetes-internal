@@ -27,6 +27,7 @@ type JobItem struct {
 	Wastage               *golang2.KubernetesJobOptimizationResponse
 	Nodes                 []shared.KubernetesNode
 	ObservabilityDuration time.Duration
+	Cost                  float64
 }
 
 func (i JobItem) GetID() string {
@@ -231,20 +232,20 @@ func (i JobItem) Devices() ([]*golang.ChartRow, map[string]*golang.Properties) {
 			if rightSizing != nil && rightSizing.Recommended != nil {
 				cpuRequestProperty.Recommended = fmt.Sprintf("%.2f", rightSizing.Recommended.CpuRequest)
 				if rightSizing.CpuTrimmedMean != nil {
-					cpuRequestProperty.Average = fmt.Sprintf("%.2f", rightSizing.CpuTrimmedMean.Value)
+					cpuRequestProperty.Average = fmt.Sprintf("avg(tm99): %.2f", rightSizing.CpuTrimmedMean.Value)
 				}
 				cpuLimitProperty.Recommended = fmt.Sprintf("%.2f", rightSizing.Recommended.CpuLimit)
 				if rightSizing.CpuMax != nil {
-					cpuLimitProperty.Average = fmt.Sprintf("%.2f", rightSizing.CpuMax.Value)
+					cpuLimitProperty.Average = fmt.Sprintf("max: %.2f", rightSizing.CpuMax.Value)
 				}
 
 				memoryRequestProperty.Recommended = shared.SizeByte(rightSizing.Recommended.MemoryRequest)
 				if rightSizing.MemoryTrimmedMean != nil {
-					memoryRequestProperty.Average = shared.SizeByte(rightSizing.MemoryTrimmedMean.Value)
+					memoryRequestProperty.Average = "avg(tm99): " + shared.SizeByte(rightSizing.MemoryTrimmedMean.Value)
 				}
 				memoryLimitProperty.Recommended = shared.SizeByte(rightSizing.Recommended.MemoryLimit)
 				if rightSizing.MemoryMax != nil {
-					memoryLimitProperty.Average = shared.SizeByte(rightSizing.MemoryMax.Value)
+					memoryLimitProperty.Average = "max: " + shared.SizeByte(rightSizing.MemoryMax.Value)
 				}
 
 				row.Values["suggested_cpu_request"] = &golang.ChartRowItem{
@@ -408,6 +409,11 @@ func (i JobItem) ToOptimizationItem() *golang.ChartOptimizationItem {
 			Value:     memoryRequestReductionString + ", " + memoryLimitReductionString,
 			SortValue: memoryRequestChange,
 		}
+		oi.OverviewChartRow.Values["cost"] = &golang.ChartRowItem{
+			Value:     fmt.Sprintf("$%0.2f", i.Cost),
+			SortValue: i.Cost,
+		}
+
 	}
 
 	return oi

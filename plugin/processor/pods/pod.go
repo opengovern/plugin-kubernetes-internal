@@ -8,6 +8,7 @@ import (
 	"github.com/kaytu-io/plugin-kubernetes-internal/plugin/kaytu"
 	kaytuAgent "github.com/kaytu-io/plugin-kubernetes-internal/plugin/kaytu-agent"
 	kaytuKubernetes "github.com/kaytu-io/plugin-kubernetes-internal/plugin/kubernetes"
+	"github.com/kaytu-io/plugin-kubernetes-internal/plugin/processor/nodes"
 	"github.com/kaytu-io/plugin-kubernetes-internal/plugin/processor/shared"
 	"github.com/kaytu-io/plugin-kubernetes-internal/plugin/processor/simulation"
 	kaytuPrometheus "github.com/kaytu-io/plugin-kubernetes-internal/plugin/prometheus"
@@ -47,6 +48,7 @@ type Processor struct {
 	schedulingSim             *simulation.SchedulerService
 	clusterNodes              []shared.KubernetesNode
 
+	NodeProcessor      *nodes.Processor
 	summary            utils.ConcurrentMap[string, shared.ResourceSummary]
 	defaultPreferences []*golang.PreferenceItem
 }
