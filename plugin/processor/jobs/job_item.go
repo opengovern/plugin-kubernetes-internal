@@ -10,6 +10,7 @@ import (
 	"google.golang.org/protobuf/types/known/wrapperspb"
 	batchv1 "k8s.io/api/batch/v1"
 	corev1 "k8s.io/api/core/v1"
+	"math"
 	"strconv"
 	"time"
 )
@@ -325,7 +326,12 @@ func (i JobItem) ToOptimizationItem() *golang.ChartOptimizationItem {
 
 	metrics := i.Metrics
 	i.Metrics = nil
+	cost := i.Cost
+	if i.Cost == math.NaN() {
+		i.Cost = 0
+	}
 	kaytuJson, _ := json.Marshal(i)
+	i.Cost = cost
 	i.Metrics = metrics
 	oi := &golang.ChartOptimizationItem{
 		OverviewChartRow: &golang.ChartRow{
@@ -341,7 +347,8 @@ func (i JobItem) ToOptimizationItem() *golang.ChartOptimizationItem {
 					Value: i.Job.Name,
 				},
 				"kubernetes_type": {
-					Value: "Job",
+					Value:     "Job",
+					SortValue: 3,
 				},
 				"x_kaytu_status": {
 					Value: status,
