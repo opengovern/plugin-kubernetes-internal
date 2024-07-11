@@ -160,13 +160,17 @@ func (j *OptimizeDeploymentJob) Run(ctx context.Context) error {
 	observabilityPeriod := time.Duration(j.processor.observabilityDays*24) * time.Hour
 	totalCost := 0.0
 	for pod, podMetrics := range item.Metrics["cpu_usage"] {
-		for _, containerDatapoints := range podMetrics {
-			totalCost += nodeCost[pod] * 0.5 * (shared.MetricAverageOverObservabilityPeriod(containerDatapoints, observabilityPeriod) / nodeCPU[pod])
+		if nodeCPU[pod] > 0 {
+			for _, containerDatapoints := range podMetrics {
+				totalCost += nodeCost[pod] * 0.5 * (shared.MetricAverageOverObservabilityPeriod(containerDatapoints, observabilityPeriod) / nodeCPU[pod])
+			}
 		}
 	}
 	for pod, podMetrics := range item.Metrics["memory_usage"] {
-		for _, containerDatapoints := range podMetrics {
-			totalCost += nodeCost[pod] * 0.5 * (shared.MetricAverageOverObservabilityPeriod(containerDatapoints, observabilityPeriod) / nodeMemory[pod])
+		if nodeMemory[pod] > 0 {
+			for _, containerDatapoints := range podMetrics {
+				totalCost += nodeCost[pod] * 0.5 * (shared.MetricAverageOverObservabilityPeriod(containerDatapoints, observabilityPeriod) / nodeMemory[pod])
+			}
 		}
 	}
 	item.Cost = totalCost
