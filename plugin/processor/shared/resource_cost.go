@@ -7,6 +7,13 @@ import (
 )
 
 func MetricAverageOverObservabilityPeriod(dp []kaytuPrometheus.PromDatapoint, observabilityPeriod time.Duration) float64 {
+	if len(dp) == 0 {
+		return 0
+	}
+	if len(dp) == 1 {
+		return dp[0].Value
+	}
+
 	minDuration := time.Hour
 	var sorted []kaytuPrometheus.PromDatapoint
 	for _, d := range dp {
@@ -21,13 +28,9 @@ func MetricAverageOverObservabilityPeriod(dp []kaytuPrometheus.PromDatapoint, ob
 		b := sorted[i+1].Timestamp
 
 		duration := b.Sub(a)
-		if duration.Milliseconds() < minDuration.Milliseconds() {
+		if duration.Milliseconds() < minDuration.Milliseconds() && duration != 0 {
 			minDuration = duration
 		}
-	}
-
-	if len(sorted) < 2 {
-		minDuration = time.Minute
 	}
 
 	total := 0.0
