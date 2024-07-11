@@ -345,7 +345,10 @@ func (i DeploymentItem) ToOptimizationItem() *golang.ChartOptimizationItem {
 	if math.IsNaN(cost) {
 		i.Cost = 0
 	}
-	kaytuJson, _ := json.Marshal(i)
+	kaytuJson, err := json.Marshal(i)
+	if err != nil {
+		log.Printf("failed to marshal kaytu json: %v", err)
+	}
 	i.Cost = cost
 	i.Metrics = metrics
 	oi := &golang.ChartOptimizationItem{
