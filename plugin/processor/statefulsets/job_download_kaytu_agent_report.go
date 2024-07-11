@@ -6,6 +6,8 @@ import (
 	"github.com/kaytu-io/kaytu/pkg/plugin/sdk"
 	"github.com/kaytu-io/kaytu/view"
 	"github.com/kaytu-io/plugin-kubernetes-internal/plugin/processor/shared"
+	"github.com/kaytu-io/plugin-kubernetes-internal/plugin/processor/simulation"
+	"time"
 )
 
 type DownloadKaytuAgentReportJob struct {
@@ -60,6 +62,41 @@ func (j *DownloadKaytuAgentReportJob) Run(ctx context.Context) error {
 				continue
 			}
 		}
+		nodeCost := map[string]float64{}
+		nodeCPU := map[string]float64{}
+		nodeMemory := map[string]float64{}
+		for _, p := range item.Pods {
+			if j.processor.NodeProcessor != nil {
+				for _, n := range j.processor.NodeProcessor.GetKubernetesNodes() {
+					if n.Name == p.Spec.NodeName {
+						if n.Cost != nil {
+							nodeCost[p.Name] = *n.Cost
+							nodeCPU[p.Name] = n.VCores
+							nodeMemory[p.Name] = n.Memory * simulation.GB
+						}
+						break
+					}
+				}
+			}
+		}
+
+		observabilityPeriod := time.Duration(j.processor.observabilityDays*24) * time.Hour
+		totalCost := 0.0
+		for pod, podMetrics := range item.Metrics["cpu_usage"] {
+			if nodeCPU[pod] > 0 {
+				for _, containerDatapoints := range podMetrics {
+					totalCost += nodeCost[pod] * 0.5 * (shared.MetricAverageOverObservabilityPeriod(containerDatapoints, observabilityPeriod) / nodeCPU[pod])
+				}
+			}
+		}
+		for pod, podMetrics := range item.Metrics["memory_usage"] {
+			if nodeMemory[pod] > 0 {
+				for _, containerDatapoints := range podMetrics {
+					totalCost += nodeCost[pod] * 0.5 * (shared.MetricAverageOverObservabilityPeriod(containerDatapoints, observabilityPeriod) / nodeMemory[pod])
+				}
+			}
+		}
+		item.Cost = totalCost
 
 		j.processor.items.Set(item.GetID(), item)
 		j.processor.publishOptimizationItem(item.ToOptimizationItem())

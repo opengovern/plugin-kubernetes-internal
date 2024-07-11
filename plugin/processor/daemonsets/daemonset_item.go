@@ -108,6 +108,12 @@ func (i DaemonsetItem) Devices() ([]*golang.ChartRow, map[string]*golang.Propert
 			memoryLimitProperty.Current = shared.SizeByte(*memoryLimit)
 		}
 		properties.Properties = append(properties.Properties, &memoryLimitProperty)
+		row.Values["current_cpu"] = &golang.ChartRowItem{
+			Value: shared.CpuConfiguration(cpuRequest, cpuLimit),
+		}
+		row.Values["current_memory"] = &golang.ChartRowItem{
+			Value: shared.MemoryConfiguration(memoryRequest, memoryLimit),
+		}
 
 		if rightSizing != nil && rightSizing.Recommended != nil {
 			cpuRequestProperty.Recommended = fmt.Sprintf("%.2f", rightSizing.Recommended.CpuRequest)
@@ -128,17 +134,11 @@ func (i DaemonsetItem) Devices() ([]*golang.ChartRow, map[string]*golang.Propert
 				memoryLimitProperty.Average = "max: " + shared.SizeByte(rightSizing.MemoryMax.Value)
 			}
 
-			row.Values["suggested_cpu_request"] = &golang.ChartRowItem{
-				Value: fmt.Sprintf("%.2f Core", rightSizing.Recommended.CpuRequest),
+			row.Values["suggested_cpu"] = &golang.ChartRowItem{
+				Value: shared.CpuConfiguration(&rightSizing.Recommended.CpuRequest, &rightSizing.Recommended.CpuLimit),
 			}
-			row.Values["suggested_cpu_limit"] = &golang.ChartRowItem{
-				Value: fmt.Sprintf("%.2f Core", rightSizing.Recommended.CpuLimit),
-			}
-			row.Values["suggested_memory_request"] = &golang.ChartRowItem{
-				Value: fmt.Sprintf("%.2f GB", rightSizing.Recommended.MemoryRequest/(1024*1024*1024)),
-			}
-			row.Values["suggested_memory_limit"] = &golang.ChartRowItem{
-				Value: fmt.Sprintf("%.2f GB", rightSizing.Recommended.MemoryLimit/(1024*1024*1024)),
+			row.Values["suggested_memory"] = &golang.ChartRowItem{
+				Value: shared.MemoryConfiguration(&rightSizing.Recommended.MemoryRequest, &rightSizing.Recommended.MemoryLimit),
 			}
 			row.Values["x_kaytu_observability_duration"] = &golang.ChartRowItem{
 				Value: i.ObservabilityDuration.String(),
@@ -228,6 +228,12 @@ func (i DaemonsetItem) Devices() ([]*golang.ChartRow, map[string]*golang.Propert
 				memoryLimitProperty.Current = shared.SizeByte(*memoryLimit)
 			}
 			properties.Properties = append(properties.Properties, &memoryLimitProperty)
+			row.Values["current_cpu"] = &golang.ChartRowItem{
+				Value: shared.CpuConfiguration(cpuRequest, cpuLimit),
+			}
+			row.Values["current_memory"] = &golang.ChartRowItem{
+				Value: shared.MemoryConfiguration(memoryRequest, memoryLimit),
+			}
 
 			if rightSizing != nil && rightSizing.Recommended != nil {
 				cpuRequestProperty.Recommended = fmt.Sprintf("%.2f", rightSizing.Recommended.CpuRequest)
@@ -248,17 +254,11 @@ func (i DaemonsetItem) Devices() ([]*golang.ChartRow, map[string]*golang.Propert
 					memoryLimitProperty.Average = "max: " + shared.SizeByte(rightSizing.MemoryMax.Value)
 				}
 
-				row.Values["suggested_cpu_request"] = &golang.ChartRowItem{
-					Value: fmt.Sprintf("%.2f Core", rightSizing.Recommended.CpuRequest),
+				row.Values["suggested_cpu"] = &golang.ChartRowItem{
+					Value: shared.CpuConfiguration(&rightSizing.Recommended.CpuRequest, &rightSizing.Recommended.CpuLimit),
 				}
-				row.Values["suggested_cpu_limit"] = &golang.ChartRowItem{
-					Value: fmt.Sprintf("%.2f Core", rightSizing.Recommended.CpuLimit),
-				}
-				row.Values["suggested_memory_request"] = &golang.ChartRowItem{
-					Value: fmt.Sprintf("%.2f GB", rightSizing.Recommended.MemoryRequest/(1024*1024*1024)),
-				}
-				row.Values["suggested_memory_limit"] = &golang.ChartRowItem{
-					Value: fmt.Sprintf("%.2f GB", rightSizing.Recommended.MemoryLimit/(1024*1024*1024)),
+				row.Values["suggested_memory"] = &golang.ChartRowItem{
+					Value: shared.MemoryConfiguration(&rightSizing.Recommended.MemoryRequest, &rightSizing.Recommended.MemoryLimit),
 				}
 				row.Values["x_kaytu_observability_duration"] = &golang.ChartRowItem{
 					Value: i.ObservabilityDuration.String(),
