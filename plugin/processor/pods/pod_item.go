@@ -9,6 +9,7 @@ import (
 	golang2 "github.com/kaytu-io/plugin-kubernetes-internal/plugin/proto/src/golang"
 	"google.golang.org/protobuf/types/known/wrapperspb"
 	corev1 "k8s.io/api/core/v1"
+	"log"
 	"math"
 	"strconv"
 	"time"
@@ -225,10 +226,13 @@ func (i PodItem) ToOptimizationItem() *golang.ChartOptimizationItem {
 	metrics := i.Metrics
 	i.Metrics = nil
 	cost := i.Cost
-	if i.Cost == math.NaN() {
+	if math.IsNaN(cost) {
 		i.Cost = 0
 	}
-	kaytuJson, _ := json.Marshal(i)
+	kaytuJson, err := json.Marshal(i)
+	if err != nil {
+		log.Printf("failed to marshal kaytu json: %v", err)
+	}
 	i.Cost = cost
 	i.Metrics = metrics
 	oi := &golang.ChartOptimizationItem{

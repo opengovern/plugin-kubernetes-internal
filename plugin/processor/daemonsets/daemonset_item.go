@@ -10,6 +10,7 @@ import (
 	"google.golang.org/protobuf/types/known/wrapperspb"
 	appv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
+	"log"
 	"math"
 	"strconv"
 	"time"
@@ -327,10 +328,13 @@ func (i DaemonsetItem) ToOptimizationItem() *golang.ChartOptimizationItem {
 	metrics := i.Metrics
 	i.Metrics = nil
 	cost := i.Cost
-	if i.Cost == math.NaN() {
+	if math.IsNaN(cost) {
 		i.Cost = 0
 	}
-	kaytuJson, _ := json.Marshal(i)
+	kaytuJson, err := json.Marshal(i)
+	if err != nil {
+		log.Printf("failed to marshal kaytu json: %v", err)
+	}
 	i.Cost = cost
 	i.Metrics = metrics
 	oi := &golang.ChartOptimizationItem{
