@@ -727,6 +727,12 @@ func (p *KubernetesPlugin) StartProcess(ctx context.Context, command string, fla
 								Sortable: true,
 							},
 							{
+								Id:       "cost",
+								Name:     "Monthly Cost",
+								Width:    10,
+								Sortable: true,
+							},
+							{
 								Id:    "x_kaytu_status",
 								Name:  "Status",
 								Width: 21,

@@ -25,6 +25,7 @@ type PodItem struct {
 	ObservabilityDuration time.Duration
 	Wastage               *golang2.KubernetesPodOptimizationResponse
 	Nodes                 []shared.KubernetesNode
+	Cost                  float64
 }
 
 func (i PodItem) GetID() string {
@@ -293,6 +294,10 @@ func (i PodItem) ToOptimizationItem() *golang.ChartOptimizationItem {
 		oi.OverviewChartRow.Values["memory_change"] = &golang.ChartRowItem{
 			Value:     memoryRequestReductionString + ", " + memoryLimitReductionString,
 			SortValue: memoryRequestChange,
+		}
+		oi.OverviewChartRow.Values["cost"] = &golang.ChartRowItem{
+			Value:     fmt.Sprintf("$%0.2f", i.Cost),
+			SortValue: i.Cost,
 		}
 
 	}

@@ -73,12 +73,12 @@ func (p *Processor) publishResultSummaryTableFunc(kuberType string) {
 	}
 	if resourceSummary != nil {
 		p.summary.Set(kuberType, *resourceSummary)
-		nodes, err := p.schedulingSim.Simulate()
+		nds, err := p.schedulingSim.Simulate()
 		if err != nil {
 			fmt.Println("failed to simulate due to", err)
 		}
 
-		rs, _ := shared.GetAggregatedResultsSummaryTable(&p.summary, p.nodesProcessor.GetKubernetesNodes(), nodes)
+		rs, _ := shared.GetAggregatedResultsSummaryTable(&p.summary, p.nodesProcessor.GetKubernetesNodes(), nds)
 		p.publishResultSummaryTable(rs)
 	}
 }
@@ -99,6 +99,7 @@ func (p *Processor) initDaemonsetProcessor(processorConf shared.Configuration) *
 	processorConf.PublishResultSummaryTable = publishResultSummaryTable
 	pi := daemonsets.NewProcessor(processorConf)
 	pi.SetSchedulingSim(p.schedulingSim)
+	pi.NodeProcessor = p.nodesProcessor
 	return pi
 }
 
@@ -118,6 +119,7 @@ func (p *Processor) initDeploymentProcessor(processorConf shared.Configuration) 
 	processorConf.PublishResultSummaryTable = publishResultSummaryTable
 	pi := deployments.NewProcessor(processorConf)
 	pi.SetSchedulingSim(p.schedulingSim)
+	pi.NodeProcessor = p.nodesProcessor
 	return pi
 }
 
@@ -137,6 +139,7 @@ func (p *Processor) initStatefulsetProcessor(processorConf shared.Configuration)
 	processorConf.PublishResultSummaryTable = publishResultSummaryTable
 	pi := statefulsets.NewProcessor(processorConf)
 	pi.SetSchedulingSim(p.schedulingSim)
+	pi.NodeProcessor = p.nodesProcessor
 	return pi
 }
 
@@ -156,6 +159,7 @@ func (p *Processor) initJobProcessor(processorConf shared.Configuration) *jobs.P
 	processorConf.PublishResultSummaryTable = publishResultSummaryTable
 	pi := jobs.NewProcessor(processorConf)
 	pi.SetSchedulingSim(p.schedulingSim)
+	pi.NodeProcessor = p.nodesProcessor
 	return pi
 }
 
@@ -175,6 +179,7 @@ func (p *Processor) initPodProcessor(processorConf shared.Configuration) *pods.P
 	processorConf.PublishResultSummaryTable = publishResultSummaryTable
 	pi := pods.NewProcessor(processorConf, pods.ProcessorModeOrphan)
 	pi.SetSchedulingSim(p.schedulingSim)
+	pi.NodeProcessor = p.nodesProcessor
 	return pi
 }
 
