@@ -327,7 +327,7 @@ func (i JobItem) ToOptimizationItem() *golang.ChartOptimizationItem {
 	metrics := i.Metrics
 	i.Metrics = nil
 	cost := i.Cost
-	if i.Cost == math.NaN() {
+	if math.IsNaN(cost) {
 		i.Cost = 0
 	}
 	kaytuJson, _ := json.Marshal(i)
