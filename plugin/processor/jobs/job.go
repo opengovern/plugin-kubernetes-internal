@@ -43,7 +43,7 @@ type Processor struct {
 	NodeProcessor *nodes.Processor
 }
 
-func NewProcessor(processorConf shared.Configuration) *Processor {
+func NewProcessor(processorConf shared.Configuration, nodeProcessor *nodes.Processor) *Processor {
 	r := &Processor{
 		identification:            processorConf.Identification,
 		kubernetesProvider:        processorConf.KubernetesProvider,
@@ -62,9 +62,14 @@ func NewProcessor(processorConf shared.Configuration) *Processor {
 		nodeSelector:              processorConf.NodeSelector,
 		observabilityDays:         processorConf.ObservabilityDays,
 		defaultPreferences:        processorConf.DefaultPreferences,
+		NodeProcessor:             nodeProcessor,
 
 		summary: utils.NewConcurrentMap[string, shared.ResourceSummary](),
 	}
+	if nodeProcessor != nil {
+		nodeProcessor.GetKubernetesNodes()
+	}
+
 	processorConf.JobQueue.Push(NewListAllNodesJob(r))
 	return r
 }

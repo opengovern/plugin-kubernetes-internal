@@ -53,7 +53,7 @@ type Processor struct {
 	defaultPreferences []*golang.PreferenceItem
 }
 
-func NewProcessor(processorConf shared.Configuration, mode ProcessorMode) *Processor {
+func NewProcessor(processorConf shared.Configuration, mode ProcessorMode, nodeProcessor *nodes.Processor) *Processor {
 	r := &Processor{
 		mode:                      mode,
 		identification:            processorConf.Identification,
@@ -73,8 +73,12 @@ func NewProcessor(processorConf shared.Configuration, mode ProcessorMode) *Proce
 		observabilityDays:         processorConf.ObservabilityDays,
 		kaytuClient:               processorConf.KaytuClient,
 		defaultPreferences:        processorConf.DefaultPreferences,
+		NodeProcessor:             nodeProcessor,
 
 		summary: utils.NewConcurrentMap[string, shared.ResourceSummary](),
+	}
+	if nodeProcessor != nil {
+		nodeProcessor.GetKubernetesNodes()
 	}
 
 	processorConf.JobQueue.Push(NewListAllNodesJob(r))
