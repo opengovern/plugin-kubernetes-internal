@@ -97,7 +97,7 @@ func (p *Processor) initDaemonsetProcessor(processorConf shared.Configuration) *
 	processorConf.PublishOptimizationItem = publishOptimizationItem
 	processorConf.PublishResultSummary = publishResultSummary
 	processorConf.PublishResultSummaryTable = publishResultSummaryTable
-	pi := daemonsets.NewProcessor(processorConf)
+	pi := daemonsets.NewProcessor(processorConf, nil)
 	pi.SetSchedulingSim(p.schedulingSim)
 	pi.NodeProcessor = p.nodesProcessor
 	return pi
@@ -117,7 +117,7 @@ func (p *Processor) initDeploymentProcessor(processorConf shared.Configuration) 
 	processorConf.PublishOptimizationItem = publishOptimizationItem
 	processorConf.PublishResultSummary = publishResultSummary
 	processorConf.PublishResultSummaryTable = publishResultSummaryTable
-	pi := deployments.NewProcessor(processorConf)
+	pi := deployments.NewProcessor(processorConf, nil)
 	pi.SetSchedulingSim(p.schedulingSim)
 	pi.NodeProcessor = p.nodesProcessor
 	return pi
@@ -137,7 +137,7 @@ func (p *Processor) initStatefulsetProcessor(processorConf shared.Configuration)
 	processorConf.PublishOptimizationItem = publishOptimizationItem
 	processorConf.PublishResultSummary = publishResultSummary
 	processorConf.PublishResultSummaryTable = publishResultSummaryTable
-	pi := statefulsets.NewProcessor(processorConf)
+	pi := statefulsets.NewProcessor(processorConf, nil)
 	pi.SetSchedulingSim(p.schedulingSim)
 	pi.NodeProcessor = p.nodesProcessor
 	return pi
@@ -157,7 +157,7 @@ func (p *Processor) initJobProcessor(processorConf shared.Configuration) *jobs.P
 	processorConf.PublishOptimizationItem = publishOptimizationItem
 	processorConf.PublishResultSummary = publishResultSummary
 	processorConf.PublishResultSummaryTable = publishResultSummaryTable
-	pi := jobs.NewProcessor(processorConf)
+	pi := jobs.NewProcessor(processorConf, nil)
 	pi.SetSchedulingSim(p.schedulingSim)
 	pi.NodeProcessor = p.nodesProcessor
 	return pi
@@ -177,7 +177,7 @@ func (p *Processor) initPodProcessor(processorConf shared.Configuration) *pods.P
 	processorConf.PublishOptimizationItem = publishOptimizationItem
 	processorConf.PublishResultSummary = publishResultSummary
 	processorConf.PublishResultSummaryTable = publishResultSummaryTable
-	pi := pods.NewProcessor(processorConf, pods.ProcessorModeOrphan)
+	pi := pods.NewProcessor(processorConf, pods.ProcessorModeOrphan, nil)
 	pi.SetSchedulingSim(p.schedulingSim)
 	pi.NodeProcessor = p.nodesProcessor
 	return pi

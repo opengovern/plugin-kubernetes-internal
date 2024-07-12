@@ -208,6 +208,12 @@ func (p *KubernetesPlugin) GetConfig(_ context.Context) golang.RegisterConfig {
 					Sortable: true,
 				},
 				{
+					Id:       "cost",
+					Name:     "Monthly Cost",
+					Width:    10,
+					Sortable: true,
+				},
+				{
 					Id:    "x_kaytu_status",
 					Name:  "Status",
 					Width: 21,
@@ -452,8 +458,10 @@ func (p *KubernetesPlugin) StartProcess(ctx context.Context, command string, fla
 
 	switch command {
 	case "kubernetes-pods":
-		p.processor = pods.NewProcessor(processorConf, pods.ProcessorModeAll)
+		nodeProcessor := nodes.NewProcessor(processorConf)
+		p.processor = pods.NewProcessor(processorConf, pods.ProcessorModeAll, nodeProcessor)
 	case "kubernetes-deployments":
+		nodeProcessor := nodes.NewProcessor(processorConf)
 		err = p.stream.Send(&golang.PluginMessage{
 			PluginMessage: &golang.PluginMessage_UpdateChart{
 				UpdateChart: &golang.UpdateChartDefinition{
@@ -488,6 +496,12 @@ func (p *KubernetesPlugin) StartProcess(ctx context.Context, command string, fla
 								Sortable: true,
 							},
 							{
+								Id:       "cost",
+								Name:     "Monthly Cost",
+								Width:    10,
+								Sortable: true,
+							},
+							{
 								Id:    "x_kaytu_status",
 								Name:  "Status",
 								Width: 21,
@@ -505,8 +519,9 @@ func (p *KubernetesPlugin) StartProcess(ctx context.Context, command string, fla
 		if err != nil {
 			return err
 		}
-		p.processor = deployments.NewProcessor(processorConf)
+		p.processor = deployments.NewProcessor(processorConf, nodeProcessor)
 	case "kubernetes-statefulsets":
+		nodeProcessor := nodes.NewProcessor(processorConf)
 		err = p.stream.Send(&golang.PluginMessage{
 			PluginMessage: &golang.PluginMessage_UpdateChart{
 				UpdateChart: &golang.UpdateChartDefinition{
@@ -541,6 +556,12 @@ func (p *KubernetesPlugin) StartProcess(ctx context.Context, command string, fla
 								Sortable: true,
 							},
 							{
+								Id:       "cost",
+								Name:     "Monthly Cost",
+								Width:    10,
+								Sortable: true,
+							},
+							{
 								Id:    "x_kaytu_status",
 								Name:  "Status",
 								Width: 21,
@@ -558,8 +579,9 @@ func (p *KubernetesPlugin) StartProcess(ctx context.Context, command string, fla
 		if err != nil {
 			return err
 		}
-		p.processor = statefulsets.NewProcessor(processorConf)
+		p.processor = statefulsets.NewProcessor(processorConf, nodeProcessor)
 	case "kubernetes-daemonsets":
+		nodeProcessor := nodes.NewProcessor(processorConf)
 		err = p.stream.Send(&golang.PluginMessage{
 			PluginMessage: &golang.PluginMessage_UpdateChart{
 				UpdateChart: &golang.UpdateChartDefinition{
@@ -594,6 +616,12 @@ func (p *KubernetesPlugin) StartProcess(ctx context.Context, command string, fla
 								Sortable: true,
 							},
 							{
+								Id:       "cost",
+								Name:     "Monthly Cost",
+								Width:    10,
+								Sortable: true,
+							},
+							{
 								Id:    "x_kaytu_status",
 								Name:  "Status",
 								Width: 21,
@@ -611,8 +639,9 @@ func (p *KubernetesPlugin) StartProcess(ctx context.Context, command string, fla
 		if err != nil {
 			return err
 		}
-		p.processor = daemonsets.NewProcessor(processorConf)
+		p.processor = daemonsets.NewProcessor(processorConf, nodeProcessor)
 	case "kubernetes-jobs":
+		nodeProcessor := nodes.NewProcessor(processorConf)
 		err = p.stream.Send(&golang.PluginMessage{
 			PluginMessage: &golang.PluginMessage_UpdateChart{
 				UpdateChart: &golang.UpdateChartDefinition{
@@ -647,6 +676,12 @@ func (p *KubernetesPlugin) StartProcess(ctx context.Context, command string, fla
 								Sortable: true,
 							},
 							{
+								Id:       "cost",
+								Name:     "Monthly Cost",
+								Width:    10,
+								Sortable: true,
+							},
+							{
 								Id:    "x_kaytu_status",
 								Name:  "Status",
 								Width: 21,
@@ -664,7 +699,7 @@ func (p *KubernetesPlugin) StartProcess(ctx context.Context, command string, fla
 		if err != nil {
 			return err
 		}
-		p.processor = jobs.NewProcessor(processorConf)
+		p.processor = jobs.NewProcessor(processorConf, nodeProcessor)
 	case "kubernetes":
 		nodeProcessor := nodes.NewProcessor(processorConf)
 		err = p.stream.Send(&golang.PluginMessage{
