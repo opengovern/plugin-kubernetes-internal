@@ -182,6 +182,20 @@ func (p *KubernetesPlugin) GetConfig(_ context.Context) golang.RegisterConfig {
 				LoginRequired:      true,
 			},
 		},
+		RootCommands: []*golang.Command{
+			{
+				Name:        "agent-trigger",
+				Description: "trigger agent command",
+				Flags: []*golang.Flag{
+					{
+						Name:        "command",
+						Default:     "kubernetes",
+						Description: "Command name",
+						Required:    false,
+					},
+				},
+			},
+		},
 		MinKaytuVersion: "v0.9.0",
 		OverviewChart: &golang.ChartDefinition{
 			Columns: []*golang.ChartColumnItem{
@@ -457,6 +471,38 @@ func (p *KubernetesPlugin) StartProcess(ctx context.Context, command string, fla
 	}
 
 	switch command {
+	case "agent-trigger":
+		if kaytuClient.IsEnabled() {
+			cmd := getFlagOrNil(flags, "command")
+			if cmd == nil {
+				p.stream.Send(&golang.PluginMessage{
+					PluginMessage: &golang.PluginMessage_Err{
+						Err: &golang.Error{
+							Error: fmt.Sprintf("command not provided"),
+						},
+					},
+				})
+			}
+			kaytuClient.TriggerCommand(ctx, *cmd)
+			p.stream.Send(&golang.PluginMessage{
+				PluginMessage: &golang.PluginMessage_Job{
+					Job: &golang.JobResult{
+						Description: fmt.Sprintf("agent trigger command %s", *cmd),
+						Done:        true,
+					},
+				},
+			})
+		} else {
+			p.stream.Send(&golang.PluginMessage{
+				PluginMessage: &golang.PluginMessage_Err{
+					Err: &golang.Error{
+						Error: fmt.Sprintf("agent not enabled"),
+					},
+				},
+			})
+		}
+		publishResultsReady(true)
+		return nil
 	case "kubernetes-pods":
 		nodeProcessor := nodes.NewProcessor(processorConf)
 		p.processor = pods.NewProcessor(processorConf, pods.ProcessorModeAll, nodeProcessor)

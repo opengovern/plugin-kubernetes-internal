@@ -48,3 +48,13 @@ func (a KaytuAgent) DownloadReport(ctx context.Context, cmd string) ([]byte, err
 func (a KaytuAgent) IsEnabled() bool {
 	return a.discovered
 }
+
+func (a KaytuAgent) TriggerCommand(ctx context.Context, cmd string) error {
+	_, err := a.client.TriggerJob(ctx, &kaytuAgent.TriggerJobRequest{
+		Commands: []string{cmd},
+	})
+	if err != nil {
+		return err
+	}
+	return nil
+}
