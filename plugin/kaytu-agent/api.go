@@ -58,3 +58,13 @@ func (a KaytuAgent) TriggerCommand(ctx context.Context, cmd string) error {
 	}
 	return nil
 }
+
+func (a KaytuAgent) GetJobStatus(ctx context.Context, cmd string) (*kaytuAgent.GetLatestJobsResponse, error) {
+	res, err := a.client.GetLatestJobs(ctx, &kaytuAgent.GetLatestJobsRequest{
+		Commands: []string{cmd},
+	})
+	if err != nil {
+		return res, err
+	}
+	return res, nil
+}
