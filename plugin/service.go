@@ -195,6 +195,18 @@ func (p *KubernetesPlugin) GetConfig(_ context.Context) golang.RegisterConfig {
 					},
 				},
 			},
+			{
+				Name:        "agent-job-status",
+				Description: "get agent job status",
+				Flags: []*golang.Flag{
+					{
+						Name:        "command",
+						Default:     "",
+						Description: "Command name",
+						Required:    true,
+					},
+				},
+			},
 		},
 		MinKaytuVersion: "v0.9.0",
 		OverviewChart: &golang.ChartDefinition{
@@ -406,6 +418,17 @@ func (p *KubernetesPlugin) StartProcess(ctx context.Context, command string, fla
 		}
 	}
 
+	publishJob := func(job *golang.JobResult) {
+		err := p.stream.Send(&golang.PluginMessage{
+			PluginMessage: &golang.PluginMessage_Job{
+				Job: job,
+			},
+		})
+		if err != nil {
+			log.Printf("failed to send summary: %v", err)
+		}
+	}
+
 	publishNonInteractiveExport := func(ex *golang.NonInteractiveExport) {
 		err := p.stream.Send(&golang.PluginMessage{
 			PluginMessage: &golang.PluginMessage_NonInteractive{
@@ -483,15 +506,57 @@ func (p *KubernetesPlugin) StartProcess(ctx context.Context, command string, fla
 					},
 				})
 			}
-			kaytuClient.TriggerCommand(ctx, *cmd)
+			err := kaytuClient.TriggerCommand(ctx, *cmd)
+			if err != nil {
+				return err
+			}
+
+			publishJob(&golang.JobResult{
+				Description: fmt.Sprintf("agent trigger command %s", *cmd),
+				Done:        true,
+			})
+		} else {
 			p.stream.Send(&golang.PluginMessage{
-				PluginMessage: &golang.PluginMessage_Job{
-					Job: &golang.JobResult{
-						Description: fmt.Sprintf("agent trigger command %s", *cmd),
-						Done:        true,
+				PluginMessage: &golang.PluginMessage_Err{
+					Err: &golang.Error{
+						Error: fmt.Sprintf("agent not enabled"),
 					},
 				},
 			})
+		}
+		publishResultsReady(true)
+		return nil
+	case "agent-job-status":
+		if kaytuClient.IsEnabled() {
+			cmd := getFlagOrNil(flags, "command")
+			if cmd == nil {
+				p.stream.Send(&golang.PluginMessage{
+					PluginMessage: &golang.PluginMessage_Err{
+						Err: &golang.Error{
+							Error: fmt.Sprintf("command not provided"),
+						},
+					},
+				})
+			}
+			jobs, err := kaytuClient.GetJobStatus(ctx, *cmd)
+			if err != nil {
+				p.stream.Send(&golang.PluginMessage{
+					PluginMessage: &golang.PluginMessage_Err{
+						Err: &golang.Error{
+							Error: fmt.Sprintf("failed to get job status: %v", err),
+						},
+					},
+				})
+			}
+			for name, job := range jobs.Jobs {
+				p.stream.Send(&golang.PluginMessage{
+					PluginMessage: &golang.PluginMessage_Summary{
+						Summary: &golang.ResultSummary{
+							Message: fmt.Sprintf("agent job %s with command %s is %s", name, job.Command, job.Status),
+						},
+					},
+				})
+			}
 		} else {
 			p.stream.Send(&golang.PluginMessage{
 				PluginMessage: &golang.PluginMessage_Err{
