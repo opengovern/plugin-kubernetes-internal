@@ -2,6 +2,7 @@ package shared
 
 import (
 	"fmt"
+	"github.com/charmbracelet/lipgloss"
 	"github.com/kaytu-io/kaytu/pkg/plugin/proto/src/golang"
 	"github.com/kaytu-io/kaytu/pkg/utils"
 	v1 "k8s.io/api/core/v1"
@@ -99,38 +100,38 @@ func GetAggregatedResultsSummaryTable(processorSummary *utils.ConcurrentMap[stri
 	summaryTable.Headers = []string{"Summary", "Current", "Recommended", "Net Impact (Total)", "Change"}
 	summaryTable.Message = append(summaryTable.Message, &golang.ResultSummaryTableRow{
 		Cells: []string{
-			"CPU Request (Cores)",
+			lipgloss.NewStyle().Foreground(lipgloss.Color("#dddddd")).Render("CPU Request (Cores)"),
 			fmt.Sprintf("%.2f Cores", totalCpuRequest),
 			fmt.Sprintf("%.2f Cores", totalCpuRequest+cpuRequestUpSizing+cpuRequestDownSizing),
-			fmt.Sprintf("%.2f Cores", cpuRequestUpSizing+cpuRequestDownSizing),
-			fmt.Sprintf("%.2f%%", (cpuRequestUpSizing+cpuRequestDownSizing)/totalCpuRequest*100.0),
+			SprintfWithStyle("%.2f Cores", cpuRequestUpSizing+cpuRequestDownSizing, false),
+			SprintfWithStyle("%.2f%%", (cpuRequestUpSizing+cpuRequestDownSizing)/totalCpuRequest*100.0, false),
 		},
 	})
 	summaryTable.Message = append(summaryTable.Message, &golang.ResultSummaryTableRow{
 		Cells: []string{
-			"CPU Limit (Cores)",
+			lipgloss.NewStyle().Foreground(lipgloss.Color("#dddddd")).Render("CPU Limit (Cores)"),
 			fmt.Sprintf("%.2f Cores", totalCpuLimit),
 			fmt.Sprintf("%.2f Cores", totalCpuLimit+cpuLimitUpSizing+cpuLimitDownSizing),
-			fmt.Sprintf("%.2f Cores", cpuLimitUpSizing+cpuLimitDownSizing),
-			fmt.Sprintf("%.2f%%", (cpuLimitUpSizing+cpuLimitDownSizing)/totalCpuLimit*100.0),
+			SprintfWithStyle("%.2f Cores", cpuLimitUpSizing+cpuLimitDownSizing, false),
+			SprintfWithStyle("%.2f%%", (cpuLimitUpSizing+cpuLimitDownSizing)/totalCpuLimit*100.0, false),
 		},
 	})
 	summaryTable.Message = append(summaryTable.Message, &golang.ResultSummaryTableRow{
 		Cells: []string{
-			"Memory Request",
+			lipgloss.NewStyle().Foreground(lipgloss.Color("#dddddd")).Render("Memory Request"),
 			SizeByte64(totalMemoryRequest),
 			SizeByte64(totalMemoryRequest + memoryRequestUpSizing + memoryRequestDownSizing),
-			SizeByte64(memoryRequestUpSizing + memoryRequestDownSizing),
-			fmt.Sprintf("%.2f%%", (memoryRequestUpSizing+memoryRequestDownSizing)/totalMemoryRequest*100.0),
+			SizeByte64WithStyle(memoryRequestUpSizing + memoryRequestDownSizing),
+			SprintfWithStyle("%.2f%%", (memoryRequestUpSizing+memoryRequestDownSizing)/totalMemoryRequest*100.0, false),
 		},
 	})
 	summaryTable.Message = append(summaryTable.Message, &golang.ResultSummaryTableRow{
 		Cells: []string{
-			"Memory Limit",
+			lipgloss.NewStyle().Foreground(lipgloss.Color("#dddddd")).Render("Memory Limit"),
 			SizeByte64(totalMemoryLimit),
 			SizeByte64(totalMemoryLimit + memoryLimitUpSizing + memoryLimitDownSizing),
-			SizeByte64(memoryLimitUpSizing + memoryLimitDownSizing),
-			fmt.Sprintf("%.2f%%", (memoryLimitUpSizing+memoryLimitDownSizing)/totalMemoryLimit*100.0),
+			SizeByte64WithStyle(memoryLimitUpSizing + memoryLimitDownSizing),
+			SprintfWithStyle("%.2f%%", (memoryLimitUpSizing+memoryLimitDownSizing)/totalMemoryLimit*100.0, false),
 		},
 	})
 	var clusterCPU, clusterMemory, clusterCost, reducedCPU, reducedMemory, reducedCost float64
@@ -160,27 +161,27 @@ func GetAggregatedResultsSummaryTable(processorSummary *utils.ConcurrentMap[stri
 	if hasCost {
 		summaryTable.Message = append(summaryTable.Message, &golang.ResultSummaryTableRow{
 			Cells: []string{
-				"Cluster (Cost)",
-				fmt.Sprintf("$%.2f", clusterCost),
-				fmt.Sprintf("$%.2f", clusterCost-reducedCost),
-				fmt.Sprintf("-$%.2f", reducedCost),
-				fmt.Sprintf("%.2f%%", -reducedCost/clusterCost*100.0),
+				lipgloss.NewStyle().Bold(true).Render("Cluster (Cost)"),
+				increaseStyle.Bold(true).Render(fmt.Sprintf("$%.2f", clusterCost)),
+				decreaseStyle.Bold(true).Render(fmt.Sprintf("$%.2f", clusterCost-reducedCost)),
+				decreaseStyle.Bold(true).Render(fmt.Sprintf("-$%.2f", reducedCost)),
+				SprintfWithStyle("%.2f%%", -reducedCost/clusterCost*100.0, false),
 			},
 		})
 		summaryTable.Message = append(summaryTable.Message, &golang.ResultSummaryTableRow{
 			Cells: []string{
-				"Cluster (Nodes)",
+				lipgloss.NewStyle().Foreground(lipgloss.Color("#dddddd")).Render("Cluster (Nodes)"),
 				nodeListToString(cluster, false),
 				nodeListToString(diff(cluster, removableNodes), false),
 				nodeListToString(removableNodes, true),
-				fmt.Sprintf("%.2f%%", -float64(len(removableNodes))/float64(len(cluster))*100.0),
+				SprintfWithStyle("%.2f%%", -float64(len(removableNodes))/float64(len(cluster))*100.0, false),
 			},
 		})
 		for _, n := range removableNodesPrev {
 			summaryTable.Message = append(summaryTable.Message, &golang.ResultSummaryTableRow{
 				Cells: []string{
-					"Removable Nodes in the Current Configuration",
-					n.Name,
+					removableNodesPrevStyle.Render("Removable Nodes in the Current Configuration"),
+					removableNodesPrevStyle.Render(n.Name),
 					"",
 					"",
 					"",
@@ -190,8 +191,8 @@ func GetAggregatedResultsSummaryTable(processorSummary *utils.ConcurrentMap[stri
 		for _, n := range removableNodes {
 			summaryTable.Message = append(summaryTable.Message, &golang.ResultSummaryTableRow{
 				Cells: []string{
-					"Removable Nodes after implementing Optimization",
-					n.Name,
+					removableNodesStyle.Render("Removable Nodes after implementing Optimization"),
+					removableNodesStyle.Render(n.Name),
 					"",
 					"",
 					"",
@@ -204,8 +205,8 @@ func GetAggregatedResultsSummaryTable(processorSummary *utils.ConcurrentMap[stri
 				"Cluster (CPU)",
 				fmt.Sprintf("%.2f Cores", clusterCPU),
 				fmt.Sprintf("%.2f Cores", clusterCPU-reducedCPU),
-				fmt.Sprintf("%.2f Cores", -reducedCPU),
-				fmt.Sprintf("%.2f%%", -reducedCPU/clusterCPU*100.0),
+				SprintfWithStyle("%.2f Cores", -reducedCPU, false),
+				SprintfWithStyle("%.2f%%", -reducedCPU/clusterCPU*100.0, false),
 			},
 		})
 		summaryTable.Message = append(summaryTable.Message, &golang.ResultSummaryTableRow{
@@ -213,8 +214,8 @@ func GetAggregatedResultsSummaryTable(processorSummary *utils.ConcurrentMap[stri
 				"Cluster (Memory)",
 				SizeByte64(clusterMemory),
 				SizeByte64(clusterMemory - reducedMemory),
-				SizeByte64(-reducedMemory),
-				fmt.Sprintf("%.2f%%", -reducedMemory/clusterMemory*100.0),
+				SizeByte64WithStyle(-reducedMemory),
+				SprintfWithStyle("%.2f%%", -reducedMemory/clusterMemory*100.0, false),
 			},
 		})
 		summaryTable.Message = append(summaryTable.Message, &golang.ResultSummaryTableRow{
@@ -223,14 +224,25 @@ func GetAggregatedResultsSummaryTable(processorSummary *utils.ConcurrentMap[stri
 				nodeListToString(cluster, false),
 				nodeListToString(diff(cluster, removableNodes), false),
 				nodeListToString(removableNodes, true),
-				fmt.Sprintf("%.2f%%", -float64(len(removableNodes))/float64(len(cluster))*100.0),
+				SprintfWithStyle("%.2f%%", -float64(len(removableNodes))/float64(len(cluster))*100.0, false),
 			},
 		})
+		for _, n := range removableNodesPrev {
+			summaryTable.Message = append(summaryTable.Message, &golang.ResultSummaryTableRow{
+				Cells: []string{
+					removableNodesPrevStyle.Render("Removable Nodes in the Current Configuration"),
+					removableNodesPrevStyle.Render(n.Name),
+					"",
+					"",
+					"",
+				},
+			})
+		}
 		for _, n := range removableNodes {
 			summaryTable.Message = append(summaryTable.Message, &golang.ResultSummaryTableRow{
 				Cells: []string{
-					"Removable node",
-					n.Name,
+					removableNodesStyle.Render("Removable Nodes after implementing Optimization"),
+					removableNodesStyle.Render(n.Name),
 					"",
 					"",
 					"",

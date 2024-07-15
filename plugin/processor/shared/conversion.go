@@ -25,3 +25,15 @@ func SizeByte64(v float64) string {
 	v = v / 1024
 	return fmt.Sprintf("%.1f GB", v)
 }
+
+func SizeByte64WithStyle(value float64) string {
+	str := SizeByte64(value)
+	if value < 0 {
+		str = decreaseStyle.Render(str)
+	} else if value > 0 {
+		str = increaseStyle.Render(str)
+	} else {
+		str = unchangedStyle.Render(str)
+	}
+	return str
+}
