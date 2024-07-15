@@ -159,17 +159,33 @@ func (j *OptimizeStatefulsetJob) Run(ctx context.Context) error {
 	observabilityPeriod := time.Duration(j.processor.observabilityDays*24) * time.Hour
 	totalCost := 0.0
 	for pod, podMetrics := range item.Metrics["cpu_usage"] {
-		if nodeCPU[pod] > 0 {
-			for _, containerDatapoints := range podMetrics {
-				totalCost += nodeCost[pod] * 0.5 * (shared.MetricAverageOverObservabilityPeriod(containerDatapoints, observabilityPeriod) / nodeCPU[pod])
+		for containerName, containerDatapoints := range podMetrics {
+			v := shared.MetricAverageOverObservabilityPeriod(containerDatapoints, observabilityPeriod)
+			if nodeCPU[pod] > 0 {
+				totalCost += nodeCost[pod] * 0.5 * (v / nodeCPU[pod])
 			}
+			if item.VCpuHoursInPeriod == nil {
+				item.VCpuHoursInPeriod = make(map[string]map[string]float64)
+			}
+			if item.VCpuHoursInPeriod[pod] == nil {
+				item.VCpuHoursInPeriod[pod] = make(map[string]float64)
+			}
+			item.VCpuHoursInPeriod[pod][containerName] = v * observabilityPeriod.Hours()
 		}
 	}
 	for pod, podMetrics := range item.Metrics["memory_usage"] {
-		if nodeMemory[pod] > 0 {
-			for _, containerDatapoints := range podMetrics {
-				totalCost += nodeCost[pod] * 0.5 * (shared.MetricAverageOverObservabilityPeriod(containerDatapoints, observabilityPeriod) / nodeMemory[pod])
+		for containerName, containerDatapoints := range podMetrics {
+			v := shared.MetricAverageOverObservabilityPeriod(containerDatapoints, observabilityPeriod)
+			if nodeMemory[pod] > 0 {
+				totalCost += nodeCost[pod] * 0.5 * (v / nodeMemory[pod])
 			}
+			if item.MemoryGBHoursInPeriod == nil {
+				item.MemoryGBHoursInPeriod = make(map[string]map[string]float64)
+			}
+			if item.MemoryGBHoursInPeriod[pod] == nil {
+				item.MemoryGBHoursInPeriod[pod] = make(map[string]float64)
+			}
+			item.MemoryGBHoursInPeriod[pod][containerName] = v / simulation.GB * observabilityPeriod.Hours()
 		}
 	}
 	item.Cost = totalCost

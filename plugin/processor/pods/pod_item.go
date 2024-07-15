@@ -28,6 +28,8 @@ type PodItem struct {
 	Wastage               *golang2.KubernetesPodOptimizationResponse
 	Nodes                 []shared.KubernetesNode
 	Cost                  float64
+	VCpuHoursInPeriod     map[string]float64 // Container -> VCpuHours
+	MemoryGBHoursInPeriod map[string]float64 // Container -> MemoryGBHours
 }
 
 func (i PodItem) GetID() string {
@@ -118,6 +120,21 @@ func (i PodItem) Devices() ([]*golang.ChartRow, map[string]*golang.Properties) {
 		}
 		row.Values["current_memory"] = &golang.ChartRowItem{
 			Value: shared.MemoryConfiguration(memoryRequest, memoryLimit),
+		}
+
+		if i.VCpuHoursInPeriod != nil {
+			cpuHourProperty := golang.Property{
+				Key:     "vCPU Hours",
+				Average: fmt.Sprintf("%.2f vCpuHour", i.VCpuHoursInPeriod[container.Name]),
+			}
+			properties.Properties = append(properties.Properties, &cpuHourProperty)
+		}
+		if i.MemoryGBHoursInPeriod != nil {
+			memoryHourProperty := golang.Property{
+				Key:     "Memory GB Hours",
+				Average: fmt.Sprintf("%.2f GBHour", i.MemoryGBHoursInPeriod[container.Name]),
+			}
+			properties.Properties = append(properties.Properties, &memoryHourProperty)
 		}
 
 		if righSizing != nil && righSizing.Recommended != nil {
