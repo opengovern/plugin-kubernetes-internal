@@ -175,11 +175,6 @@ func (j *OptimizePodJob) Run(ctx context.Context) error {
 		}
 		item.VCpuHoursInPeriod[containerName] = v / simulation.GB * observabilityPeriod.Hours()
 	}
-	for _, containerDatapoints := range item.Metrics["memory_usage"] {
-		if nodeMemory > 0 {
-			totalCost += nodeCost * 0.5 * (shared.MetricAverageOverObservabilityPeriod(containerDatapoints, observabilityPeriod) / nodeMemory)
-		}
-	}
 	item.Cost = totalCost
 
 	j.processor.items.Set(item.GetID(), item)
