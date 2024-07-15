@@ -29,6 +29,7 @@ type Processor struct {
 	jobsProcessor         *jobs.Processor
 	podsProcessor         *pods.Processor
 	schedulingSim         *simulation.SchedulerService
+	schedulingSimPrev     *simulation.SchedulerService
 }
 
 func (p *Processor) publishOptimizationItemFunc(item *golang.ChartOptimizationItem, kuberType string) {
@@ -61,15 +62,15 @@ func (p *Processor) publishResultSummaryTableFunc(kuberType string) {
 	var resourceSummary *shared.ResourceSummary
 	switch kuberType {
 	case "daemonset":
-		_, resourceSummary = shared.GetAggregatedResultsSummaryTable(p.daemonsetsProcessor.GetSummaryMap(), nil, nil)
+		_, resourceSummary = shared.GetAggregatedResultsSummaryTable(p.daemonsetsProcessor.GetSummaryMap(), nil, nil, nil)
 	case "deployment":
-		_, resourceSummary = shared.GetAggregatedResultsSummaryTable(p.deploymentsProcessor.GetSummaryMap(), nil, nil)
+		_, resourceSummary = shared.GetAggregatedResultsSummaryTable(p.deploymentsProcessor.GetSummaryMap(), nil, nil, nil)
 	case "statefulset":
-		_, resourceSummary = shared.GetAggregatedResultsSummaryTable(p.statefulsetsProcessor.GetSummaryMap(), nil, nil)
+		_, resourceSummary = shared.GetAggregatedResultsSummaryTable(p.statefulsetsProcessor.GetSummaryMap(), nil, nil, nil)
 	case "job":
-		_, resourceSummary = shared.GetAggregatedResultsSummaryTable(p.jobsProcessor.GetSummaryMap(), nil, nil)
+		_, resourceSummary = shared.GetAggregatedResultsSummaryTable(p.jobsProcessor.GetSummaryMap(), nil, nil, nil)
 	case "pod":
-		_, resourceSummary = shared.GetAggregatedResultsSummaryTable(p.podsProcessor.GetSummaryMap(), nil, nil)
+		_, resourceSummary = shared.GetAggregatedResultsSummaryTable(p.podsProcessor.GetSummaryMap(), nil, nil, nil)
 	}
 	if resourceSummary != nil {
 		p.summary.Set(kuberType, *resourceSummary)
@@ -78,7 +79,12 @@ func (p *Processor) publishResultSummaryTableFunc(kuberType string) {
 			fmt.Println("failed to simulate due to", err)
 		}
 
-		rs, _ := shared.GetAggregatedResultsSummaryTable(&p.summary, p.nodesProcessor.GetKubernetesNodes(), nds)
+		ndsPrev, err := p.schedulingSimPrev.Simulate()
+		if err != nil {
+			fmt.Println("failed to simulate prev due to", err)
+		}
+
+		rs, _ := shared.GetAggregatedResultsSummaryTable(&p.summary, p.nodesProcessor.GetKubernetesNodes(), nds, ndsPrev)
 		p.publishResultSummaryTable(rs)
 	}
 }
@@ -98,7 +104,7 @@ func (p *Processor) initDaemonsetProcessor(processorConf shared.Configuration) *
 	processorConf.PublishResultSummary = publishResultSummary
 	processorConf.PublishResultSummaryTable = publishResultSummaryTable
 	pi := daemonsets.NewProcessor(processorConf, nil)
-	pi.SetSchedulingSim(p.schedulingSim)
+	pi.SetSchedulingSim(p.schedulingSim, p.schedulingSimPrev)
 	pi.NodeProcessor = p.nodesProcessor
 	return pi
 }
@@ -118,7 +124,7 @@ func (p *Processor) initDeploymentProcessor(processorConf shared.Configuration) 
 	processorConf.PublishResultSummary = publishResultSummary
 	processorConf.PublishResultSummaryTable = publishResultSummaryTable
 	pi := deployments.NewProcessor(processorConf, nil)
-	pi.SetSchedulingSim(p.schedulingSim)
+	pi.SetSchedulingSim(p.schedulingSim, p.schedulingSimPrev)
 	pi.NodeProcessor = p.nodesProcessor
 	return pi
 }
@@ -138,7 +144,7 @@ func (p *Processor) initStatefulsetProcessor(processorConf shared.Configuration)
 	processorConf.PublishResultSummary = publishResultSummary
 	processorConf.PublishResultSummaryTable = publishResultSummaryTable
 	pi := statefulsets.NewProcessor(processorConf, nil)
-	pi.SetSchedulingSim(p.schedulingSim)
+	pi.SetSchedulingSim(p.schedulingSim, p.schedulingSimPrev)
 	pi.NodeProcessor = p.nodesProcessor
 	return pi
 }
@@ -158,7 +164,7 @@ func (p *Processor) initJobProcessor(processorConf shared.Configuration) *jobs.P
 	processorConf.PublishResultSummary = publishResultSummary
 	processorConf.PublishResultSummaryTable = publishResultSummaryTable
 	pi := jobs.NewProcessor(processorConf, nil)
-	pi.SetSchedulingSim(p.schedulingSim)
+	pi.SetSchedulingSim(p.schedulingSim, p.schedulingSimPrev)
 	pi.NodeProcessor = p.nodesProcessor
 	return pi
 }
@@ -178,7 +184,7 @@ func (p *Processor) initPodProcessor(processorConf shared.Configuration) *pods.P
 	processorConf.PublishResultSummary = publishResultSummary
 	processorConf.PublishResultSummaryTable = publishResultSummaryTable
 	pi := pods.NewProcessor(processorConf, pods.ProcessorModeOrphan, nil)
-	pi.SetSchedulingSim(p.schedulingSim)
+	pi.SetSchedulingSim(p.schedulingSim, p.schedulingSimPrev)
 	pi.NodeProcessor = p.nodesProcessor
 	return pi
 }
@@ -191,6 +197,7 @@ func NewProcessor(processorConf shared.Configuration, nodesProcessor *nodes.Proc
 		publishResultSummaryTable: processorConf.PublishResultSummaryTable,
 		summary:                   utils.NewConcurrentMap[string, shared.ResourceSummary](),
 		schedulingSim:             simulation.NewSchedulerService(nil),
+		schedulingSimPrev:         simulation.NewSchedulerService(nil),
 		nodesProcessor:            nodesProcessor,
 	}
 

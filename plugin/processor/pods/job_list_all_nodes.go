@@ -51,6 +51,10 @@ func (j *ListAllNodesJob) Run(ctx context.Context) error {
 		j.processor.schedulingSim.SetNodes(knodes)
 	}
 
+	if j.processor.schedulingSimPrev != nil {
+		j.processor.schedulingSimPrev.SetNodes(knodes)
+	}
+
 	if j.processor.kaytuClient.IsEnabled() {
 		j.processor.jobQueue.Push(NewDownloadKaytuAgentReportJob(j.processor, knodes))
 	} else {

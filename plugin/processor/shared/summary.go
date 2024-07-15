@@ -72,7 +72,7 @@ func GetAggregatedResultsSummary(processorSummary *utils.ConcurrentMap[string, R
 	return summary, &resourceSummary
 }
 
-func GetAggregatedResultsSummaryTable(processorSummary *utils.ConcurrentMap[string, ResourceSummary], cluster, removableNodes []KubernetesNode) (*golang.ResultSummaryTable, *ResourceSummary) {
+func GetAggregatedResultsSummaryTable(processorSummary *utils.ConcurrentMap[string, ResourceSummary], cluster, removableNodes, removableNodesPrev []KubernetesNode) (*golang.ResultSummaryTable, *ResourceSummary) {
 	summaryTable := &golang.ResultSummaryTable{}
 	var cpuRequestDownSizing, cpuRequestUpSizing,
 		cpuLimitDownSizing, cpuLimitUpSizing,
@@ -176,10 +176,21 @@ func GetAggregatedResultsSummaryTable(processorSummary *utils.ConcurrentMap[stri
 				fmt.Sprintf("%.2f%%", -float64(len(removableNodes))/float64(len(cluster))*100.0),
 			},
 		})
+		for _, n := range removableNodesPrev {
+			summaryTable.Message = append(summaryTable.Message, &golang.ResultSummaryTableRow{
+				Cells: []string{
+					"Removable Nodes in the Current Configuration",
+					n.Name,
+					"",
+					"",
+					"",
+				},
+			})
+		}
 		for _, n := range removableNodes {
 			summaryTable.Message = append(summaryTable.Message, &golang.ResultSummaryTableRow{
 				Cells: []string{
-					"Removable node",
+					"Removable Nodes after implementing Optimization",
 					n.Name,
 					"",
 					"",
