@@ -36,11 +36,13 @@ type Processor struct {
 	nodeSelector              string
 	observabilityDays         int
 	defaultPreferences        []*golang.PreferenceItem
-	schedulingSim             *simulation.SchedulerService
 	clusterNodes              []shared.KubernetesNode
 
 	summary       utils.ConcurrentMap[string, shared.ResourceSummary]
 	NodeProcessor *nodes.Processor
+
+	schedulingSim     *simulation.SchedulerService
+	schedulingSimPrev *simulation.SchedulerService
 }
 
 func NewProcessor(processorConf shared.Configuration, nodeProcessor *nodes.Processor) *Processor {
@@ -92,7 +94,7 @@ func (m *Processor) GetSummaryMap() *utils.ConcurrentMap[string, shared.Resource
 }
 
 func (m *Processor) UpdateSummary(itemId string) {
-	var removableNodes []shared.KubernetesNode
+	var removableNodes, removableNodesPrev []shared.KubernetesNode
 
 	i, ok := m.items.Get(itemId)
 	if ok && i.Wastage != nil {
@@ -145,6 +147,16 @@ func (m *Processor) UpdateSummary(itemId string) {
 		}
 
 		m.summary.Set(i.GetID(), ds)
+		if m.schedulingSimPrev != nil {
+			i.Daemonset = *i.Daemonset.DeepCopy()
+			m.schedulingSimPrev.AddDaemonSet(i.Daemonset)
+			nodes, err := m.schedulingSimPrev.Simulate()
+			if err != nil {
+				fmt.Println("failed to simulate due to", err)
+			} else {
+				removableNodesPrev = nodes
+			}
+		}
 		if m.schedulingSim != nil {
 			i.Daemonset = *i.Daemonset.DeepCopy()
 			for idx, c := range i.Daemonset.Spec.Template.Spec.Containers {
@@ -185,10 +197,11 @@ func (m *Processor) UpdateSummary(itemId string) {
 	}
 	rs, _ := shared.GetAggregatedResultsSummary(&m.summary)
 	m.publishResultSummary(rs)
-	rst, _ := shared.GetAggregatedResultsSummaryTable(&m.summary, m.clusterNodes, removableNodes)
+	rst, _ := shared.GetAggregatedResultsSummaryTable(&m.summary, m.clusterNodes, removableNodes, removableNodesPrev)
 	m.publishResultSummaryTable(rst)
 }
 
-func (m *Processor) SetSchedulingSim(sim *simulation.SchedulerService) {
+func (m *Processor) SetSchedulingSim(sim, simPrev *simulation.SchedulerService) {
 	m.schedulingSim = sim
+	m.schedulingSimPrev = simPrev
 }
