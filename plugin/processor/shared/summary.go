@@ -174,7 +174,7 @@ func GetAggregatedResultsSummaryTable(processorSummary *utils.ConcurrentMap[stri
 				nodeListToString(cluster, false),
 				nodeListToString(diff(cluster, removableNodes), false),
 				nodeListToString(removableNodes, true),
-				SprintfWithStyle("%.2f%%", -float64(len(removableNodes))/float64(len(cluster))*100.0, false),
+				fmt.Sprintf("%.2f%%", -float64(len(removableNodes))/float64(len(cluster))*100.0),
 			},
 		})
 		for _, n := range removableNodesPrev {
@@ -192,8 +192,8 @@ func GetAggregatedResultsSummaryTable(processorSummary *utils.ConcurrentMap[stri
 			summaryTable.Message = append(summaryTable.Message, &golang.ResultSummaryTableRow{
 				Cells: []string{
 					removableNodesStyle.Render("Removable Nodes after implementing Optimization"),
-					removableNodesStyle.Render(n.Name),
 					"",
+					removableNodesStyle.Render(n.Name),
 					"",
 					"",
 				},
@@ -224,7 +224,7 @@ func GetAggregatedResultsSummaryTable(processorSummary *utils.ConcurrentMap[stri
 				nodeListToString(cluster, false),
 				nodeListToString(diff(cluster, removableNodes), false),
 				nodeListToString(removableNodes, true),
-				SprintfWithStyle("%.2f%%", -float64(len(removableNodes))/float64(len(cluster))*100.0, false),
+				fmt.Sprintf("%.2f%%", -float64(len(removableNodes))/float64(len(cluster))*100.0),
 			},
 		})
 		for _, n := range removableNodesPrev {
@@ -242,8 +242,8 @@ func GetAggregatedResultsSummaryTable(processorSummary *utils.ConcurrentMap[stri
 			summaryTable.Message = append(summaryTable.Message, &golang.ResultSummaryTableRow{
 				Cells: []string{
 					removableNodesStyle.Render("Removable Nodes after implementing Optimization"),
-					removableNodesStyle.Render(n.Name),
 					"",
+					removableNodesStyle.Render(n.Name),
 					"",
 					"",
 				},
