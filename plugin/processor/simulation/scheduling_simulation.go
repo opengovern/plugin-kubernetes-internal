@@ -279,7 +279,7 @@ func (s *Scheduler) satisfiesPodAffinityTerm(term corev1.PodAffinityTerm, node s
 }
 
 func (s *Scheduler) hasEnoughResources(podSpec corev1.PodSpec, node *shared.KubernetesNode) (bool, string) {
-	cpuReq, memReq := s.getPodResourceRequests(podSpec)
+	cpuReq, memReq := getPodResourceRequests(podSpec)
 
 	if node.AllocatedCPU+cpuReq > node.VCores*CPUHeadroomFactor {
 		return false, SchedulingReason_NotEnoughCPU
@@ -294,7 +294,7 @@ func (s *Scheduler) hasEnoughResources(podSpec corev1.PodSpec, node *shared.Kube
 	return true, ""
 }
 
-func (s *Scheduler) getPodResourceRequests(podSpec corev1.PodSpec) (float64, float64) {
+func getPodResourceRequests(podSpec corev1.PodSpec) (float64, float64) {
 	cpuReq, memReq := float64(0), float64(0)
 
 	// Calculate for init containers
@@ -438,7 +438,7 @@ func (s *Scheduler) countHealthyPods(pdb policyv1.PodDisruptionBudget) int {
 }
 
 func (s *Scheduler) schedulePod(pod corev1.PodTemplateSpec, node *shared.KubernetesNode) {
-	cpuReq, memReq := s.getPodResourceRequests(pod.Spec)
+	cpuReq, memReq := getPodResourceRequests(pod.Spec)
 	node.AllocatedCPU += cpuReq
 	node.AllocatedMem += memReq
 	node.AllocatedPod++

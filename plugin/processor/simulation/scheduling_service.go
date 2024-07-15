@@ -8,6 +8,7 @@ import (
 	v1 "k8s.io/api/batch/v1"
 	corev1 "k8s.io/api/core/v1"
 	policyv1 "k8s.io/api/policy/v1"
+	"sort"
 )
 
 type SchedulerService struct {
@@ -66,30 +67,37 @@ func (s *SchedulerService) Simulate() ([]shared.KubernetesNode, error) {
 }
 
 const (
-	ResourcePriority_PodAffinity  = "podAffinity"
-	ResourcePriority_NodeAffinity = "nodeAffinity"
-	ResourcePriority_Toleration   = "toleration"
-	ResourcePriority_NodeSelector = "nodeSelector"
-	ResourcePriority_None         = "none"
+	ResourcePriority_PodAffinity  = 0000
+	ResourcePriority_NodeAffinity = 1000
+	ResourcePriority_Toleration   = 2000
+	ResourcePriority_NodeSelector = 3000
+	ResourcePriority_None         = 4000
 )
 
-func resourcePriority(podSpec corev1.PodSpec) string {
+func resourcePriority(podSpec corev1.PodSpec) int {
+	cpuReq, memReq := getPodResourceRequests(podSpec)
+
 	if podSpec.Affinity != nil {
 		if podSpec.Affinity.PodAffinity != nil || podSpec.Affinity.PodAntiAffinity != nil {
-			return ResourcePriority_PodAffinity
+			return ResourcePriority_PodAffinity - int(cpuReq*4+memReq)
 		} else if podSpec.Affinity.NodeAffinity != nil {
-			return ResourcePriority_NodeAffinity
+			return ResourcePriority_NodeAffinity - int(cpuReq*4+memReq)
 		}
 	}
 
 	if len(podSpec.Tolerations) > 0 {
-		return ResourcePriority_Toleration
+		return ResourcePriority_Toleration - int(cpuReq*4+memReq)
 	}
 
 	if len(podSpec.NodeSelector) > 0 {
-		return ResourcePriority_NodeSelector
+		return ResourcePriority_NodeSelector - int(cpuReq*4+memReq)
 	}
-	return ResourcePriority_None
+	return ResourcePriority_None - int(cpuReq*4+memReq)
+}
+
+type simulationResource struct {
+	AddFunc  func()
+	Priority int
 }
 
 func (s *SchedulerService) simulate(nodes []shared.KubernetesNode) ([]shared.KubernetesNode, error) {
@@ -102,78 +110,89 @@ func (s *SchedulerService) simulate(nodes []shared.KubernetesNode) ([]shared.Kub
 		scheduler.AddPodDisruptionBudget(pb)
 	}
 
-	for _, priority := range []string{ResourcePriority_PodAffinity, ResourcePriority_NodeAffinity,
-		ResourcePriority_Toleration, ResourcePriority_NodeSelector, ResourcePriority_None} {
-		var err error
-		s.daemonSets.Range(func(_ string, r appv1.DaemonSet) bool {
-			if resourcePriority(r.Spec.Template.Spec) != priority {
-				return true
-			}
+	var resources []simulationResource
 
-			if ok, reason := scheduler.AddDaemonSet(r); !ok {
-				err = fmt.Errorf("failed to add daemonSet %s due to: %s", r.Name+"/"+r.Namespace, reason)
-			}
-			return true
+	var err error
+	s.daemonSets.Range(func(_ string, r appv1.DaemonSet) bool {
+		resources = append(resources, simulationResource{
+			Priority: resourcePriority(r.Spec.Template.Spec),
+			AddFunc: func() {
+				if ok, reason := scheduler.AddDaemonSet(r); !ok {
+					err = fmt.Errorf("failed to add daemonSet %s due to: %s", r.Name+"/"+r.Namespace, reason)
+				}
+			},
 		})
-		if err != nil {
-			return nil, err
-		}
+		return true
+	})
+	if err != nil {
+		return nil, err
+	}
 
-		s.deployments.Range(func(_ string, r appv1.Deployment) bool {
-			if resourcePriority(r.Spec.Template.Spec) != priority {
-				return true
-			}
-
-			if ok, reason := scheduler.AddDeployment(r); !ok {
-				err = fmt.Errorf("failed to add deployment %s due to: %s", r.Name+"/"+r.Namespace, reason)
-			}
-			return true
+	s.deployments.Range(func(_ string, r appv1.Deployment) bool {
+		resources = append(resources, simulationResource{
+			Priority: resourcePriority(r.Spec.Template.Spec),
+			AddFunc: func() {
+				if ok, reason := scheduler.AddDeployment(r); !ok {
+					err = fmt.Errorf("failed to add deployment %s due to: %s", r.Name+"/"+r.Namespace, reason)
+				}
+			},
 		})
-		if err != nil {
-			return nil, err
-		}
+		return true
+	})
+	if err != nil {
+		return nil, err
+	}
 
-		s.jobs.Range(func(_ string, r v1.Job) bool {
-			if resourcePriority(r.Spec.Template.Spec) != priority {
-				return true
-			}
-
-			if ok, reason := scheduler.AddJob(r); !ok {
-				err = fmt.Errorf("failed to add job %s due to: %s", r.Name+"/"+r.Namespace, reason)
-			}
-			return true
+	s.jobs.Range(func(_ string, r v1.Job) bool {
+		resources = append(resources, simulationResource{
+			Priority: resourcePriority(r.Spec.Template.Spec),
+			AddFunc: func() {
+				if ok, reason := scheduler.AddJob(r); !ok {
+					err = fmt.Errorf("failed to add job %s due to: %s", r.Name+"/"+r.Namespace, reason)
+				}
+			},
 		})
-		if err != nil {
-			return nil, err
-		}
+		return true
+	})
+	if err != nil {
+		return nil, err
+	}
 
-		s.statefulsets.Range(func(_ string, r appv1.StatefulSet) bool {
-			if resourcePriority(r.Spec.Template.Spec) != priority {
-				return true
-			}
-
-			if ok, reason := scheduler.AddStatefulSet(r); !ok {
-				err = fmt.Errorf("failed to add statefulset %s due to: %s", r.Name+"/"+r.Namespace, reason)
-			}
-			return true
+	s.statefulsets.Range(func(_ string, r appv1.StatefulSet) bool {
+		resources = append(resources, simulationResource{
+			Priority: resourcePriority(r.Spec.Template.Spec),
+			AddFunc: func() {
+				if ok, reason := scheduler.AddStatefulSet(r); !ok {
+					err = fmt.Errorf("failed to add statefulset %s due to: %s", r.Name+"/"+r.Namespace, reason)
+				}
+			},
 		})
-		if err != nil {
-			return nil, err
-		}
+		return true
+	})
+	if err != nil {
+		return nil, err
+	}
 
-		s.pods.Range(func(_ string, r corev1.Pod) bool {
-			if resourcePriority(r.Spec) != priority {
-				return true
-			}
-
-			if ok, reason := scheduler.AddPod(r); !ok {
-				err = fmt.Errorf("failed to add pod %s due to: %s", r.Name+"/"+r.Namespace, reason)
-			}
-			return true
+	s.pods.Range(func(_ string, r corev1.Pod) bool {
+		resources = append(resources, simulationResource{
+			Priority: resourcePriority(r.Spec),
+			AddFunc: func() {
+				if ok, reason := scheduler.AddPod(r); !ok {
+					err = fmt.Errorf("failed to add pod %s due to: %s", r.Name+"/"+r.Namespace, reason)
+				}
+			},
 		})
-		if err != nil {
-			return nil, err
-		}
+		return true
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	sort.Slice(resources, func(i, j int) bool {
+		return resources[i].Priority < resources[j].Priority
+	})
+	for _, r := range resources {
+		r.AddFunc()
 	}
 
 	var removed []shared.KubernetesNode
