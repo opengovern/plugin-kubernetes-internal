@@ -32,6 +32,8 @@ type DeploymentItem struct {
 	Nodes                     []shared.KubernetesNode
 	ObservabilityDuration     time.Duration
 	Cost                      float64
+	VCpuHoursInPeriod         map[string]map[string]float64 // Pod -> Container -> VCpuHours
+	MemoryGBHoursInPeriod     map[string]map[string]float64 // Pod -> Container -> MemoryGBHours
 }
 
 func (i DeploymentItem) GetID() string {
@@ -117,6 +119,30 @@ func (i DeploymentItem) Devices() ([]*golang.ChartRow, map[string]*golang.Proper
 		}
 		row.Values["current_memory"] = &golang.ChartRowItem{
 			Value: shared.MemoryConfiguration(memoryRequest, memoryLimit),
+		}
+
+		if i.VCpuHoursInPeriod != nil {
+			totalVCpuHours := 0.0
+			for _, pod := range i.VCpuHoursInPeriod {
+				totalVCpuHours += pod[container.Name]
+			}
+			cpuHourProperty := golang.Property{
+				Key:     "vCPU Hours",
+				Average: fmt.Sprintf("%.2f vCpuHour", totalVCpuHours),
+			}
+			properties.Properties = append(properties.Properties, &cpuHourProperty)
+		}
+
+		if i.MemoryGBHoursInPeriod != nil {
+			totalMemoryGBHours := 0.0
+			for _, pod := range i.MemoryGBHoursInPeriod {
+				totalMemoryGBHours += pod[container.Name]
+			}
+			memoryHourProperty := golang.Property{
+				Key:     "Memory GB Hours",
+				Average: fmt.Sprintf("%.2f GBHour", totalMemoryGBHours),
+			}
+			properties.Properties = append(properties.Properties, &memoryHourProperty)
 		}
 
 		if rightSizing != nil && rightSizing.Recommended != nil {
@@ -250,6 +276,21 @@ func (i DeploymentItem) Devices() ([]*golang.ChartRow, map[string]*golang.Proper
 			}
 			row.Values["current_memory"] = &golang.ChartRowItem{
 				Value: shared.MemoryConfiguration(memoryRequest, memoryLimit),
+			}
+
+			if i.VCpuHoursInPeriod != nil && i.VCpuHoursInPeriod[pod.Name] != nil {
+				cpuHourProperty := golang.Property{
+					Key:     "vCPU Hours",
+					Average: fmt.Sprintf("%.2f vCpuHour", i.VCpuHoursInPeriod[pod.Name][container.Name]),
+				}
+				properties.Properties = append(properties.Properties, &cpuHourProperty)
+			}
+			if i.MemoryGBHoursInPeriod != nil && i.MemoryGBHoursInPeriod[pod.Name] != nil {
+				memoryHourProperty := golang.Property{
+					Key:     "Memory GB Hours",
+					Average: fmt.Sprintf("%.2f GBHour", i.MemoryGBHoursInPeriod[pod.Name][container.Name]),
+				}
+				properties.Properties = append(properties.Properties, &memoryHourProperty)
 			}
 
 			if rightSizing != nil && rightSizing.Recommended != nil {
