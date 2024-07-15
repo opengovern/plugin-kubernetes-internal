@@ -220,7 +220,7 @@ func (p *KubernetesPlugin) GetConfig(_ context.Context) golang.RegisterConfig {
 				},
 				{
 					Id:    "x_kaytu_right_arrow",
-					Name:  "",
+					Name:  " ",
 					Width: 1,
 				},
 			},
@@ -508,7 +508,7 @@ func (p *KubernetesPlugin) StartProcess(ctx context.Context, command string, fla
 							},
 							{
 								Id:    "x_kaytu_right_arrow",
-								Name:  "",
+								Name:  " ",
 								Width: 1,
 							},
 						},
@@ -568,7 +568,7 @@ func (p *KubernetesPlugin) StartProcess(ctx context.Context, command string, fla
 							},
 							{
 								Id:    "x_kaytu_right_arrow",
-								Name:  "",
+								Name:  " ",
 								Width: 1,
 							},
 						},
@@ -628,7 +628,7 @@ func (p *KubernetesPlugin) StartProcess(ctx context.Context, command string, fla
 							},
 							{
 								Id:    "x_kaytu_right_arrow",
-								Name:  "",
+								Name:  " ",
 								Width: 1,
 							},
 						},
@@ -688,7 +688,7 @@ func (p *KubernetesPlugin) StartProcess(ctx context.Context, command string, fla
 							},
 							{
 								Id:    "x_kaytu_right_arrow",
-								Name:  "",
+								Name:  " ",
 								Width: 1,
 							},
 						},
@@ -754,7 +754,7 @@ func (p *KubernetesPlugin) StartProcess(ctx context.Context, command string, fla
 							},
 							{
 								Id:    "x_kaytu_right_arrow",
-								Name:  "",
+								Name:  " ",
 								Width: 1,
 							},
 						},
