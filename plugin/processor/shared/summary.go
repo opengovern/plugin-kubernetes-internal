@@ -69,7 +69,7 @@ func GetAggregatedResultsSummary(processorSummary *utils.ConcurrentMap[string, R
 		MemoryLimitDownSizing:   memoryLimitDownSizing,
 		TotalMemoryLimit:        totalMemoryLimit,
 	}
-	summary.Message = fmt.Sprintf("Overall changes: CPU request: %.2f of %.2f core, CPU limit: %.2f of %.2f core, Memory request: %s of %s, Memory limit: %s of %s", (cpuRequestUpSizing + cpuRequestDownSizing), totalCpuRequest, (cpuLimitUpSizing + cpuLimitDownSizing), totalCpuLimit, SizeByte64(memoryRequestUpSizing+memoryRequestDownSizing), SizeByte64(totalMemoryRequest), SizeByte64(memoryLimitUpSizing+memoryLimitDownSizing), SizeByte64(totalMemoryLimit))
+	summary.Message = fmt.Sprintf("Overall changes: CPU request: %.2f of %.2f core, CPU limit: %.2f of %.2f core, Memory request: %s of %s, Memory limit: %s of %s", (cpuRequestUpSizing + cpuRequestDownSizing), totalCpuRequest, (cpuLimitUpSizing + cpuLimitDownSizing), totalCpuLimit, SizeByte64(memoryRequestUpSizing+memoryRequestDownSizing, false), SizeByte64(totalMemoryRequest, false), SizeByte64(memoryLimitUpSizing+memoryLimitDownSizing, false), SizeByte64(totalMemoryLimit, false))
 	return summary, &resourceSummary
 }
 
@@ -103,8 +103,8 @@ func GetAggregatedResultsSummaryTable(processorSummary *utils.ConcurrentMap[stri
 			lipgloss.NewStyle().Foreground(lipgloss.Color("#dddddd")).Render("CPU Request (Cores)"),
 			fmt.Sprintf("%.2f Cores", totalCpuRequest),
 			fmt.Sprintf("%.2f Cores", totalCpuRequest+cpuRequestUpSizing+cpuRequestDownSizing),
-			SprintfWithStyle("%.2f Cores", cpuRequestUpSizing+cpuRequestDownSizing, false),
-			SprintfWithStyle("%.2f%%", (cpuRequestUpSizing+cpuRequestDownSizing)/totalCpuRequest*100.0, false),
+			SprintfWithStyle("%+.2f Cores", cpuRequestUpSizing+cpuRequestDownSizing, false),
+			SprintfWithStyle("%+.2f%%", (cpuRequestUpSizing+cpuRequestDownSizing)/totalCpuRequest*100.0, false),
 		},
 	})
 	summaryTable.Message = append(summaryTable.Message, &golang.ResultSummaryTableRow{
@@ -112,26 +112,26 @@ func GetAggregatedResultsSummaryTable(processorSummary *utils.ConcurrentMap[stri
 			lipgloss.NewStyle().Foreground(lipgloss.Color("#dddddd")).Render("CPU Limit (Cores)"),
 			fmt.Sprintf("%.2f Cores", totalCpuLimit),
 			fmt.Sprintf("%.2f Cores", totalCpuLimit+cpuLimitUpSizing+cpuLimitDownSizing),
-			SprintfWithStyle("%.2f Cores", cpuLimitUpSizing+cpuLimitDownSizing, false),
-			SprintfWithStyle("%.2f%%", (cpuLimitUpSizing+cpuLimitDownSizing)/totalCpuLimit*100.0, false),
+			SprintfWithStyle("%+.2f Cores", cpuLimitUpSizing+cpuLimitDownSizing, false),
+			SprintfWithStyle("%+.2f%%", (cpuLimitUpSizing+cpuLimitDownSizing)/totalCpuLimit*100.0, false),
 		},
 	})
 	summaryTable.Message = append(summaryTable.Message, &golang.ResultSummaryTableRow{
 		Cells: []string{
 			lipgloss.NewStyle().Foreground(lipgloss.Color("#dddddd")).Render("Memory Request"),
-			SizeByte64(totalMemoryRequest),
-			SizeByte64(totalMemoryRequest + memoryRequestUpSizing + memoryRequestDownSizing),
-			SizeByte64WithStyle(memoryRequestUpSizing + memoryRequestDownSizing),
-			SprintfWithStyle("%.2f%%", (memoryRequestUpSizing+memoryRequestDownSizing)/totalMemoryRequest*100.0, false),
+			SizeByte64(totalMemoryRequest, false),
+			SizeByte64(totalMemoryRequest+memoryRequestUpSizing+memoryRequestDownSizing, false),
+			SizeByte64WithStyle(memoryRequestUpSizing+memoryRequestDownSizing, true),
+			SprintfWithStyle("%+.2f%%", (memoryRequestUpSizing+memoryRequestDownSizing)/totalMemoryRequest*100.0, false),
 		},
 	})
 	summaryTable.Message = append(summaryTable.Message, &golang.ResultSummaryTableRow{
 		Cells: []string{
 			lipgloss.NewStyle().Foreground(lipgloss.Color("#dddddd")).Render("Memory Limit"),
-			SizeByte64(totalMemoryLimit),
-			SizeByte64(totalMemoryLimit + memoryLimitUpSizing + memoryLimitDownSizing),
-			SizeByte64WithStyle(memoryLimitUpSizing + memoryLimitDownSizing),
-			SprintfWithStyle("%.2f%%", (memoryLimitUpSizing+memoryLimitDownSizing)/totalMemoryLimit*100.0, false),
+			SizeByte64(totalMemoryLimit, false),
+			SizeByte64(totalMemoryLimit+memoryLimitUpSizing+memoryLimitDownSizing, false),
+			SizeByte64WithStyle(memoryLimitUpSizing+memoryLimitDownSizing, true),
+			SprintfWithStyle("%+.2f%%", (memoryLimitUpSizing+memoryLimitDownSizing)/totalMemoryLimit*100.0, false),
 		},
 	})
 	var clusterCPU, clusterMemory, clusterCost, reducedCPU, reducedMemory, reducedCost float64
@@ -205,17 +205,17 @@ func GetAggregatedResultsSummaryTable(processorSummary *utils.ConcurrentMap[stri
 				"Cluster (CPU)",
 				fmt.Sprintf("%.2f Cores", clusterCPU),
 				fmt.Sprintf("%.2f Cores", clusterCPU-reducedCPU),
-				SprintfWithStyle("%.2f Cores", -reducedCPU, false),
-				SprintfWithStyle("%.2f%%", -reducedCPU/clusterCPU*100.0, false),
+				SprintfWithStyle("%+.2f Cores", -reducedCPU, false),
+				SprintfWithStyle("%+.2f%%", -reducedCPU/clusterCPU*100.0, false),
 			},
 		})
 		summaryTable.Message = append(summaryTable.Message, &golang.ResultSummaryTableRow{
 			Cells: []string{
 				"Cluster (Memory)",
-				SizeByte64(clusterMemory),
-				SizeByte64(clusterMemory - reducedMemory),
-				SizeByte64WithStyle(-reducedMemory),
-				SprintfWithStyle("%.2f%%", -reducedMemory/clusterMemory*100.0, false),
+				SizeByte64(clusterMemory, false),
+				SizeByte64(clusterMemory-reducedMemory, false),
+				SizeByte64WithStyle(-reducedMemory, true),
+				SprintfWithStyle("%+.2f%%", -reducedMemory/clusterMemory*100.0, false),
 			},
 		})
 		summaryTable.Message = append(summaryTable.Message, &golang.ResultSummaryTableRow{

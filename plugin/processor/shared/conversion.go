@@ -1,33 +1,42 @@
 package shared
 
-import "fmt"
+import (
+	"fmt"
+	"math"
+)
 
-func SizeByte(v float64) string {
-	return SizeByte64(float64(v))
+func SizeByte(v float64, includeSign bool) string {
+	return SizeByte64(v, includeSign)
 }
 
-func SizeByte64(v float64) string {
-	if v < 0 {
-		return fmt.Sprintf("-%s", SizeByte64(-v))
+func SizeByte64(v float64, includeSign bool) string {
+	format := "%"
+	if includeSign {
+		format += "+"
 	}
 
-	if v < 1024 {
-		return fmt.Sprintf("%.0f Bytes", v)
+	if math.Abs(v) < 1024 {
+		format += ".0f Bytes"
+		return fmt.Sprintf(format, v)
 	}
 	v = v / 1024
-	if v < 1024 {
-		return fmt.Sprintf("%.1f KB", v)
+	if math.Abs(v) < 1024 {
+		format += ".1f KB"
+		return fmt.Sprintf(format, v)
 	}
 	v = v / 1024
-	if v < 1024 {
-		return fmt.Sprintf("%.1f MB", v)
+	if math.Abs(v) < 1024 {
+		format += ".1f MB"
+		return fmt.Sprintf(format, v)
 	}
 	v = v / 1024
-	return fmt.Sprintf("%.1f GB", v)
+
+	format += ".1f GB"
+	return fmt.Sprintf(format, v)
 }
 
-func SizeByte64WithStyle(value float64) string {
-	str := SizeByte64(value)
+func SizeByte64WithStyle(value float64, includeSign bool) string {
+	str := SizeByte64(value, includeSign)
 	if value < 0 {
 		str = decreaseStyle.Render(str)
 	} else if value > 0 {
