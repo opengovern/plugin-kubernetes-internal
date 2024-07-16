@@ -176,12 +176,12 @@ func (m *Processor) exportCsv() []*golang.CSVRow {
 					row = append(row, "Not configured")
 				}
 				if memoryRequest != nil {
-					row = append(row, fmt.Sprintf("%s", shared.SizeByte(righSizing.Recommended.MemoryRequest-*memoryRequest)))
+					row = append(row, fmt.Sprintf("%s", shared.SizeByte(righSizing.Recommended.MemoryRequest-*memoryRequest, false)))
 				} else {
 					row = append(row, "Not configured")
 				}
 				if memoryLimit != nil {
-					row = append(row, fmt.Sprintf("%s", shared.SizeByte(righSizing.Recommended.MemoryLimit-*memoryLimit)))
+					row = append(row, fmt.Sprintf("%s", shared.SizeByte(righSizing.Recommended.MemoryLimit-*memoryLimit, false)))
 				} else {
 					row = append(row, "Not configured")
 				}

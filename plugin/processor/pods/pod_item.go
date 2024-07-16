@@ -156,21 +156,21 @@ func (i PodItem) Devices() ([]*golang.ChartRow, map[string]*golang.Properties) {
 				cpuLimitProperty.Average = fmt.Sprintf("max: %.2f", righSizing.CpuMax.Value)
 			}
 
-			memoryRequestProperty.Current = shared.SizeByte(righSizing.Current.MemoryRequest)
+			memoryRequestProperty.Current = shared.SizeByte(righSizing.Current.MemoryRequest, false)
 			if memoryRequest == nil {
 				memoryRequestProperty.Current = "Not configured"
 			}
-			memoryRequestProperty.Recommended = shared.SizeByte(righSizing.Recommended.MemoryRequest)
+			memoryRequestProperty.Recommended = shared.SizeByte(righSizing.Recommended.MemoryRequest, false)
 			if righSizing.MemoryTrimmedMean != nil {
-				memoryRequestProperty.Average = "avg(tm99): " + shared.SizeByte(righSizing.MemoryTrimmedMean.Value)
+				memoryRequestProperty.Average = "avg(tm99): " + shared.SizeByte(righSizing.MemoryTrimmedMean.Value, false)
 			}
-			memoryLimitProperty.Current = shared.SizeByte(righSizing.Current.MemoryLimit)
+			memoryLimitProperty.Current = shared.SizeByte(righSizing.Current.MemoryLimit, false)
 			if memoryLimit == nil {
 				memoryLimitProperty.Current = "Not configured"
 			}
-			memoryLimitProperty.Recommended = shared.SizeByte(righSizing.Recommended.MemoryLimit)
+			memoryLimitProperty.Recommended = shared.SizeByte(righSizing.Recommended.MemoryLimit, false)
 			if righSizing.MemoryMax != nil {
-				memoryLimitProperty.Average = "max: " + shared.SizeByte(righSizing.MemoryMax.Value)
+				memoryLimitProperty.Average = "max: " + shared.SizeByte(righSizing.MemoryMax.Value, false)
 			}
 
 			row.Values["suggested_cpu"] = &golang.ChartRowItem{
@@ -310,10 +310,10 @@ func (i PodItem) ToOptimizationItem() *golang.ChartOptimizationItem {
 			}
 		}
 
-		cpuRequestReductionString := shared.SprintfWithStyle("request: %.2f core", cpuRequestChange, cpuRequestNotConfigured)
-		cpuLimitReductionString := shared.SprintfWithStyle("limit: %.2f core", cpuLimitChange, cpuLimitNotConfigured)
-		memoryRequestReductionString := shared.SprintfWithStyle(fmt.Sprintf("request: %s", shared.SizeByte(memoryRequestChange)), memoryRequestChange, memoryRequestNotConfigured)
-		memoryLimitReductionString := shared.SprintfWithStyle(fmt.Sprintf("limit: %s", shared.SizeByte(memoryLimitChange)), memoryLimitChange, memoryLimitNotConfigured)
+		cpuRequestReductionString := shared.SprintfWithStyle("request: %+.2f core", cpuRequestChange, cpuRequestNotConfigured)
+		cpuLimitReductionString := shared.SprintfWithStyle("limit: %+.2f core", cpuLimitChange, cpuLimitNotConfigured)
+		memoryRequestReductionString := shared.SprintfWithStyle(fmt.Sprintf("request: %s", shared.SizeByte(memoryRequestChange, true)), memoryRequestChange, memoryRequestNotConfigured)
+		memoryLimitReductionString := shared.SprintfWithStyle(fmt.Sprintf("limit: %s", shared.SizeByte(memoryLimitChange, true)), memoryLimitChange, memoryLimitNotConfigured)
 
 		oi.OverviewChartRow.Values["cpu_change"] = &golang.ChartRowItem{
 			Value:     cpuRequestReductionString + ", " + cpuLimitReductionString,
