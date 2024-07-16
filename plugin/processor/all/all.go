@@ -103,9 +103,8 @@ func (p *Processor) initDaemonsetProcessor(processorConf shared.Configuration) *
 	processorConf.PublishOptimizationItem = publishOptimizationItem
 	processorConf.PublishResultSummary = publishResultSummary
 	processorConf.PublishResultSummaryTable = publishResultSummaryTable
-	pi := daemonsets.NewProcessor(processorConf, nil)
+	pi := daemonsets.NewProcessor(processorConf, p.nodesProcessor)
 	pi.SetSchedulingSim(p.schedulingSim, p.schedulingSimPrev)
-	pi.NodeProcessor = p.nodesProcessor
 	return pi
 }
 
@@ -123,9 +122,8 @@ func (p *Processor) initDeploymentProcessor(processorConf shared.Configuration) 
 	processorConf.PublishOptimizationItem = publishOptimizationItem
 	processorConf.PublishResultSummary = publishResultSummary
 	processorConf.PublishResultSummaryTable = publishResultSummaryTable
-	pi := deployments.NewProcessor(processorConf, nil)
+	pi := deployments.NewProcessor(processorConf, p.nodesProcessor)
 	pi.SetSchedulingSim(p.schedulingSim, p.schedulingSimPrev)
-	pi.NodeProcessor = p.nodesProcessor
 	return pi
 }
 
@@ -143,9 +141,8 @@ func (p *Processor) initStatefulsetProcessor(processorConf shared.Configuration)
 	processorConf.PublishOptimizationItem = publishOptimizationItem
 	processorConf.PublishResultSummary = publishResultSummary
 	processorConf.PublishResultSummaryTable = publishResultSummaryTable
-	pi := statefulsets.NewProcessor(processorConf, nil)
+	pi := statefulsets.NewProcessor(processorConf, p.nodesProcessor)
 	pi.SetSchedulingSim(p.schedulingSim, p.schedulingSimPrev)
-	pi.NodeProcessor = p.nodesProcessor
 	return pi
 }
 
@@ -163,9 +160,8 @@ func (p *Processor) initJobProcessor(processorConf shared.Configuration) *jobs.P
 	processorConf.PublishOptimizationItem = publishOptimizationItem
 	processorConf.PublishResultSummary = publishResultSummary
 	processorConf.PublishResultSummaryTable = publishResultSummaryTable
-	pi := jobs.NewProcessor(processorConf, nil)
+	pi := jobs.NewProcessor(processorConf, p.nodesProcessor)
 	pi.SetSchedulingSim(p.schedulingSim, p.schedulingSimPrev)
-	pi.NodeProcessor = p.nodesProcessor
 	return pi
 }
 
