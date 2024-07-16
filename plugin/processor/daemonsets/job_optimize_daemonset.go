@@ -142,8 +142,8 @@ func (j *OptimizeDaemonsetJob) Run(ctx context.Context) error {
 	nodeCPU := map[string]float64{}
 	nodeMemory := map[string]float64{}
 	for _, p := range item.Pods {
-		if j.processor.NodeProcessor != nil {
-			for _, n := range j.processor.NodeProcessor.GetKubernetesNodes() {
+		if j.processor.nodeProcessor != nil {
+			for _, n := range j.processor.nodeProcessor.GetKubernetesNodes() {
 				if n.Name == p.Spec.NodeName {
 					if n.Cost != nil {
 						nodeCost[p.Name] = *n.Cost

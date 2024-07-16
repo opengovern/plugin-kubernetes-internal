@@ -48,7 +48,7 @@ type Processor struct {
 	schedulingSim             *simulation.SchedulerService
 	schedulingSimPrev         *simulation.SchedulerService
 
-	NodeProcessor      *nodes.Processor
+	nodeProcessor      *nodes.Processor
 	summary            utils.ConcurrentMap[string, shared.ResourceSummary]
 	defaultPreferences []*golang.PreferenceItem
 }
@@ -73,12 +73,10 @@ func NewProcessor(processorConf shared.Configuration, mode ProcessorMode, nodePr
 		observabilityDays:         processorConf.ObservabilityDays,
 		kaytuClient:               processorConf.KaytuClient,
 		defaultPreferences:        processorConf.DefaultPreferences,
-		NodeProcessor:             nodeProcessor,
+		nodeProcessor:             nodeProcessor,
 
 		summary: utils.NewConcurrentMap[string, shared.ResourceSummary](),
 	}
-	// to get past the waitGroup
-	nodeProcessor.GetKubernetesNodes()
 
 	if r.schedulingSim != nil {
 		r.schedulingSim.SetNodes(nodeProcessor.GetKubernetesNodes())
@@ -333,7 +331,7 @@ func (m *Processor) UpdateSummary(itemId string) {
 	}
 	rs, _ := shared.GetAggregatedResultsSummary(&m.summary)
 	m.publishResultSummary(rs)
-	rst, _ := shared.GetAggregatedResultsSummaryTable(&m.summary, m.NodeProcessor.GetKubernetesNodes(), removableNodes, removableNodesPrev)
+	rst, _ := shared.GetAggregatedResultsSummaryTable(&m.summary, m.nodeProcessor.GetKubernetesNodes(), removableNodes, removableNodesPrev)
 	m.publishResultSummaryTable(rst)
 }
 

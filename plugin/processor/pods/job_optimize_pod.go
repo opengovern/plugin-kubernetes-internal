@@ -140,8 +140,8 @@ func (j *OptimizePodJob) Run(ctx context.Context) error {
 	nodeCost := 0.0
 	nodeCPU := 0.0
 	nodeMemory := 0.0
-	if j.processor.NodeProcessor != nil {
-		for _, n := range j.processor.NodeProcessor.GetKubernetesNodes() {
+	if j.processor.nodeProcessor != nil {
+		for _, n := range j.processor.nodeProcessor.GetKubernetesNodes() {
 			if n.Name == item.Pod.Spec.NodeName {
 				if n.Cost != nil {
 					nodeCost = *n.Cost

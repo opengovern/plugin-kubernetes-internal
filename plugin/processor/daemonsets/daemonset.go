@@ -36,10 +36,9 @@ type Processor struct {
 	nodeSelector              string
 	observabilityDays         int
 	defaultPreferences        []*golang.PreferenceItem
-	clusterNodes              []shared.KubernetesNode
 
 	summary       utils.ConcurrentMap[string, shared.ResourceSummary]
-	NodeProcessor *nodes.Processor
+	nodeProcessor *nodes.Processor
 
 	schedulingSim     *simulation.SchedulerService
 	schedulingSimPrev *simulation.SchedulerService
@@ -64,14 +63,16 @@ func NewProcessor(processorConf shared.Configuration, nodeProcessor *nodes.Proce
 		nodeSelector:              processorConf.NodeSelector,
 		observabilityDays:         processorConf.ObservabilityDays,
 		defaultPreferences:        processorConf.DefaultPreferences,
-		NodeProcessor:             nodeProcessor,
+		nodeProcessor:             nodeProcessor,
 
 		summary: utils.NewConcurrentMap[string, shared.ResourceSummary](),
 	}
-	if nodeProcessor != nil {
-		nodeProcessor.GetKubernetesNodes()
+
+	if r.kaytuClient.IsEnabled() {
+		r.jobQueue.Push(NewDownloadKaytuAgentReportJob(r, nodeProcessor.GetKubernetesNodes()))
+	} else {
+		r.jobQueue.Push(NewListAllNamespacesJob(r, nodeProcessor.GetKubernetesNodes()))
 	}
-	processorConf.JobQueue.Push(NewListAllNodesJob(r))
 	return r
 }
 
@@ -197,7 +198,7 @@ func (m *Processor) UpdateSummary(itemId string) {
 	}
 	rs, _ := shared.GetAggregatedResultsSummary(&m.summary)
 	m.publishResultSummary(rs)
-	rst, _ := shared.GetAggregatedResultsSummaryTable(&m.summary, m.clusterNodes, removableNodes, removableNodesPrev)
+	rst, _ := shared.GetAggregatedResultsSummaryTable(&m.summary, m.nodeProcessor.GetKubernetesNodes(), removableNodes, removableNodesPrev)
 	m.publishResultSummaryTable(rst)
 }
 

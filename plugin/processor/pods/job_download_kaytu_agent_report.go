@@ -44,7 +44,7 @@ func (j *DownloadKaytuAgentReportJob) Run(ctx context.Context) error {
 			return err
 		}
 
-		item.Nodes = j.processor.NodeProcessor.GetKubernetesNodes()
+		item.Nodes = j.processor.nodeProcessor.GetKubernetesNodes()
 		if j.processor.namespace != nil && *j.processor.namespace != "" {
 			if item.Namespace != *j.processor.namespace {
 				fmt.Println("ignoring by namespace")

@@ -42,7 +42,7 @@ func (j *ListPodsForNamespaceJob) Run(ctx context.Context) error {
 			Preferences:         j.processor.defaultPreferences,
 			Skipped:             false,
 			LazyLoadingEnabled:  false,
-			Nodes:               j.processor.NodeProcessor.GetKubernetesNodes(),
+			Nodes:               j.processor.nodeProcessor.GetKubernetesNodes(),
 		}
 		if j.processor.nodeSelector != "" {
 			if !shared.PodsInNodes([]v1.Pod{item.Pod}, item.Nodes) {
