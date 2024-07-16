@@ -150,106 +150,112 @@ func GetAggregatedResultsSummaryTable(processorSummary *utils.ConcurrentMap[stri
 			nodes[n.Name] = n
 		}
 	}
-	for _, n := range removableNodes {
-		reducedCPU += n.VCores
-		reducedMemory += n.Memory * 1024 * 1024 * 1024
-		if v := nodes[n.Name]; v.Cost != nil {
-			reducedCost += *v.Cost
-		}
-	}
 
-	if hasCost {
-		summaryTable.Message = append(summaryTable.Message, &golang.ResultSummaryTableRow{
-			Cells: []string{
-				lipgloss.NewStyle().Bold(true).Render("Cluster (Cost)"),
-				increaseStyle.Bold(true).Render(fmt.Sprintf("$%.2f", clusterCost)),
-				decreaseStyle.Bold(true).Render(fmt.Sprintf("$%.2f", clusterCost-reducedCost)),
-				decreaseStyle.Bold(true).Render(fmt.Sprintf("-$%.2f", reducedCost)),
-				SprintfWithStyle("%.2f%%", -reducedCost/clusterCost*100.0, false),
-			},
-		})
-		summaryTable.Message = append(summaryTable.Message, &golang.ResultSummaryTableRow{
-			Cells: []string{
-				lipgloss.NewStyle().Foreground(lipgloss.Color("#dddddd")).Render("Cluster (Nodes)"),
-				nodeListToString(cluster, false),
-				nodeListToString(diff(cluster, removableNodes), false),
-				nodeListToString(removableNodes, true),
-				fmt.Sprintf("%.2f%%", -float64(len(removableNodes))/float64(len(cluster))*100.0),
-			},
-		})
-		for _, n := range removableNodesPrev {
-			summaryTable.Message = append(summaryTable.Message, &golang.ResultSummaryTableRow{
-				Cells: []string{
-					removableNodesPrevStyle.Render("Removable Nodes in the Current Configuration"),
-					removableNodesPrevStyle.Render(n.Name),
-					"",
-					"",
-					"",
-				},
-			})
-		}
+	if len(cluster) > 0 {
 		for _, n := range removableNodes {
+			reducedCPU += n.VCores
+			reducedMemory += n.Memory * 1024 * 1024 * 1024
+			if v := nodes[n.Name]; v.Cost != nil {
+				reducedCost += *v.Cost
+			}
+		}
+
+		if hasCost {
 			summaryTable.Message = append(summaryTable.Message, &golang.ResultSummaryTableRow{
 				Cells: []string{
-					removableNodesStyle.Render("Removable Nodes after implementing Optimization"),
-					"",
-					removableNodesStyle.Render(n.Name),
-					"",
-					"",
+					lipgloss.NewStyle().Bold(true).Render("Cluster (Cost)"),
+					increaseStyle.Bold(true).Render(fmt.Sprintf("$%.2f", clusterCost)),
+					decreaseStyle.Bold(true).Render(fmt.Sprintf("$%.2f", clusterCost-reducedCost)),
+					decreaseStyle.Bold(true).Render(fmt.Sprintf("-$%.2f", reducedCost)),
+					SprintfWithStyle("%.2f%%", -reducedCost/clusterCost*100.0, false),
 				},
 			})
+			summaryTable.Message = append(summaryTable.Message, &golang.ResultSummaryTableRow{
+				Cells: []string{
+					lipgloss.NewStyle().Foreground(lipgloss.Color("#dddddd")).Render("Cluster (Nodes)"),
+					nodeListToString(cluster, false),
+					nodeListToString(diff(cluster, removableNodes), false),
+					nodeListToString(removableNodes, true),
+					fmt.Sprintf("%.2f%%", -float64(len(removableNodes))/float64(len(cluster))*100.0),
+				},
+			})
+			for _, n := range removableNodesPrev {
+				summaryTable.Message = append(summaryTable.Message, &golang.ResultSummaryTableRow{
+					Cells: []string{
+						removableNodesPrevStyle.Render("Removable Nodes in the Current Configuration"),
+						removableNodesPrevStyle.Render(n.Name),
+						"",
+						"",
+						"",
+					},
+				})
+			}
+			for _, n := range removableNodes {
+				summaryTable.Message = append(summaryTable.Message, &golang.ResultSummaryTableRow{
+					Cells: []string{
+						removableNodesStyle.Render("Removable Nodes after implementing Optimization"),
+						"",
+						removableNodesStyle.Render(n.Name),
+						"",
+						"",
+					},
+				})
+			}
+		} else {
+			summaryTable.Message = append(summaryTable.Message, &golang.ResultSummaryTableRow{
+				Cells: []string{
+					"Cluster (CPU)",
+					fmt.Sprintf("%.2f Cores", clusterCPU),
+					fmt.Sprintf("%.2f Cores", clusterCPU-reducedCPU),
+					SprintfWithStyle("%+.2f Cores", -reducedCPU, false),
+					SprintfWithStyle("%+.2f%%", -reducedCPU/clusterCPU*100.0, false),
+				},
+			})
+			summaryTable.Message = append(summaryTable.Message, &golang.ResultSummaryTableRow{
+				Cells: []string{
+					"Cluster (Memory)",
+					SizeByte64(clusterMemory, false),
+					SizeByte64(clusterMemory-reducedMemory, false),
+					SizeByte64WithStyle(-reducedMemory, true),
+					SprintfWithStyle("%+.2f%%", -reducedMemory/clusterMemory*100.0, false),
+				},
+			})
+			summaryTable.Message = append(summaryTable.Message, &golang.ResultSummaryTableRow{
+				Cells: []string{
+					"Cluster (Nodes)",
+					nodeListToString(cluster, false),
+					nodeListToString(diff(cluster, removableNodes), false),
+					nodeListToString(removableNodes, true),
+					fmt.Sprintf("%.2f%%", -float64(len(removableNodes))/float64(len(cluster))*100.0),
+				},
+			})
+			for _, n := range removableNodesPrev {
+				summaryTable.Message = append(summaryTable.Message, &golang.ResultSummaryTableRow{
+					Cells: []string{
+						removableNodesPrevStyle.Render("Removable Nodes in the Current Configuration"),
+						removableNodesPrevStyle.Render(n.Name),
+						"",
+						"",
+						"",
+					},
+				})
+			}
+			for _, n := range removableNodes {
+				summaryTable.Message = append(summaryTable.Message, &golang.ResultSummaryTableRow{
+					Cells: []string{
+						removableNodesStyle.Render("Removable Nodes after implementing Optimization"),
+						"",
+						removableNodesStyle.Render(n.Name),
+						"",
+						"",
+					},
+				})
+			}
 		}
 	} else {
-		summaryTable.Message = append(summaryTable.Message, &golang.ResultSummaryTableRow{
-			Cells: []string{
-				"Cluster (CPU)",
-				fmt.Sprintf("%.2f Cores", clusterCPU),
-				fmt.Sprintf("%.2f Cores", clusterCPU-reducedCPU),
-				SprintfWithStyle("%+.2f Cores", -reducedCPU, false),
-				SprintfWithStyle("%+.2f%%", -reducedCPU/clusterCPU*100.0, false),
-			},
-		})
-		summaryTable.Message = append(summaryTable.Message, &golang.ResultSummaryTableRow{
-			Cells: []string{
-				"Cluster (Memory)",
-				SizeByte64(clusterMemory, false),
-				SizeByte64(clusterMemory-reducedMemory, false),
-				SizeByte64WithStyle(-reducedMemory, true),
-				SprintfWithStyle("%+.2f%%", -reducedMemory/clusterMemory*100.0, false),
-			},
-		})
-		summaryTable.Message = append(summaryTable.Message, &golang.ResultSummaryTableRow{
-			Cells: []string{
-				"Cluster (Nodes)",
-				nodeListToString(cluster, false),
-				nodeListToString(diff(cluster, removableNodes), false),
-				nodeListToString(removableNodes, true),
-				fmt.Sprintf("%.2f%%", -float64(len(removableNodes))/float64(len(cluster))*100.0),
-			},
-		})
-		for _, n := range removableNodesPrev {
-			summaryTable.Message = append(summaryTable.Message, &golang.ResultSummaryTableRow{
-				Cells: []string{
-					removableNodesPrevStyle.Render("Removable Nodes in the Current Configuration"),
-					removableNodesPrevStyle.Render(n.Name),
-					"",
-					"",
-					"",
-				},
-			})
-		}
-		for _, n := range removableNodes {
-			summaryTable.Message = append(summaryTable.Message, &golang.ResultSummaryTableRow{
-				Cells: []string{
-					removableNodesStyle.Render("Removable Nodes after implementing Optimization"),
-					"",
-					removableNodesStyle.Render(n.Name),
-					"",
-					"",
-				},
-			})
-		}
+		fmt.Println("++++++++++++++", len(removableNodes))
 	}
+
 	resourceSummary := ResourceSummary{
 		ReplicaCount:            1,
 		CPURequestUpSizing:      cpuRequestUpSizing,

@@ -78,14 +78,6 @@ func NewProcessor(processorConf shared.Configuration, mode ProcessorMode, nodePr
 		summary: utils.NewConcurrentMap[string, shared.ResourceSummary](),
 	}
 
-	if r.schedulingSim != nil {
-		r.schedulingSim.SetNodes(nodeProcessor.GetKubernetesNodes())
-	}
-
-	if r.schedulingSimPrev != nil {
-		r.schedulingSimPrev.SetNodes(nodeProcessor.GetKubernetesNodes())
-	}
-
 	if r.kaytuClient.IsEnabled() {
 		r.jobQueue.Push(NewDownloadKaytuAgentReportJob(r))
 	} else {
