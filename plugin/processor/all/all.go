@@ -30,6 +30,7 @@ type Processor struct {
 	podsProcessor         *pods.Processor
 	schedulingSim         *simulation.SchedulerService
 	schedulingSimPrev     *simulation.SchedulerService
+	processorConf         shared.Configuration
 }
 
 func (p *Processor) publishOptimizationItemFunc(item *golang.ChartOptimizationItem, kuberType string) {
@@ -74,17 +75,31 @@ func (p *Processor) publishResultSummaryTableFunc(kuberType string) {
 	}
 	if resourceSummary != nil {
 		p.summary.Set(kuberType, *resourceSummary)
-		nds, err := p.schedulingSim.Simulate()
-		if err != nil {
-			fmt.Println("failed to simulate due to", err)
+		var nds, ndsPrev, cluster []shared.KubernetesNode
+		if (p.processorConf.Namespace == nil ||
+			*p.processorConf.Namespace == "") && p.processorConf.Selector == "" && p.processorConf.NodeSelector == "" {
+			var err error
+
+			cluster = p.nodesProcessor.GetKubernetesNodes()
+			nds, err = p.schedulingSim.Simulate()
+			if err != nil {
+				fmt.Println("failed to simulate due to", err)
+			}
+
+			ndsPrev, err = p.schedulingSimPrev.Simulate()
+			if err != nil {
+				fmt.Println("failed to simulate prev due to", err)
+			}
+		} else {
+			fmt.Println(
+				"++++++++++++++++",
+				p.processorConf.Namespace,
+				p.processorConf.Selector,
+				p.processorConf.NodeSelector,
+			)
 		}
 
-		ndsPrev, err := p.schedulingSimPrev.Simulate()
-		if err != nil {
-			fmt.Println("failed to simulate prev due to", err)
-		}
-
-		rs, _ := shared.GetAggregatedResultsSummaryTable(&p.summary, p.nodesProcessor.GetKubernetesNodes(), nds, ndsPrev)
+		rs, _ := shared.GetAggregatedResultsSummaryTable(&p.summary, cluster, nds, ndsPrev)
 		p.publishResultSummaryTable(rs)
 	}
 }
@@ -194,7 +209,11 @@ func NewProcessor(processorConf shared.Configuration, nodesProcessor *nodes.Proc
 		schedulingSim:             simulation.NewSchedulerService(nil),
 		schedulingSimPrev:         simulation.NewSchedulerService(nil),
 		nodesProcessor:            nodesProcessor,
+		processorConf:             processorConf,
 	}
+
+	p.schedulingSim.SetNodes(nodesProcessor.GetKubernetesNodes())
+	p.schedulingSimPrev.SetNodes(nodesProcessor.GetKubernetesNodes())
 
 	p.daemonsetsProcessor = p.initDaemonsetProcessor(processorConf)
 	p.deploymentsProcessor = p.initDeploymentProcessor(processorConf)
