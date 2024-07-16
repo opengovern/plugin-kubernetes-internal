@@ -183,9 +183,8 @@ func (p *Processor) initPodProcessor(processorConf shared.Configuration) *pods.P
 	processorConf.PublishOptimizationItem = publishOptimizationItem
 	processorConf.PublishResultSummary = publishResultSummary
 	processorConf.PublishResultSummaryTable = publishResultSummaryTable
-	pi := pods.NewProcessor(processorConf, pods.ProcessorModeOrphan, nil)
+	pi := pods.NewProcessor(processorConf, pods.ProcessorModeOrphan, p.nodesProcessor)
 	pi.SetSchedulingSim(p.schedulingSim, p.schedulingSimPrev)
-	pi.NodeProcessor = p.nodesProcessor
 	return pi
 }
 

@@ -12,13 +12,11 @@ import (
 
 type DownloadKaytuAgentReportJob struct {
 	processor *Processor
-	nodes     []shared.KubernetesNode
 }
 
-func NewDownloadKaytuAgentReportJob(processor *Processor, nodes []shared.KubernetesNode) *DownloadKaytuAgentReportJob {
+func NewDownloadKaytuAgentReportJob(processor *Processor) *DownloadKaytuAgentReportJob {
 	return &DownloadKaytuAgentReportJob{
 		processor: processor,
-		nodes:     nodes,
 	}
 }
 func (j *DownloadKaytuAgentReportJob) Properties() sdk.JobProperties {
@@ -46,7 +44,7 @@ func (j *DownloadKaytuAgentReportJob) Run(ctx context.Context) error {
 			return err
 		}
 
-		item.Nodes = j.nodes
+		item.Nodes = j.processor.NodeProcessor.GetKubernetesNodes()
 		if j.processor.namespace != nil && *j.processor.namespace != "" {
 			if item.Namespace != *j.processor.namespace {
 				fmt.Println("ignoring by namespace")

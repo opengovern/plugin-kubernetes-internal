@@ -3,18 +3,15 @@ package pods
 import (
 	"context"
 	"github.com/kaytu-io/kaytu/pkg/plugin/sdk"
-	"github.com/kaytu-io/plugin-kubernetes-internal/plugin/processor/shared"
 )
 
 type ListAllNamespacesJob struct {
 	processor *Processor
-	nodes     []shared.KubernetesNode
 }
 
-func NewListAllNamespacesJob(processor *Processor, nodes []shared.KubernetesNode) *ListAllNamespacesJob {
+func NewListAllNamespacesJob(processor *Processor) *ListAllNamespacesJob {
 	return &ListAllNamespacesJob{
 		processor: processor,
-		nodes:     nodes,
 	}
 }
 
@@ -45,7 +42,7 @@ func (j *ListAllNamespacesJob) Run(ctx context.Context) error {
 		if namespace == "kube-system" {
 			continue
 		}
-		j.processor.jobQueue.Push(NewListPodsForNamespaceJob(j.processor, namespace, j.nodes))
+		j.processor.jobQueue.Push(NewListPodsForNamespaceJob(j.processor, namespace))
 	}
 	return nil
 }

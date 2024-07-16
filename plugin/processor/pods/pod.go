@@ -47,7 +47,6 @@ type Processor struct {
 	kaytuClient               *kaytuAgent.KaytuAgent
 	schedulingSim             *simulation.SchedulerService
 	schedulingSimPrev         *simulation.SchedulerService
-	clusterNodes              []shared.KubernetesNode
 
 	NodeProcessor      *nodes.Processor
 	summary            utils.ConcurrentMap[string, shared.ResourceSummary]
@@ -78,16 +77,23 @@ func NewProcessor(processorConf shared.Configuration, mode ProcessorMode, nodePr
 
 		summary: utils.NewConcurrentMap[string, shared.ResourceSummary](),
 	}
-	if nodeProcessor != nil {
-		nodeProcessor.GetKubernetesNodes()
+	// to get past the waitGroup
+	nodeProcessor.GetKubernetesNodes()
+
+	if r.schedulingSim != nil {
+		r.schedulingSim.SetNodes(nodeProcessor.GetKubernetesNodes())
 	}
 
-	processorConf.JobQueue.Push(NewListAllNodesJob(r))
-	return r
-}
+	if r.schedulingSimPrev != nil {
+		r.schedulingSimPrev.SetNodes(nodeProcessor.GetKubernetesNodes())
+	}
 
-func (m *Processor) ClusterNodes() []shared.KubernetesNode {
-	return m.clusterNodes
+	if r.kaytuClient.IsEnabled() {
+		r.jobQueue.Push(NewDownloadKaytuAgentReportJob(r))
+	} else {
+		r.jobQueue.Push(NewListAllNamespacesJob(r))
+	}
+	return r
 }
 
 func (m *Processor) ReEvaluate(id string, items []*golang.PreferenceItem) {
@@ -327,7 +333,7 @@ func (m *Processor) UpdateSummary(itemId string) {
 	}
 	rs, _ := shared.GetAggregatedResultsSummary(&m.summary)
 	m.publishResultSummary(rs)
-	rst, _ := shared.GetAggregatedResultsSummaryTable(&m.summary, m.clusterNodes, removableNodes, removableNodesPrev)
+	rst, _ := shared.GetAggregatedResultsSummaryTable(&m.summary, m.NodeProcessor.GetKubernetesNodes(), removableNodes, removableNodesPrev)
 	m.publishResultSummaryTable(rst)
 }
 

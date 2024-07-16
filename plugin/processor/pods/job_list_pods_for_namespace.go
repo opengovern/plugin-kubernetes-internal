@@ -11,14 +11,12 @@ import (
 type ListPodsForNamespaceJob struct {
 	processor *Processor
 	namespace string
-	nodes     []shared.KubernetesNode
 }
 
-func NewListPodsForNamespaceJob(processor *Processor, namespace string, nodes []shared.KubernetesNode) *ListPodsForNamespaceJob {
+func NewListPodsForNamespaceJob(processor *Processor, namespace string) *ListPodsForNamespaceJob {
 	return &ListPodsForNamespaceJob{
 		processor: processor,
 		namespace: namespace,
-		nodes:     nodes,
 	}
 }
 
@@ -44,7 +42,7 @@ func (j *ListPodsForNamespaceJob) Run(ctx context.Context) error {
 			Preferences:         j.processor.defaultPreferences,
 			Skipped:             false,
 			LazyLoadingEnabled:  false,
-			Nodes:               j.nodes,
+			Nodes:               j.processor.NodeProcessor.GetKubernetesNodes(),
 		}
 		if j.processor.nodeSelector != "" {
 			if !shared.PodsInNodes([]v1.Pod{item.Pod}, item.Nodes) {
