@@ -16,7 +16,7 @@ func PodRequest(reqBody KubernetesPodWastageRequest, token string) (*KubernetesP
 	if err != nil {
 		return nil, err
 	}
-	req, err := http.NewRequest("POST", "https://api.kaytu.io/kaytu/wastage/api/v1/wastage/kubernetes-pod", bytes.NewBuffer(payloadEncoded))
+	req, err := http.NewRequest("POST", "https://app.kaytu.io/kaytu/wastage/api/v1/wastage/kubernetes-pod", bytes.NewBuffer(payloadEncoded))
 	if err != nil {
 		return nil, fmt.Errorf("[pods]: %v", err)
 	}
@@ -55,7 +55,7 @@ func PodRequest(reqBody KubernetesPodWastageRequest, token string) (*KubernetesP
 }
 
 func ConfigurationRequest() (*Configuration, error) {
-	req, err := http.NewRequest("POST", "https://api.kaytu.io/kaytu/wastage/api/v1/wastage/configuration", nil)
+	req, err := http.NewRequest("POST", "https://app.kaytu.io/kaytu/wastage/api/v1/wastage/configuration", nil)
 	if err != nil {
 		return nil, fmt.Errorf("[ConfigurationRequest]: %v", err)
 	}
