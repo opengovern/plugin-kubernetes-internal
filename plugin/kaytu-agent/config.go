@@ -3,7 +3,7 @@ package prometheus
 import (
 	"context"
 	"errors"
-	kaytuKubernetes "github.com/kaytu-io/plugin-kubernetes-internal/plugin/kubernetes"
+	kaytuKubernetes "github.com/opengovern/plugin-kubernetes-internal/plugin/kubernetes"
 	"sync"
 	"time"
 )

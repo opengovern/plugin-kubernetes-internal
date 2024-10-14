@@ -4,7 +4,7 @@ import (
 	"context"
 	"fmt"
 	"github.com/kaytu-io/kaytu/pkg/plugin/sdk"
-	"github.com/kaytu-io/plugin-kubernetes-internal/plugin/processor/shared"
+	"github.com/opengovern/plugin-kubernetes-internal/plugin/processor/shared"
 	v1 "k8s.io/api/core/v1"
 )
 

@@ -2,7 +2,7 @@ package nodes
 
 import (
 	"fmt"
-	"github.com/kaytu-io/plugin-kubernetes-internal/plugin/proto/src/golang"
+	"github.com/opengovern/plugin-kubernetes-internal/plugin/proto/src/golang"
 	corev1 "k8s.io/api/core/v1"
 )
 

@@ -3,7 +3,7 @@ package simulation
 import (
 	"fmt"
 	"github.com/kaytu-io/kaytu/pkg/utils"
-	"github.com/kaytu-io/plugin-kubernetes-internal/plugin/processor/shared"
+	"github.com/opengovern/plugin-kubernetes-internal/plugin/processor/shared"
 	appv1 "k8s.io/api/apps/v1"
 	v1 "k8s.io/api/batch/v1"
 	corev1 "k8s.io/api/core/v1"

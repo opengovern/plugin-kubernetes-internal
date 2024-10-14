@@ -3,11 +3,11 @@ package shared
 import (
 	"github.com/kaytu-io/kaytu/pkg/plugin/proto/src/golang"
 	"github.com/kaytu-io/kaytu/pkg/plugin/sdk"
-	"github.com/kaytu-io/plugin-kubernetes-internal/plugin/kaytu"
-	kaytuAgent "github.com/kaytu-io/plugin-kubernetes-internal/plugin/kaytu-agent"
-	kaytuKubernetes "github.com/kaytu-io/plugin-kubernetes-internal/plugin/kubernetes"
-	kaytuPrometheus "github.com/kaytu-io/plugin-kubernetes-internal/plugin/prometheus"
-	golang2 "github.com/kaytu-io/plugin-kubernetes-internal/plugin/proto/src/golang"
+	"github.com/opengovern/plugin-kubernetes-internal/plugin/kaytu"
+	kaytuAgent "github.com/opengovern/plugin-kubernetes-internal/plugin/kaytu-agent"
+	kaytuKubernetes "github.com/opengovern/plugin-kubernetes-internal/plugin/kubernetes"
+	kaytuPrometheus "github.com/opengovern/plugin-kubernetes-internal/plugin/prometheus"
+	golang2 "github.com/opengovern/plugin-kubernetes-internal/plugin/proto/src/golang"
 	"sync/atomic"
 )
 

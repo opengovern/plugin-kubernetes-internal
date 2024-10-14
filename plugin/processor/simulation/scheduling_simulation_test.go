@@ -2,7 +2,7 @@ package simulation
 
 import (
 	"fmt"
-	"github.com/kaytu-io/plugin-kubernetes-internal/plugin/processor/shared"
+	"github.com/opengovern/plugin-kubernetes-internal/plugin/processor/shared"
 	v12 "k8s.io/api/batch/v1"
 	"k8s.io/apimachinery/pkg/api/resource"
 	"k8s.io/apimachinery/pkg/util/intstr"

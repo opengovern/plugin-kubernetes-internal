@@ -3,7 +3,7 @@ package shared
 import (
 	"fmt"
 	"github.com/kaytu-io/kaytu/pkg/plugin/proto/src/golang"
-	golang2 "github.com/kaytu-io/plugin-kubernetes-internal/plugin/proto/src/golang"
+	golang2 "github.com/opengovern/plugin-kubernetes-internal/plugin/proto/src/golang"
 	corev1 "k8s.io/api/core/v1"
 	"strconv"
 	"time"

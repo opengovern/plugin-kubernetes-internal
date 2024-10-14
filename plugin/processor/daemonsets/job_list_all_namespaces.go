@@ -3,7 +3,7 @@ package daemonsets
 import (
 	"context"
 	"github.com/kaytu-io/kaytu/pkg/plugin/sdk"
-	"github.com/kaytu-io/plugin-kubernetes-internal/plugin/processor/shared"
+	"github.com/opengovern/plugin-kubernetes-internal/plugin/processor/shared"
 )
 
 type ListAllNamespacesJob struct {
