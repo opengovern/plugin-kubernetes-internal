@@ -3,10 +3,10 @@ package nodes
 import (
 	"github.com/kaytu-io/kaytu/pkg/plugin/sdk"
 	"github.com/kaytu-io/kaytu/pkg/utils"
-	kaytuKubernetes "github.com/kaytu-io/plugin-kubernetes-internal/plugin/kubernetes"
-	"github.com/kaytu-io/plugin-kubernetes-internal/plugin/processor/shared"
-	"github.com/kaytu-io/plugin-kubernetes-internal/plugin/processor/simulation"
-	"github.com/kaytu-io/plugin-kubernetes-internal/plugin/proto/src/golang"
+	kaytuKubernetes "github.com/opengovern/plugin-kubernetes-internal/plugin/kubernetes"
+	"github.com/opengovern/plugin-kubernetes-internal/plugin/processor/shared"
+	"github.com/opengovern/plugin-kubernetes-internal/plugin/processor/simulation"
+	"github.com/opengovern/plugin-kubernetes-internal/plugin/proto/src/golang"
 	"sync"
 	"sync/atomic"
 )

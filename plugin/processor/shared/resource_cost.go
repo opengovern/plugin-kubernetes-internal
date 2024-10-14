@@ -1,7 +1,7 @@
 package shared
 
 import (
-	kaytuPrometheus "github.com/kaytu-io/plugin-kubernetes-internal/plugin/prometheus"
+	kaytuPrometheus "github.com/opengovern/plugin-kubernetes-internal/plugin/prometheus"
 	"sort"
 	"time"
 )

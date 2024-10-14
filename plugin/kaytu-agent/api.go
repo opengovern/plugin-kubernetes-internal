@@ -2,7 +2,7 @@ package prometheus
 
 import (
 	"context"
-	kaytuAgent "github.com/kaytu-io/kaytu-agent/pkg/proto/src/golang"
+	kaytuAgent "github.com/opengovern/og-agent/pkg/proto/src/golang"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
 )

@@ -2,7 +2,7 @@ package simulation
 
 import (
 	"fmt"
-	"github.com/kaytu-io/plugin-kubernetes-internal/plugin/processor/shared"
+	"github.com/opengovern/plugin-kubernetes-internal/plugin/processor/shared"
 	"math"
 	"sort"
 	"strings"

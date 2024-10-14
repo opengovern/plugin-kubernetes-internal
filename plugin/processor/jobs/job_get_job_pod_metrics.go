@@ -5,7 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"github.com/kaytu-io/kaytu/pkg/plugin/sdk"
-	kaytuPrometheus "github.com/kaytu-io/plugin-kubernetes-internal/plugin/prometheus"
+	kaytuPrometheus "github.com/opengovern/plugin-kubernetes-internal/plugin/prometheus"
 	"time"
 )
 
